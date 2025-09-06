@@ -27,27 +27,21 @@ func WithHTTPClientTimeout(timeout time.Duration) Option {
 	}
 }
 
-// WithBasicAuth sets basic authentication credentials
-// For MPGS, just pass your merchantID and API password
-// The client will automatically format it as "merchant.{merchantId}"
-func WithBasicAuth(merchantID, apiPassword string) Option {
-	return func(c *client) {
-		c.username = fmt.Sprintf("merchant.%s", merchantID)
-		c.password = apiPassword
-	}
-}
-
 type client struct {
-	baseURL  string
-	username string
-	password string
-	hc       *http.Client
+	baseURL    string
+	merchantID string
+	username   string
+	password   string
+	hc         *http.Client
 }
 
 // New creates a new MPGS client
-func New(baseURL string, opts ...Option) Client {
+func New(baseURL, merchantID, password string, opts ...Option) Client {
 	c := &client{
-		baseURL: baseURL,
+		baseURL:    baseURL,
+		merchantID: merchantID,
+		username:   fmt.Sprintf("merchant.%s", merchantID),
+		password:   password,
 		hc: &http.Client{
 			Timeout:   defaultHTTPClientTimeout,
 			Transport: otelhttp.NewTransport(cleanhttp.DefaultTransport()),
@@ -100,13 +94,13 @@ func decodeResponse[T any](resp *http.Response, expectedStatus int) (*Response[T
 }
 
 // CreateSession creates a payment session
-func (c *client) CreateSession(ctx context.Context, merchantID string, req CreateSessionRequest) (*Response[CreateSessionResponse], error) {
+func (c *client) CreateSession(ctx context.Context, req *CreateSessionRequest) (*Response[CreateSessionResponse], error) {
 	body := &bytes.Buffer{}
 	if err := json.NewEncoder(body).Encode(req); err != nil {
 		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/version/%s/merchant/%s/session", APIVersion, merchantID)
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/session", APIVersion, c.merchantID)
 
 	resp, err := c.do(ctx, http.MethodPost, path, body)
 	if err != nil {

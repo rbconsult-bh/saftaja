@@ -8,7 +8,7 @@ package templfiles
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func CheckoutPage(mpgsHost, mpgsAPIVersion, mpgsMerchantID, sessionID string) templ.Component {
+func CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -34,9 +34,9 @@ func CheckoutPage(mpgsHost, mpgsAPIVersion, mpgsMerchantID, sessionID string) te
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("https://" + mpgsHost + "/form/version/" + mpgsAPIVersion + "/merchant/" + mpgsMerchantID + "/session.js")
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(mpgsBaseURL + "/form/version/" + mpgsAPIVersion + "/merchant/" + mpgsMerchantID + "/session.js")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 9, Col: 122}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 9, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {

@@ -8,7 +8,7 @@ import (
 // Client interface defines the MPGS API operations
 type Client interface {
 	// CreateSession creates a payment session that can be used to temporarily store request fields
-	CreateSession(ctx context.Context, merchantID string, req CreateSessionRequest) (*Response[CreateSessionResponse], error)
+	CreateSession(ctx context.Context, req *CreateSessionRequest) (*Response[CreateSessionResponse], error)
 
 	// TODO: Add these when we have their API docs
 	// RetrieveSession(ctx context.Context, merchantID, sessionID string) (*Response[RetrieveSessionResponse], error)
