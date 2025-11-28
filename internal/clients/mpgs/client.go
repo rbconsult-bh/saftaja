@@ -109,3 +109,19 @@ func (c *client) CreateSession(ctx context.Context, req *CreateSessionRequest) (
 
 	return decodeResponse[CreateSessionResponse](resp, http.StatusCreated)
 }
+
+func (c *client) UpdateSession(ctx context.Context, sessionID string, req *UpdateSessionRequest) (*Response[UpdateSessionResponse], error) {
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/session/%s", APIVersion, c.merchantID, sessionID)
+
+	body := &bytes.Buffer{}
+	if err := json.NewEncoder(body).Encode(req); err != nil {
+		return nil, fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeResponse[UpdateSessionResponse](resp, http.StatusOK)
+}

@@ -9,14 +9,13 @@ import (
 type Client interface {
 	// CreateSession creates a payment session that can be used to temporarily store request fields
 	CreateSession(ctx context.Context, req *CreateSessionRequest) (*Response[CreateSessionResponse], error)
+	UpdateSession(ctx context.Context, sessionID string, req *UpdateSessionRequest) (*Response[UpdateSessionResponse], error)
 
-	// TODO: Add these when we have their API docs
-	// RetrieveSession(ctx context.Context, merchantID, sessionID string) (*Response[RetrieveSessionResponse], error)
-	// UpdateSession(ctx context.Context, merchantID, sessionID string, req UpdateSessionRequest) (*Response[UpdateSessionResponse], error)
+	// InitiateAuthentication(ctx context.Context, req *InitiateAuthenticationRequest) (*Response[InitiateAuthenticationResponse], error)
+	// AuthenticatePayer(ctx context.Context, req *AuthenticatePayerRequest) (*Response[AuthenticatePayerResponse], error)
 }
 
 // Response is a generic wrapper for all API responses
-// Note: MPGS doesn't wrap responses like POI does, so we just return the data directly
 type Response[T any] struct {
 	Data T
 }
@@ -134,3 +133,13 @@ type SessionDetails struct {
 	// Length: exactly 10 characters
 	Version string `json:"version"`
 }
+
+type (
+	UpdateSessionRequest struct {
+		Order struct {
+			Amount   string `json:"amount,omitempty"`
+			Currency string `json:"currency,omitempty"`
+		} `json:"order"`
+	}
+	UpdateSessionResponse struct{}
+)
