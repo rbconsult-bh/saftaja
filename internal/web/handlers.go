@@ -43,6 +43,19 @@ func (h *handlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = h.mpgsCli.UpdateSession(ctx, resp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
+		Order: mpgsclient.UpdateSessionOrder{
+			Amount:   "100", // TODO: this should be fetched from DB
+			Currency: "BHD", // TODO: this should be fetched from DB
+			ID:       pid,
+		},
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update session with mpgs")
+		w.WriteHeader(500)
+		return
+	}
+
 	if err := templfiles.CheckoutPage(h.mpgsBaseURL, mpgsclient.APIVersion, h.mpgsMerchantID, resp.Data.Session.ID, pid).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("failed to render checkout page")
 	}

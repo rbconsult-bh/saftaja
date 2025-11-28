@@ -135,11 +135,13 @@ type SessionDetails struct {
 }
 
 type (
+	UpdateSessionOrder struct {
+		Amount   string `json:"amount,omitempty"`
+		Currency string `json:"currency,omitempty"`
+		ID       string `json:"id,omitempty"`
+	}
 	UpdateSessionRequest struct {
-		Order struct {
-			Amount   string `json:"amount,omitempty"`
-			Currency string `json:"currency,omitempty"`
-		} `json:"order"`
+		Order UpdateSessionOrder `json:"order"`
 	}
 	UpdateSessionResponse struct{}
 )
