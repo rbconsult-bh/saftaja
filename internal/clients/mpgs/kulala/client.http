@@ -1,0 +1,81 @@
+### Variable Setup
+
+@amount = 100.00
+@currency = BHD
+
+
+### Update Session
+
+# @prompt sessionID
+
+PUT {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/session/{{sessionID}} HTTP/1.1
+Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
+Content-Type: application/json
+
+{
+  "order": {
+    "amount": "{{amount}}",
+    "currency": "{{currency}}"
+  }
+}
+
+> {%
+    const orderId = "order-" + Math.floor(Math.random() * 10000000);
+    client.global.set("order_id", orderId);
+    client.log("Generated Order ID: " + orderId);
+%}
+
+
+### Initiate Authentication
+
+PUT {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{order_id}}/transaction/txn-init-{{$randomInt}} HTTP/1.1
+Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
+Content-Type: application/json
+
+{
+  "apiOperation": "INITIATE_AUTHENTICATION",
+  "authentication": {
+    "channel": "PAYER_BROWSER"
+  },
+  "order": {
+    "currency": "{{currency}}"
+  },
+  "session": {
+    "id": "{{sessionID}}"
+  }
+}
+
+
+### Authenticate Payer
+
+PUT {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{order_id}}/transaction/txn-init-5420343 HTTP/1.1
+Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
+Content-Type: application/json
+
+{
+  "apiOperation": "AUTHENTICATE_PAYER",
+  "authentication": {
+    "redirectResponseUrl": "https://rbconsult.bh"
+  },
+  "device": {
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "browserDetails": {
+      "3DSecureChallengeWindowSize": "FULL_SCREEN",
+      "acceptHeaders": "application/json",
+      "colorDepth": 24,
+      "javaEnabled": true,
+      "language": "en-US",
+      "screenHeight": 1080,
+      "screenWidth": 1920,
+      "timeZone": -180
+    },
+    "ipAddress": "127.0.0.1"
+  },
+  "order": {
+    "amount": "{{amount}}",
+    "currency": "{{currency}}"
+  },
+  "session": {
+    "id": "{{sessionID}}"
+  }
+}

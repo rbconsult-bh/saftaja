@@ -1,6 +1,6 @@
 package templfiles
 
-templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID string) {
+templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID, pid string) {
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -82,10 +82,11 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID string
 				/>
 			</div>
 			<div>
-				<button id="payButton" onclick="pay('card');">
+				<button id="payButton" onclick="pay();">
 					Pay Now
 				</button>
 			</div>
+			<div id="3DSUI"></div>
 			<script type="text/javascript">
         if (self === top) {
           var antiClickjack = document.getElementById("antiClickjack");
@@ -93,7 +94,7 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID string
         } else {
           top.location = self.location;
         }
-                  
+
         PaymentSession.configure({
           session: {{ sessionID }},
           fields: {
@@ -125,6 +126,8 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID string
                 if (response.sourceOfFunds.provided.card.scheme == 'MASTERCARD') {
                   console.log("The user entered a Mastercard credit card.")
                 }
+
+                // call backend to start 3ds stuff bro :D
               } else if ("fields_in_error" == response.status) {
                 console.log("Session update failed with field errors.");
                 if (response.errors.cardNumber) {
@@ -156,10 +159,18 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID string
           }
         }
       });
+
       function pay() {
         // UPDATE THE SESSION WITH THE INPUT FROM HOSTED FIELDS
         PaymentSession.updateSessionFromForm('card');
       }
+
+      function errorCallback() {
+          console.error("error callback of 3ds");
+        }
+      function cancelCallback() {
+          console.error("cancel callback of 3ds");
+        }
     </script>
 		</body>
 	</html>

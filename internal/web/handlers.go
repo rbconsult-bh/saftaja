@@ -43,7 +43,15 @@ func (h *handlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := templfiles.CheckoutPage(h.mpgsBaseURL, mpgsclient.APIVersion, h.mpgsMerchantID, resp.Data.Session.ID).Render(ctx, w); err != nil {
+	if err := templfiles.CheckoutPage(h.mpgsBaseURL, mpgsclient.APIVersion, h.mpgsMerchantID, resp.Data.Session.ID, pid).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("failed to render checkout page")
 	}
+}
+
+func (h *handlers) CheckoutPayHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	log.Ctx(ctx).Info().Msg("we are calling checkout pay endpoint :D")
+
+	w.WriteHeader(200)
 }

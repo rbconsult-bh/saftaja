@@ -38,6 +38,7 @@ func main() {
 	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli)
 
 	r.Get("/checkout/{pid}", h.CheckoutHandler)
+	r.Post("/checkout/{pid}/pay", h.CheckoutPayHandler)
 
 	log.Info().Msg("starting listener on port 8080")
 
