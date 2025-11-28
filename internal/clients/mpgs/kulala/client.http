@@ -48,7 +48,7 @@ Content-Type: application/json
 
 ### Authenticate Payer
 
-PUT {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{order_id}}/transaction/txn-init-5420343 HTTP/1.1
+PUT {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{order_id}}/transaction/txn-init-429067 HTTP/1.1
 Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
 Content-Type: application/json
 
@@ -77,5 +77,37 @@ Content-Type: application/json
   },
   "session": {
     "id": "{{sessionID}}"
+  }
+}
+
+
+### Retrieve Transaction
+
+GET {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{order_id}}/transaction/txn-init-429067 HTTP/1.1
+Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
+Content-Type: application/json
+
+
+### Execute PAY
+
+PUT {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{order_id}}/transaction/txn-pay-{{$randomInt}} HTTP/1.1
+Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
+Content-Type: application/json
+
+{
+  "apiOperation": "PAY",
+  "authentication": {
+    "transactionId": "txn-init-429067"
+  },
+  "order": {
+    "amount": "{{amount}}",
+    "currency": "{{currency}}",
+    "reference": "pid-1"
+  },
+  "session": {
+    "id": "{{sessionID}}"
+  },
+  "transaction": {
+    "reference": "{{order_id}}"
   }
 }
