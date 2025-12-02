@@ -61,6 +61,22 @@ func (h *handlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *handlers) CheckoutInitiateAuthHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	log.Ctx(ctx).Info().Msg("we are calling checkout initiate auth endpoint :D")
+
+	w.WriteHeader(200)
+}
+
+func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	log.Ctx(ctx).Info().Msg("we are calling checkout process auth endpoint :D")
+
+	w.WriteHeader(200)
+}
+
 func (h *handlers) CheckoutPayHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

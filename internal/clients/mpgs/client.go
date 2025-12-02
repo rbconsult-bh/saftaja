@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultHTTPClientTimeout = 30 * time.Second // MPGS can be slower than typical APIs
+	defaultHTTPClientTimeout = 30 * time.Second
 )
 
 // Option configures the client
@@ -124,4 +124,52 @@ func (c *client) UpdateSession(ctx context.Context, sessionID string, req *Updat
 	}
 
 	return decodeResponse[UpdateSessionResponse](resp, http.StatusOK)
+}
+
+func (c *client) InitiateAuthentication(ctx context.Context, orderID, txID string, req *InitiateAuthenticationRequest) (*Response[InitiateAuthenticationResponse], error) {
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
+
+	body := &bytes.Buffer{}
+	if err := json.NewEncoder(body).Encode(req); err != nil {
+		return nil, fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeResponse[InitiateAuthenticationResponse](resp, http.StatusCreated)
+}
+
+func (c *client) AuthenticatePayer(ctx context.Context, orderID, txID string, req *AuthenticatePayerRequest) (*Response[AuthenticatePayerResponse], error) {
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
+
+	body := &bytes.Buffer{}
+	if err := json.NewEncoder(body).Encode(req); err != nil {
+		return nil, fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeResponse[AuthenticatePayerResponse](resp, http.StatusCreated)
+}
+
+func (c *client) ExecutePay(ctx context.Context, orderID, txID string, req *ExecutePayRequest) (*Response[ExecutePayResponse], error) {
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
+
+	body := &bytes.Buffer{}
+	if err := json.NewEncoder(body).Encode(req); err != nil {
+		return nil, fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeResponse[ExecutePayResponse](resp, http.StatusCreated)
 }

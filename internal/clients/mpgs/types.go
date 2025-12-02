@@ -7,12 +7,13 @@ import (
 
 // Client interface defines the MPGS API operations
 type Client interface {
-	// CreateSession creates a payment session that can be used to temporarily store request fields
 	CreateSession(ctx context.Context, req *CreateSessionRequest) (*Response[CreateSessionResponse], error)
 	UpdateSession(ctx context.Context, sessionID string, req *UpdateSessionRequest) (*Response[UpdateSessionResponse], error)
 
-	// InitiateAuthentication(ctx context.Context, req *InitiateAuthenticationRequest) (*Response[InitiateAuthenticationResponse], error)
-	// AuthenticatePayer(ctx context.Context, req *AuthenticatePayerRequest) (*Response[AuthenticatePayerResponse], error)
+	InitiateAuthentication(ctx context.Context, orderID, txID string, req *InitiateAuthenticationRequest) (*Response[InitiateAuthenticationResponse], error)
+	AuthenticatePayer(ctx context.Context, orderID, txID string, req *AuthenticatePayerRequest) (*Response[AuthenticatePayerResponse], error)
+
+	ExecutePay(ctx context.Context, orderID, txID string, req *ExecutePayRequest) (*Response[ExecutePayResponse], error)
 }
 
 // Response is a generic wrapper for all API responses
@@ -144,4 +145,328 @@ type (
 		Order UpdateSessionOrder `json:"order"`
 	}
 	UpdateSessionResponse struct{}
+)
+
+type (
+	InitiateAuthenticationReqAuthentication struct {
+		Channel AuthChannel `json:"channel"`
+	}
+	InitiateAuthenticationOrder struct {
+		Currency string `json:"currency"`
+	}
+	InitiateAuthenticationSession struct {
+		ID string `json:"id"`
+	}
+	InitiateAuthenticationRequest struct {
+		APIOperation   string                                  `json:"apiOperation"`
+		Authentication InitiateAuthenticationReqAuthentication `json:"authentication"`
+		Order          InitiateAuthenticationOrder             `json:"order"`
+		Session        InitiateAuthenticationSession           `json:"session"`
+	}
+
+	InitiateAuthenticationRespAuthentication struct {
+		ThreeDS2       InitiateAuthenticationThreeDS2Data `json:"3ds2"`
+		AcceptVersions string                             `json:"acceptVersions"`
+		Channel        string                             `json:"channel"`
+		Purpose        string                             `json:"purpose"`
+		Redirect       InitiateAuthenticationRedirectData `json:"redirect"`
+		Version        string                             `json:"version"`
+	}
+	InitiateAuthenticationThreeDS2Data struct {
+		AuthenticationScheme string `json:"authenticationScheme"`
+		DirectoryServerID    string `json:"directoryServerId"`
+		MethodCompleted      bool   `json:"methodCompleted"`
+		MethodSupported      string `json:"methodSupported"`
+		ProtocolVersion      string `json:"protocolVersion"`
+		RequestorID          string `json:"requestorId"`
+		RequestorName        string `json:"requestorName"`
+	}
+	InitiateAuthenticationRedirectData struct {
+		CustomizedHTML InitiateAuthenticationCustomizedHTML `json:"customizedHtml"`
+		HTML           string                               `json:"html"`
+	}
+	InitiateAuthenticationCustomizedHTML struct {
+		ThreeDS2Method InitiateAuthenticationThreeDS2Method `json:"3ds2"`
+	}
+	InitiateAuthenticationThreeDS2Method struct {
+		MethodPostData string `json:"methodPostData"`
+		MethodURL      string `json:"methodUrl"`
+	}
+	InitiateAuthenticationResponseOrder struct {
+		AuthenticationStatus  string     `json:"authenticationStatus"`
+		CreationTime          string     `json:"creationTime"`
+		Currency              string     `json:"currency"`
+		ID                    string     `json:"id"`
+		LastUpdatedTime       string     `json:"lastUpdatedTime"`
+		MerchantCategoryCode  string     `json:"merchantCategoryCode"`
+		Status                AuthStatus `json:"status"`
+		TotalAuthorizedAmount float64    `json:"totalAuthorizedAmount"`
+		TotalCapturedAmount   float64    `json:"totalCapturedAmount"`
+		TotalRefundedAmount   float64    `json:"totalRefundedAmount"`
+	}
+	InitiateAuthenticationGatewayResponse struct {
+		GatewayCode           string                `json:"gatewayCode"`
+		GatewayRecommendation GatewayRecommendation `json:"gatewayRecommendation"`
+	}
+	InitiateAuthenticationSourceOfFunds struct {
+		Provided InitiateAuthenticationProvidedData `json:"provided"`
+		Type     string                             `json:"type"`
+	}
+	InitiateAuthenticationProvidedData struct {
+		Card InitiateAuthenticationCardData `json:"card"`
+	}
+	InitiateAuthenticationCardData struct {
+		Brand         string                           `json:"brand"`
+		Expiry        InitiateAuthenticationCardExpiry `json:"expiry"`
+		FundingMethod string                           `json:"fundingMethod"`
+		Number        string                           `json:"number"`
+		Scheme        string                           `json:"scheme"`
+	}
+	InitiateAuthenticationCardExpiry struct {
+		Month string `json:"month"`
+		Year  string `json:"year"`
+	}
+	InitiateAuthenticationTransaction struct {
+		Amount               float64 `json:"amount"`
+		AuthenticationStatus string  `json:"authenticationStatus"`
+		Currency             string  `json:"currency"`
+		ID                   string  `json:"id"`
+		Type                 string  `json:"type"`
+	}
+	InitiateAuthenticationResponse struct {
+		Authentication   InitiateAuthenticationRespAuthentication `json:"authentication"`
+		Merchant         string                                   `json:"merchant"`
+		Order            InitiateAuthenticationOrder              `json:"order"`
+		Response         InitiateAuthenticationGatewayResponse    `json:"response"`
+		Result           string                                   `json:"result"`
+		SourceOfFunds    InitiateAuthenticationSourceOfFunds      `json:"sourceOfFunds"`
+		TimeOfLastUpdate string                                   `json:"timeOfLastUpdate"`
+		TimeOfRecord     string                                   `json:"timeOfRecord"`
+		Transaction      InitiateAuthenticationTransaction        `json:"transaction"`
+		Version          string                                   `json:"version"`
+	}
+)
+
+type (
+	AuthenticatePayerReqAuthentication struct {
+		RedirectResponseURL string `json:"redirectResponseUrl"`
+	}
+	AuthenticatePayerReqBrowserDetails struct {
+		ThreeDSecureChallengeWindowSize string `json:"3DSecureChallengeWindowSize,omitempty"`
+		AcceptHeaders                   string `json:"acceptHeaders,omitempty"`
+		ColorDepth                      int    `json:"colorDepth,omitempty"`
+		JavaEnabled                     bool   `json:"javaEnabled"`
+		Language                        string `json:"language,omitempty"`
+		ScreenHeight                    int    `json:"screenHeight,omitempty"`
+		ScreenWidth                     int    `json:"screenWidth,omitempty"`
+		TimeZone                        int    `json:"timeZone,omitempty"`
+	}
+	AuthenticatePayerReqDevice struct {
+		Browser        string                              `json:"browser,omitempty"`
+		BrowserDetails *AuthenticatePayerReqBrowserDetails `json:"browserDetails,omitempty"`
+		IPAddress      string                              `json:"ipAddress,omitempty"`
+	}
+	AuthenticatePayerReqOrder struct {
+		Amount   string `json:"amount"`
+		Currency string `json:"currency"`
+	}
+	AuthenticatePayerReqSession struct {
+		ID string `json:"id"`
+	}
+	AuthenticatePayerRequest struct {
+		APIOperation   APIOperation                       `json:"apiOperation"`
+		Authentication AuthenticatePayerReqAuthentication `json:"authentication"`
+		Device         AuthenticatePayerReqDevice         `json:"device"`
+		Order          AuthenticatePayerReqOrder          `json:"order"`
+		Session        AuthenticatePayerReqSession        `json:"session"`
+	}
+
+	AuthenticatePayerRespThreeDS struct {
+		TransactionID string `json:"transactionId"`
+	}
+	AuthenticatePayerRespThreeDS2 struct {
+		ThreeDSServerTransactionID string `json:"3dsServerTransactionId"`
+		ACSReference               string `json:"acsReference"`
+		ACSTransactionID           string `json:"acsTransactionId"`
+		AuthenticationScheme       string `json:"authenticationScheme"`
+		DirectoryServerID          string `json:"directoryServerId"`
+		DSReference                string `json:"dsReference"`
+		DSTransactionID            string `json:"dsTransactionId"`
+		MethodCompleted            bool   `json:"methodCompleted"`
+		MethodSupported            string `json:"methodSupported"`
+		ProtocolVersion            string `json:"protocolVersion"`
+		RequestorID                string `json:"requestorId"`
+		RequestorName              string `json:"requestorName"`
+		TransactionStatus          string `json:"transactionStatus"`
+	}
+	AuthenticatePayerResp3DS2Data struct {
+		ACSURL string `json:"acsUrl"`
+		CReq   string `json:"cReq"`
+	}
+	AuthenticatePayerRespCustomizedHTML struct {
+		ThreeDS2 AuthenticatePayerResp3DS2Data `json:"3ds2"`
+	}
+	AuthenticatePayerRespRedirect struct {
+		CustomizedHTML AuthenticatePayerRespCustomizedHTML `json:"customizedHtml"`
+		DomainName     string                              `json:"domainName"`
+		HTML           string                              `json:"html"`
+	}
+	AuthenticatePayerRespAuthentication struct {
+		ThreeDS          AuthenticatePayerRespThreeDS  `json:"3ds"`
+		ThreeDS2         AuthenticatePayerRespThreeDS2 `json:"3ds2"`
+		Amount           float64                       `json:"amount"`
+		Method           string                        `json:"method"`
+		PayerInteraction string                        `json:"payerInteraction"`
+		Redirect         AuthenticatePayerRespRedirect `json:"redirect"`
+		Time             string                        `json:"time"`
+		Version          string                        `json:"version"`
+	}
+	AuthenticatePayerRespDevice struct {
+		Browser   string `json:"browser"`
+		IPAddress string `json:"ipAddress"`
+	}
+	AuthenticatePayerValueTransfer struct {
+		AccountType string `json:"accountType"`
+	}
+	AuthenticatePayerRespOrder struct {
+		Amount                float64                        `json:"amount"`
+		AuthenticationStatus  string                         `json:"authenticationStatus"`
+		CreationTime          string                         `json:"creationTime"`
+		Currency              string                         `json:"currency"`
+		ID                    string                         `json:"id"`
+		LastUpdatedTime       string                         `json:"lastUpdatedTime"`
+		MerchantCategoryCode  string                         `json:"merchantCategoryCode"`
+		Status                AuthStatus                     `json:"status"`
+		TotalAuthorizedAmount float64                        `json:"totalAuthorizedAmount"`
+		TotalCapturedAmount   float64                        `json:"totalCapturedAmount"`
+		TotalRefundedAmount   float64                        `json:"totalRefundedAmount"`
+		ValueTransfer         AuthenticatePayerValueTransfer `json:"valueTransfer"`
+	}
+	AuthenticatePayerGatewayResponse struct {
+		GatewayCode           string                `json:"gatewayCode"`
+		GatewayRecommendation GatewayRecommendation `json:"gatewayRecommendation"`
+	}
+	AuthenticatePayerCardExpiry struct {
+		Month string `json:"month"`
+		Year  string `json:"year"`
+	}
+	AuthenticatePayerCardData struct {
+		Brand         string                      `json:"brand"`
+		Expiry        AuthenticatePayerCardExpiry `json:"expiry"`
+		FundingMethod string                      `json:"fundingMethod"`
+		NameOnCard    string                      `json:"nameOnCard"`
+		Number        string                      `json:"number"`
+		Scheme        string                      `json:"scheme"`
+	}
+	AuthenticatePayerProvidedData struct {
+		Card AuthenticatePayerCardData `json:"card"`
+	}
+	AuthenticatePayerRespSourceOfFunds struct {
+		Provided AuthenticatePayerProvidedData `json:"provided"`
+		Type     string                        `json:"type"`
+	}
+	AuthenticatePayerAcquirer struct {
+		MerchantID string `json:"merchantId"`
+	}
+	AuthenticatePayerRespTransaction struct {
+		Acquirer             AuthenticatePayerAcquirer `json:"acquirer"`
+		Amount               float64                   `json:"amount"`
+		AuthenticationStatus string                    `json:"authenticationStatus"`
+		Currency             string                    `json:"currency"`
+		ID                   string                    `json:"id"`
+		Type                 string                    `json:"type"`
+	}
+	AuthenticatePayerResponse struct {
+		Authentication   AuthenticatePayerRespAuthentication `json:"authentication"`
+		Device           AuthenticatePayerRespDevice         `json:"device"`
+		Merchant         string                              `json:"merchant"`
+		Order            AuthenticatePayerRespOrder          `json:"order"`
+		Response         AuthenticatePayerGatewayResponse    `json:"response"`
+		Result           string                              `json:"result"`
+		SourceOfFunds    AuthenticatePayerRespSourceOfFunds  `json:"sourceOfFunds"`
+		TimeOfLastUpdate string                              `json:"timeOfLastUpdate"`
+		TimeOfRecord     string                              `json:"timeOfRecord"`
+		Transaction      AuthenticatePayerRespTransaction    `json:"transaction"`
+		Version          string                              `json:"version"`
+	}
+)
+
+type (
+	ExecutePayReqAuthentication struct {
+		TransactionID string `json:"transactionId"`
+	}
+	ExecutePayReqOrder struct {
+		Amount    string `json:"amount"`
+		Currency  string `json:"currency"`
+		Reference string `json:"reference,omitempty"`
+	}
+	ExecutePayReqSession struct {
+		ID string `json:"id"`
+	}
+	ExecutePayReqTransaction struct {
+		Reference string `json:"reference,omitempty"`
+	}
+	ExecutePayRequest struct {
+		APIOperation   APIOperation                `json:"apiOperation"`
+		Authentication ExecutePayReqAuthentication `json:"authentication"`
+		Order          ExecutePayReqOrder          `json:"order"`
+		Session        ExecutePayReqSession        `json:"session"`
+		Transaction    *ExecutePayReqTransaction   `json:"transaction,omitempty"`
+	}
+
+	ExecutePayGatewayResponse struct {
+		GatewayCode GatewayCode `json:"gatewayCode"`
+	}
+	ExecutePayAcquirer struct {
+		Batch          int    `json:"batch,omitempty"`
+		Date           string `json:"date,omitempty"`
+		ID             string `json:"id,omitempty"`
+		MerchantID     string `json:"merchantId"`
+		SettlementDate string `json:"settlementDate,omitempty"`
+		TimeZone       string `json:"timeZone,omitempty"`
+		TransactionID  string `json:"transactionId,omitempty"`
+	}
+	ExecutePayTransaction struct {
+		Acquirer ExecutePayAcquirer `json:"acquirer"`
+		Amount   float64            `json:"amount"`
+		Currency string             `json:"currency"`
+		ID       string             `json:"id"`
+		Type     TransactionType    `json:"type"`
+	}
+	ExecutePayOrder struct {
+		Amount                float64 `json:"amount"`
+		AuthenticationStatus  string  `json:"authenticationStatus,omitempty"`
+		CreationTime          string  `json:"creationTime,omitempty"`
+		Currency              string  `json:"currency"`
+		ID                    string  `json:"id,omitempty"`
+		TotalAuthorizedAmount float64 `json:"totalAuthorizedAmount,omitempty"`
+		TotalCapturedAmount   float64 `json:"totalCapturedAmount,omitempty"`
+		TotalRefundedAmount   float64 `json:"totalRefundedAmount,omitempty"`
+	}
+	ExecutePayCardExpiry struct {
+		Month string `json:"month"`
+		Year  string `json:"year"`
+	}
+	ExecutePayCardData struct {
+		Brand         string               `json:"brand"`
+		Expiry        ExecutePayCardExpiry `json:"expiry"`
+		FundingMethod string               `json:"fundingMethod"`
+		Number        string               `json:"number"`
+		Scheme        string               `json:"scheme"`
+	}
+	ExecutePayProvidedData struct {
+		Card ExecutePayCardData `json:"card"`
+	}
+	ExecutePaySourceOfFunds struct {
+		Provided ExecutePayProvidedData `json:"provided"`
+		Type     string                 `json:"type"`
+	}
+	ExecutePayResponse struct {
+		Merchant      string                    `json:"merchant"`
+		Order         ExecutePayOrder           `json:"order"`
+		Response      ExecutePayGatewayResponse `json:"response"`
+		Result        string                    `json:"result"`
+		SourceOfFunds *ExecutePaySourceOfFunds  `json:"sourceOfFunds,omitempty"`
+		Transaction   ExecutePayTransaction     `json:"transaction"`
+	}
 )

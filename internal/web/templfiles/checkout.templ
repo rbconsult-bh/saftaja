@@ -6,172 +6,211 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID, pid s
 		<head>
 			<title>Checkout Page :D</title>
 			<style id="antiClickjack">body{display:none !important;}</style>
+			<!-- Helper class for the silent iframe -->
+			<style> .hidden-frame { width: 0; height: 0; border: 0; display: none; } </style>
 			<script src={ mpgsBaseURL + "/form/version/" + mpgsAPIVersion + "/merchant/" + mpgsMerchantID + "/session.js" }></script>
 			<!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
 		</head>
 		<body>
-			<div>
-				Please enter your payment details:
+			<div id="paymentUI">
+				<div>
+					Please enter your payment details:
+				</div>
+				<h3>
+					Credit Card
+				</h3>
+				<div>
+					Card Number:
+					<input
+						type="text"
+						id="card-number"
+						class="input-field"
+						title="card number"
+						aria-label="enter your card number"
+						value=""
+						tabindex="1"
+						readonly
+					/>
+				</div>
+				<div>
+					Expiry Month:
+					<input
+						type="text"
+						id="expiry-month"
+						class="input-field"
+						title="expiry month"
+						aria-label="two digit expiry month"
+						value=""
+						tabindex="2"
+						readonly
+					/>
+				</div>
+				<div>
+					Expiry Year:
+					<input
+						type="text"
+						id="expiry-year"
+						class="input-field"
+						title="expiry year"
+						aria-label="two digit expiry year"
+						value=""
+						tabindex="3"
+						readonly
+					/>
+				</div>
+				<div>
+					Security Code:
+					<input
+						type="text"
+						id="security-code"
+						class="input-field"
+						title="security code"
+						aria-label="three digit CCV security code"
+						value=""
+						tabindex="4"
+						readonly
+					/>
+				</div>
+				<div>
+					Cardholder Name:
+					<input
+						type="text"
+						id="cardholder-name"
+						class="input-field"
+						title="cardholder name"
+						aria-label="enter name on card"
+						value=""
+						tabindex="5"
+						readonly
+					/>
+				</div>
+				<div>
+					<button id="payButton" onclick="pay();">
+						Pay Now
+					</button>
+				</div>
 			</div>
-			<h3>
-				Credit Card
-			</h3>
-			<div>
-				Card Number:
-				<input
-					type="text"
-					id="card-number"
-					class="input-field"
-					title="card number"
-					aria-label="enter your card number"
-					value=""
-					tabindex="1"
-					readonly
-				/>
-			</div>
-			<div>
-				Expiry Month:
-				<input
-					type="text"
-					id="expiry-month"
-					class="input-field"
-					title="expiry month"
-					aria-label="two digit expiry month"
-					value=""
-					tabindex="2"
-					readonly
-				/>
-			</div>
-			<div>
-				Expiry Year:
-				<input
-					type="text"
-					id="expiry-year"
-					class="input-field"
-					title="expiry year"
-					aria-label="two digit expiry year"
-					value=""
-					tabindex="3"
-					readonly
-				/>
-			</div>
-			<div>
-				Security Code:
-				<input
-					type="text"
-					id="security-code"
-					class="input-field"
-					title="security code"
-					aria-label="three digit CCV security code"
-					value=""
-					tabindex="4"
-					readonly
-				/>
-			</div>
-			<div>
-				Cardholder Name:
-				<input
-					type="text"
-					id="cardholder-name"
-					class="input-field"
-					title="cardholder name"
-					aria-label="enter name on card"
-					value=""
-					tabindex="5"
-					readonly
-				/>
-			</div>
-			<div>
-				<button id="payButton" onclick="pay();">
-					Pay Now
-				</button>
-			</div>
-			<div id="3DSUI"></div>
+			<!-- 3DS Method (Silent Iframe) Container -->
+			<div id="method-container"></div>
+			<!-- 3DS Challenge (Visible Iframe) Container -->
+			<div id="challenge-container"></div>
 			<script type="text/javascript">
-        if (self === top) {
-          var antiClickjack = document.getElementById("antiClickjack");
-          antiClickjack.parentNode.removeChild(antiClickjack);
-        } else {
-          top.location = self.location;
-        }
+				if (self === top) {
+					var antiClickjack = document.getElementById("antiClickjack");
+					antiClickjack.parentNode.removeChild(antiClickjack);
+				} else {
+					top.location = self.location;
+				}
 
-        PaymentSession.configure({
-          session: {{ sessionID }},
-          fields: {
-           // ATTACH HOSTED FIELDS TO YOUR PAYMENT PAGE FOR A CREDIT CARD
-           card: {
-             number: "#card-number",
-             securityCode: "#security-code",
-             expiryMonth: "#expiry-month",
-             expiryYear: "#expiry-year",
-             nameOnCard: "#cardholder-name"
-            }
-        },
-        //SPECIFY YOUR MITIGATION OPTION HERE
-        frameEmbeddingMitigation: ["javascript"],
-        callbacks: {
-          initialized: function(response) {
-            // HANDLE INITIALIZATION RESPONSE
-          },
-          formSessionUpdate: function(response) {
-            // HANDLE RESPONSE FOR UPDATE SESSION
-            if (response.status) {
-              if ("ok" == response.status) {
-                console.log("Session updated with data: " + response.session.id);
-                //check if the security code was provided by the user
-                if (response.sourceOfFunds.provided.card.securityCode) {
-                  console.log("Security code was provided.");
-                }
-                //check if the user entered a Mastercard credit card
-                if (response.sourceOfFunds.provided.card.scheme == 'MASTERCARD') {
-                  console.log("The user entered a Mastercard credit card.")
-                }
+				PaymentSession.configure({
+					session: { sessionID },
+					fields: {
+						card: {
+							number: "#card-number",
+							securityCode: "#security-code",
+							expiryMonth: "#expiry-month",
+							expiryYear: "#expiry-year",
+							nameOnCard: "#cardholder-name"
+						}
+					},
+					frameEmbeddingMitigation: ["javascript"],
+					callbacks: {
+						initialized: function(response) {
+							// Handle initialization if needed
+						},
+						formSessionUpdate: function(response) {
+							if (response.status) {
+								if ("ok" == response.status) {
+									console.log("Session updated. Starting 3DS Flow...");
+									startPaymentFlow({ sessionID });
+								} else {
+									console.log("Session update failed: " + response.status);
+								}
+							}
+						}
+					},
+					interaction: {
+						displayControl: {
+							formatCard: "EMBOSSED",
+							invalidFieldCharacters: "REJECT"
+						}
+					}
+				});
 
-                // call backend to start 3ds stuff bro :D
-              } else if ("fields_in_error" == response.status) {
-                console.log("Session update failed with field errors.");
-                if (response.errors.cardNumber) {
-                  console.log("Card number invalid or missing.");
-                }
-                if (response.errors.expiryYear) {
-                  console.log("Expiry year invalid or missing.");
-                }
-                if (response.errors.expiryMonth) {
-                  console.log("Expiry month invalid or missing.");
-                }
-                if (response.errors.securityCode) {
-                  console.log("Security code invalid.");
-                }
-              } else if ("request_timeout" == response.status) {
-                console.log("Session update failed with request timeout: " + response.errors.message);
-              } else if ("system_error" == response.status) {
-                console.log("Session update failed with system error: " + response.errors.message);
-              }
-            } else {
-              console.log("Session update failed: " + response);
-            }
-          }
-        },
-        interaction: {
-          displayControl: {
-            formatCard: "EMBOSSED",
-            invalidFieldCharacters: "REJECT"
-          }
-        }
-      });
+				function pay() {
+					// 1. User clicks Pay -> Update Session
+					PaymentSession.updateSessionFromForm('card');
+				}
 
-      function pay() {
-        // UPDATE THE SESSION WITH THE INPUT FROM HOSTED FIELDS
-        PaymentSession.updateSessionFromForm('card');
-      }
+				// --- 3DS FLOW LOGIC ---
 
-      function errorCallback() {
-          console.error("error callback of 3ds");
-        }
-      function cancelCallback() {
-          console.error("cancel callback of 3ds");
-        }
-    </script>
+				async function startPaymentFlow(sessionId) {
+					// 2. Call Initiate Authentication
+					const initRes = await fetch("/checkout/" + { pid } + "/initiate", {
+						method: "POST",
+						body: JSON.stringify({ sessionId: sessionId })
+					}).then(r => r.json());
+
+					if (initRes.action === "method_check") {
+						console.log("Method Check Required. Rendering silent iframe and waiting 5s...");
+						
+						// Render Silent Iframe
+						const container = document.getElementById("method-container");
+						const iframe = document.createElement("iframe");
+						iframe.name = "methodFrame";
+						iframe.className = "hidden-frame";
+						container.appendChild(iframe);
+
+						const form = document.createElement("form");
+						form.action = initRes.methodUrl;
+						form.method = "POST";
+						form.target = "methodFrame";
+
+						const input = document.createElement("input");
+						input.type = "hidden";
+						input.name = "threeDSMethodData";
+						input.value = initRes.methodPostData;
+						form.appendChild(input);
+
+						container.appendChild(form);
+						form.submit();
+
+						// WAIT 5 SECONDS before proceeding
+						setTimeout(() => {
+							console.log("5 seconds passed. Proceeding to auth...");
+							doAuthenticatePayer(sessionId);
+						}, 5000);
+
+					} else {
+						console.log("No Method Check required. Proceeding...");
+						doAuthenticatePayer(sessionId);
+					}
+				}
+
+				async function doAuthenticatePayer(sessionId) {
+					// 3. Call Authenticate Payer
+					const authRes = await fetch("/checkout/" + { pid } + "/process-auth", {
+						method: "POST",
+						body: JSON.stringify({ sessionId: sessionId })
+					}).then(r => r.json());
+
+					if (authRes.action === "challenge") {
+						console.log("Challenge Required. Injecting HTML...");
+						// Inject HTML. This usually contains a form that auto-submits 
+						// or an iframe.
+						document.getElementById("challenge-container").innerHTML = authRes.html;
+						// Hide the payment UI to avoid confusion
+						document.getElementById("paymentUI").style.display = 'none';
+
+					} else if (authRes.action === "frictionless") {
+						console.log("Frictionless. Redirecting...");
+						window.location.href = authRes.redirectUrl;
+						
+					} else {
+						alert("Authentication Failed or Error Occurred");
+					}
+				}
+			</script>
 		</body>
 	</html>
 }
