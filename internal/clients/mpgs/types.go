@@ -158,7 +158,7 @@ type (
 		ID string `json:"id"`
 	}
 	InitiateAuthenticationRequest struct {
-		APIOperation   string                                  `json:"apiOperation"`
+		APIOperation   APIOperation                            `json:"apiOperation"`
 		Authentication InitiateAuthenticationReqAuthentication `json:"authentication"`
 		Order          InitiateAuthenticationOrder             `json:"order"`
 		Session        InitiateAuthenticationSession           `json:"session"`
