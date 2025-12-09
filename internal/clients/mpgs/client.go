@@ -158,6 +158,17 @@ func (c *client) AuthenticatePayer(ctx context.Context, orderID, txID string, re
 	return decodeResponse[AuthenticatePayerResponse](resp, http.StatusCreated)
 }
 
+func (c *client) RetrieveTransaction(ctx context.Context, orderID, txID string) (*Response[RetrieveTransactionResponse], error) {
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s", APIVersion, c.merchantID, orderID, txID)
+
+	resp, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeResponse[RetrieveTransactionResponse](resp, http.StatusCreated)
+}
+
 func (c *client) ExecutePay(ctx context.Context, orderID, txID string, req *ExecutePayRequest) (*Response[ExecutePayResponse], error) {
 	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
 

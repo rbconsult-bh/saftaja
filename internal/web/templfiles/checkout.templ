@@ -95,122 +95,124 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID, pid s
 			<!-- 3DS Challenge (Visible Iframe) Container -->
 			<div id="challenge-container"></div>
 			<script type="text/javascript">
-				if (self === top) {
-					var antiClickjack = document.getElementById("antiClickjack");
-					antiClickjack.parentNode.removeChild(antiClickjack);
-				} else {
-					top.location = self.location;
-				}
+// Anti-clickjack protection
+if (self === top) {
+  var antiClickjack = document.getElementById("antiClickjack");
+  antiClickjack.parentNode.removeChild(antiClickjack);
+} else {
+  top.location = self.location;
+}
 
-				PaymentSession.configure({
-					session: { sessionID },
-					fields: {
-						card: {
-							number: "#card-number",
-							securityCode: "#security-code",
-							expiryMonth: "#expiry-month",
-							expiryYear: "#expiry-year",
-							nameOnCard: "#cardholder-name"
-						}
-					},
-					frameEmbeddingMitigation: ["javascript"],
-					callbacks: {
-						initialized: function(response) {
-							// Handle initialization if needed
-						},
-						formSessionUpdate: function(response) {
-							if (response.status) {
-								if ("ok" == response.status) {
-									console.log("Session updated. Starting 3DS Flow...");
-									startPaymentFlow({ sessionID });
-								} else {
-									console.log("Session update failed: " + response.status);
-								}
-							}
-						}
-					},
-					interaction: {
-						displayControl: {
-							formatCard: "EMBOSSED",
-							invalidFieldCharacters: "REJECT"
-						}
-					}
-				});
+// Global variables from backend
+const SESSION_ID = {{ sessionID }};
+const PID = {{ pid }};
 
-				function pay() {
-					// 1. User clicks Pay -> Update Session
-					PaymentSession.updateSessionFromForm('card');
-				}
+// Configure Payment Session
+PaymentSession.configure({
+  session: SESSION_ID,
+  fields: {
+    card: {
+      number: "#card-number",
+      securityCode: "#security-code",
+      expiryMonth: "#expiry-month",
+      expiryYear: "#expiry-year",
+      nameOnCard: "#cardholder-name"
+    }
+  },
+  frameEmbeddingMitigation: ["javascript"],
+  callbacks: {
+    initialized: function(response) {
+      // Handle initialization if needed
+    },
+    formSessionUpdate: function(response) {
+      if (response.status === "ok") {
+        console.log("Session updated. Starting 3DS Flow...");
+        startPaymentFlow(SESSION_ID);
+      } else {
+        console.log("Session update failed: " + response.status);
+      }
+    }
+  },
+  interaction: {
+    displayControl: {
+      formatCard: "EMBOSSED",
+      invalidFieldCharacters: "REJECT"
+    }
+  }
+});
 
-				// --- 3DS FLOW LOGIC ---
+function pay() {
+  PaymentSession.updateSessionFromForm('card');
+}
 
-				async function startPaymentFlow(sessionId) {
-					// 2. Call Initiate Authentication
-					const initRes = await fetch("/checkout/" + { pid } + "/initiate", {
-						method: "POST",
-						body: JSON.stringify({ sessionId: sessionId })
-					}).then(r => r.json());
+// Get browser details for 3DS
+function getBrowserDetails() {
+  const w = window.screen.width;
+  const h = window.screen.height;
+  let windowSize = "250_X_400";
+  if (w >= 600 && h >= 400) windowSize = "FULL_SCREEN";
+  else if (w >= 500 && h >= 600) windowSize = "500_X_600";
+  else if (w >= 390 && h >= 400) windowSize = "390_X_400";
+  
+  return {
+    "3DSecureChallengeWindowSize": windowSize,
+    "acceptHeaders": "*/*",
+    "colorDepth": window.screen.colorDepth,
+    "javaEnabled": navigator.javaEnabled ? navigator.javaEnabled() : false,
+    "language": navigator.language,
+    "screenHeight": window.screen.height,
+    "screenWidth": window.screen.width,
+    "timeZone": -new Date().getTimezoneOffset()
+  };
+}
 
-					if (initRes.action === "method_check") {
-						console.log("Method Check Required. Rendering silent iframe and waiting 5s...");
-						
-						// Render Silent Iframe
-						const container = document.getElementById("method-container");
-						const iframe = document.createElement("iframe");
-						iframe.name = "methodFrame";
-						iframe.className = "hidden-frame";
-						container.appendChild(iframe);
+async function startPaymentFlow(sessionId) {
+  const initRes = await fetch("/checkout/" + PID + "/initiate-auth/" + sessionId, {
+    method: "POST",
+    body: JSON.stringify({ sessionId: sessionId })
+  }).then(r => r.json());
 
-						const form = document.createElement("form");
-						form.action = initRes.methodUrl;
-						form.method = "POST";
-						form.target = "methodFrame";
+  if (initRes.next_step === "authenticate") {
+    doAuthenticatePayer(sessionId, initRes.tx_id);
+  } else if (initRes.next_step === "another_payment_method") {
+    console.log("Try another payment method");
+  } else if (initRes.next_step === "cant_continue") {
+    console.log("Cannot continue with payment");
+  }
+}
 
-						const input = document.createElement("input");
-						input.type = "hidden";
-						input.name = "threeDSMethodData";
-						input.value = initRes.methodPostData;
-						form.appendChild(input);
+async function doAuthenticatePayer(sessionId, txId) {
+  const authRes = await fetch("/checkout/" + PID + "/process-auth/" + sessionId + "/" + txId, {
+    method: "POST",
+    body: JSON.stringify(getBrowserDetails())
+  }).then(r => r.json());
 
-						container.appendChild(form);
-						form.submit();
-
-						// WAIT 5 SECONDS before proceeding
-						setTimeout(() => {
-							console.log("5 seconds passed. Proceeding to auth...");
-							doAuthenticatePayer(sessionId);
-						}, 5000);
-
-					} else {
-						console.log("No Method Check required. Proceeding...");
-						doAuthenticatePayer(sessionId);
-					}
-				}
-
-				async function doAuthenticatePayer(sessionId) {
-					// 3. Call Authenticate Payer
-					const authRes = await fetch("/checkout/" + { pid } + "/process-auth", {
-						method: "POST",
-						body: JSON.stringify({ sessionId: sessionId })
-					}).then(r => r.json());
-
-					if (authRes.action === "challenge") {
-						console.log("Challenge Required. Injecting HTML...");
-						// Inject HTML. This usually contains a form that auto-submits 
-						// or an iframe.
-						document.getElementById("challenge-container").innerHTML = authRes.html;
-						// Hide the payment UI to avoid confusion
-						document.getElementById("paymentUI").style.display = 'none';
-
-					} else if (authRes.action === "frictionless") {
-						console.log("Frictionless. Redirecting...");
-						window.location.href = authRes.redirectUrl;
-						
-					} else {
-						alert("Authentication Failed or Error Occurred");
-					}
-				}
-			</script>
+  if (authRes.next_step === "3ds_challenge") {
+        console.log("3DS Challenge required");
+    
+    // Inject the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = authRes.redirect_html;
+    document.body.appendChild(tempDiv);
+    
+    // Execute the script to auto-submit the form
+    const script = document.getElementById('authenticate-payer-script');
+    if (script) {
+        eval(script.text);
+    }
+    
+    // Hide payment UI
+    document.getElementById("paymentUI").style.display = 'none';
+  } else if (authRes.next_step === "pay") {
+    console.log("Ready to pay");
+    // TODO: Call payment endpoint
+  } else if (authRes.next_step === "another_payment_method") {
+    console.log("Try another payment method");
+  } else if (authRes.next_step === "cant_continue") {
+    console.log("Cannot continue with payment");
+  }
+}
+</script>
 		</body>
 	</html>
 }

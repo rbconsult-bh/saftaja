@@ -13,6 +13,8 @@ type Client interface {
 	InitiateAuthentication(ctx context.Context, orderID, txID string, req *InitiateAuthenticationRequest) (*Response[InitiateAuthenticationResponse], error)
 	AuthenticatePayer(ctx context.Context, orderID, txID string, req *AuthenticatePayerRequest) (*Response[AuthenticatePayerResponse], error)
 
+	RetrieveTransaction(ctx context.Context, orderID, txID string) (*Response[RetrieveTransactionResponse], error)
+
 	ExecutePay(ctx context.Context, orderID, txID string, req *ExecutePayRequest) (*Response[ExecutePayResponse], error)
 }
 
@@ -388,6 +390,63 @@ type (
 		TimeOfRecord     string                              `json:"timeOfRecord"`
 		Transaction      AuthenticatePayerRespTransaction    `json:"transaction"`
 		Version          string                              `json:"version"`
+	}
+)
+
+type (
+	RetrieveTransactionAuthentication struct {
+		Amount           float64 `json:"amount"`
+		Method           string  `json:"method"`
+		PayerInteraction string  `json:"payerInteraction"`
+		Time             string  `json:"time"`
+		Version          string  `json:"version"`
+	}
+	RetrieveTransactionDevice struct {
+		Browser   string `json:"browser"`
+		IPAddress string `json:"ipAddress"`
+	}
+	RetrieveTransactionOrder struct {
+		Amount               float64 `json:"amount"`
+		AuthenticationStatus string  `json:"authenticationStatus"`
+		CreationTime         string  `json:"creationTime"`
+		Currency             string  `json:"currency"`
+		ID                   string  `json:"id"`
+		Status               string  `json:"status"`
+	}
+	RetrieveTransactionGatewayResp struct {
+		GatewayCode           string `json:"gatewayCode"`
+		GatewayRecommendation string `json:"gatewayRecommendation"`
+	}
+	RetrieveTransactionSourceOfFunds struct {
+		Provided struct {
+			Card struct {
+				Brand  string `json:"brand"`
+				Number string `json:"number"`
+				Scheme string `json:"scheme"`
+			} `json:"card"`
+		} `json:"provided"`
+		Type string `json:"type"`
+	}
+	RetrieveTransactionTx struct {
+		Acquirer struct {
+			MerchantID string `json:"merchantId"`
+		} `json:"acquirer"`
+		Amount               float64 `json:"amount"`
+		AuthenticationStatus string  `json:"authenticationStatus"`
+		Currency             string  `json:"currency"`
+		ID                   string  `json:"id"`
+		Type                 string  `json:"type"`
+	}
+	RetrieveTransactionResponse struct {
+		Authentication RetrieveTransactionAuthentication `json:"authentication"`
+		Device         RetrieveTransactionDevice         `json:"device"`
+		Merchant       string                            `json:"merchant"`
+		Order          RetrieveTransactionOrder          `json:"order"`
+		Response       RetrieveTransactionGatewayResp    `json:"response"`
+		Result         string                            `json:"result"`
+		SourceOfFunds  RetrieveTransactionSourceOfFunds  `json:"sourceOfFunds"`
+		Transaction    RetrieveTransactionTx             `json:"transaction"`
+		Version        string                            `json:"version"`
 	}
 )
 

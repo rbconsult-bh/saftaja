@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
 	mpgsclient "github.com/RBConsult-BH/pay/internal/clients/mpgs"
@@ -138,32 +139,38 @@ func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Req
 	log.Ctx(ctx).Info().Str("pid", pid).Msg("got pid :D")
 	log.Ctx(ctx).Info().Str("sid", sid).Msg("got sid :D")
 
-	// {
-	//   "apiOperation": "AUTHENTICATE_PAYER",
-	//   "authentication": {
-	//     "redirectResponseUrl": "https://rbconsult.bh"
-	//   },
-	//   "device": {
-	//     "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-	//     "browserDetails": {
-	//       "3DSecureChallengeWindowSize": "FULL_SCREEN",
-	//       "acceptHeaders": "application/json",
-	//       "colorDepth": 24,
-	//       "javaEnabled": true,
-	//       "language": "en-US",
-	//       "screenHeight": 1080,
-	//       "screenWidth": 1920,
-	//       "timeZone": -180
-	//     },
-	//     "ipAddress": "127.0.0.1"
-	//   },
-	//   "order": {
-	//     "amount": "{{amount}}",
-	//     "currency": "{{currency}}"
-	//   },
-	//   "session": {
-	//     "id": "{{sessionID}}"
-	//   }
+	var browserDetails mpgsclient.AuthenticatePayerReqBrowserDetails
+	if err := json.NewDecoder(r.Body).Decode(&browserDetails); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to decode body into browser details struct")
+		http.Error(w, "internal server error", 500)
+		return
+	}
+	if r.Header.Get("Accept") != "" {
+		browserDetails.AcceptHeaders = r.Header.Get("Accept")
+	}
+
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Str("remote_addr", r.RemoteAddr).Msg("failed to split host port of remote addr")
+		http.Error(w, "internal server error", 500)
+		return
+	}
+	if ip == "::1" {
+		ip = "0000:0000:0000:0000:0000:0000:0000:0001" // Full IPv6 loopback
+	}
+
+	// TODO: read the header of cloudflare, otherwise use remote addr if no cloudflare proxy in front of this.
+	//
+	// if isCloudflareIP(ip) {
+	// 	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
+	// 		ip = cfIP
+	// 	}
+	// }
+	//
+	// if net.ParseIP(ip) == nil {
+	// 	log.Ctx(ctx).Error().Str("ip", ip).Msg("invalid IP address")
+	// 	http.Error(w, "internal server error", 500)
+	// 	return
 	// }
 
 	resp, err := h.mpgsCli.AuthenticatePayer(ctx, pid, txID, &mpgsclient.AuthenticatePayerRequest{
@@ -171,10 +178,11 @@ func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Req
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
 			RedirectResponseURL: "https://rbconsult.bh", // TODO: make it configurable, perhaps from DB even somehow :D
 		},
+		// TODO: browser and ip address from server, but auth payer req browser details from client parse from body
 		Device: mpgsclient.AuthenticatePayerReqDevice{
-			Browser:        "",
-			BrowserDetails: &mpgsclient.AuthenticatePayerReqBrowserDetails{},
-			IPAddress:      "",
+			Browser:        r.Header.Get("User-Agent"),
+			BrowserDetails: &browserDetails,
+			IPAddress:      ip,
 		},
 		Order: mpgsclient.AuthenticatePayerReqOrder{
 			Amount:   "100",
@@ -190,7 +198,6 @@ func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Req
 
 	var nextStep string
 	var redirectHTML string
-
 	switch resp.Data.Response.GatewayRecommendation {
 	case mpgsclient.GatewayRecommendationProceed:
 		if resp.Data.Authentication.Redirect.HTML != "" {
@@ -228,7 +235,106 @@ func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Req
 func (h *handlers) CheckoutPayHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	log.Ctx(ctx).Info().Msg("we are calling checkout pay endpoint :D")
+	pid := chi.URLParam(r, "pid")
+	sid := chi.URLParam(r, "sid")
+	authTxID := chi.URLParam(r, "txid") // this is the AUTHENTICATION tx id
 
-	w.WriteHeader(200)
+	if pid == "" || sid == "" || authTxID == "" {
+		http.Error(w, "missing required parameters", 400)
+		return
+	}
+
+	log.Ctx(ctx).Info().
+		Str("pid", pid).
+		Str("sid", sid).
+		Str("auth_tx_id", authTxID).
+		Msg("calling checkout pay endpoint")
+
+	authTxResp, err := h.mpgsCli.RetrieveTransaction(ctx, pid, authTxID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to retrieve auth transaction")
+		http.Error(w, "failed to verify authentication", 500)
+		return
+	}
+
+	if authTxResp.Data.Transaction.AuthenticationStatus != "AUTHENTICATION_SUCCESSFUL" {
+		log.Ctx(ctx).Warn().
+			Str("auth_status", authTxResp.Data.Transaction.AuthenticationStatus).
+			Msg("authentication not successful")
+		http.Error(w, "authentication not completed", 400)
+		return
+	}
+
+	payTxID := fmt.Sprintf("txn-pay-%s", utils.GenerateRandomString(5))
+
+	log.Ctx(ctx).Info().
+		Str("pay_tx_id", payTxID).
+		Str("auth_tx_id", authTxID).
+		Msg("executing payment with new transaction id")
+
+	resp, err := h.mpgsCli.ExecutePay(ctx, pid, payTxID, &mpgsclient.ExecutePayRequest{
+		APIOperation: mpgsclient.OperationPay,
+		Authentication: mpgsclient.ExecutePayReqAuthentication{
+			TransactionID: authTxID,
+		},
+		Order: mpgsclient.ExecutePayReqOrder{
+			// TODO: fx this
+			// Amount:    authTxResp.Data.Order.Amount,
+			Currency:  authTxResp.Data.Order.Currency,
+			Reference: fmt.Sprintf("order-%s", pid),
+		},
+		Session: mpgsclient.ExecutePayReqSession{
+			ID: sid,
+		},
+		Transaction: &mpgsclient.ExecutePayReqTransaction{
+			Reference: pid,
+		},
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to execute payment")
+		http.Error(w, "payment failed", 500)
+		return
+	}
+
+	var status string
+	var message string
+	switch resp.Data.Response.GatewayCode {
+	case mpgsclient.CodeApproved:
+		status = "success"
+		message = "Payment successful!"
+		log.Ctx(ctx).Info().
+			Str("order_id", resp.Data.Order.ID).
+			Str("tx_id", payTxID).
+			Msg("payment approved")
+		// TODO: Update invoice status in DB to "paid"
+
+	case mpgsclient.CodeDeclined:
+		status = "declined"
+		message = "Payment declined by bank"
+		log.Ctx(ctx).Warn().Msg("payment declined")
+
+	// TODO: fix this thingy :d
+	// case mpgsclient.CodeError:
+	// 	status = "error"
+	// 	message = "Payment error occurred"
+	// 	log.Ctx(ctx).Error().Msg("payment error")
+
+	default:
+		log.Ctx(ctx).Error().
+			Str("gateway_code", string(resp.Data.Response.GatewayCode)).
+			Msg("unexpected gateway code")
+		status = "unknown"
+		message = "Unknown payment status"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":     status,
+		"message":    message,
+		"pay_tx_id":  payTxID,
+		"auth_tx_id": authTxID,
+		"order_id":   resp.Data.Order.ID,
+		"amount":     resp.Data.Order.Amount,
+		"currency":   resp.Data.Order.Currency,
+	})
 }

@@ -40,7 +40,7 @@ func main() {
 	r.Get("/checkout/{pid}", h.CheckoutHandler)
 	r.Post("/checkout/{pid}/initiate-auth/{sid}", h.CheckoutInitiateAuthHandler)
 	r.Post("/checkout/{pid}/process-auth/{sid}/{txid}", h.CheckoutProcessAuthHandler)
-	r.Post("/checkout/{pid}/pay", h.CheckoutPayHandler)
+	r.Post("/checkout/{pid}/pay/{sid}/{txid}", h.CheckoutPayHandler)
 
 	log.Info().Msg("starting listener on port 8080")
 
