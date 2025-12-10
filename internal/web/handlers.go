@@ -138,6 +138,7 @@ func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Req
 	}
 	log.Ctx(ctx).Info().Str("pid", pid).Msg("got pid :D")
 	log.Ctx(ctx).Info().Str("sid", sid).Msg("got sid :D")
+	log.Ctx(ctx).Info().Str("txID", sid).Msg("got txID :D")
 
 	var browserDetails mpgsclient.AuthenticatePayerReqBrowserDetails
 	if err := json.NewDecoder(r.Body).Decode(&browserDetails); err != nil {

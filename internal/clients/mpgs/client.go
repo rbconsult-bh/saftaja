@@ -127,7 +127,7 @@ func (c *client) UpdateSession(ctx context.Context, sessionID string, req *Updat
 }
 
 func (c *client) InitiateAuthentication(ctx context.Context, orderID, txID string, req *InitiateAuthenticationRequest) (*Response[InitiateAuthenticationResponse], error) {
-	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s", APIVersion, c.merchantID, orderID, txID)
 
 	body := &bytes.Buffer{}
 	if err := json.NewEncoder(body).Encode(req); err != nil {
@@ -143,7 +143,7 @@ func (c *client) InitiateAuthentication(ctx context.Context, orderID, txID strin
 }
 
 func (c *client) AuthenticatePayer(ctx context.Context, orderID, txID string, req *AuthenticatePayerRequest) (*Response[AuthenticatePayerResponse], error) {
-	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s", APIVersion, c.merchantID, orderID, txID)
 
 	body := &bytes.Buffer{}
 	if err := json.NewEncoder(body).Encode(req); err != nil {
@@ -170,7 +170,7 @@ func (c *client) RetrieveTransaction(ctx context.Context, orderID, txID string) 
 }
 
 func (c *client) ExecutePay(ctx context.Context, orderID, txID string, req *ExecutePayRequest) (*Response[ExecutePayResponse], error) {
-	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s ", APIVersion, c.merchantID, orderID, txID)
+	path := fmt.Sprintf("/api/rest/version/%s/merchant/%s/order/%s/transaction/%s", APIVersion, c.merchantID, orderID, txID)
 
 	body := &bytes.Buffer{}
 	if err := json.NewEncoder(body).Encode(req); err != nil {
