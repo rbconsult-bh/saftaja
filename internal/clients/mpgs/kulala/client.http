@@ -2,8 +2,8 @@
 
 @amount = 100.00
 @currency = BHD
-@pid = pid-2
-@sessionID = SESSION0002595992824M50470809J3
+@pid = pid-4
+@sessionID = SESSION0002738204411I2632791K99
 
 
 ### Update Session
@@ -85,7 +85,7 @@ Content-Type: application/json
 
 ### Retrieve Transaction
 
-GET {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{pid}}/transaction/txn-init-5644332 HTTP/1.1
+GET {{BASE_URL}}/api/rest/version/100/merchant/{{MERCHANT_ID}}/order/{{pid}}/transaction/txn-init-kjvA5 HTTP/1.1
 Authorization: Basic merchant.{{MERCHANT_ID}}:{{API_PASSWORD}}
 Content-Type: application/json
 
@@ -106,12 +106,12 @@ Content-Type: application/json
 {
   "apiOperation": "PAY",
   "authentication": {
-    "transactionId": "txn-init-5644332"
+    "transactionId": "txn-init-yND1Z "
   },
   "order": {
     "amount": "{{amount}}",
     "currency": "{{currency}}",
-    "reference": "pid-2"
+    "reference": "{{pid}}"
   },
   "session": {
     "id": "{{sessionID}}"

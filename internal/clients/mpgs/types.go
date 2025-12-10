@@ -394,59 +394,131 @@ type (
 )
 
 type (
-	RetrieveTransactionAuthentication struct {
-		Amount           float64 `json:"amount"`
-		Method           string  `json:"method"`
-		PayerInteraction string  `json:"payerInteraction"`
-		Time             string  `json:"time"`
-		Version          string  `json:"version"`
+	RetrieveTransactionThreeDS struct {
+		ACSEci              string `json:"acsEci,omitempty"`
+		AuthenticationToken string `json:"authenticationToken,omitempty"`
+		TransactionID       string `json:"transactionId"`
 	}
+
+	RetrieveTransactionThreeDS2 struct {
+		ThreeDSServerTransactionID string            `json:"3dsServerTransactionId"`
+		ACSReference               string            `json:"acsReference"`
+		ACSTransactionID           string            `json:"acsTransactionId"`
+		AuthenticationScheme       string            `json:"authenticationScheme"`
+		DirectoryServerID          string            `json:"directoryServerId"`
+		DSReference                string            `json:"dsReference"`
+		DSTransactionID            string            `json:"dsTransactionId"`
+		MethodCompleted            bool              `json:"methodCompleted"`
+		MethodSupported            string            `json:"methodSupported"`
+		ProtocolVersion            string            `json:"protocolVersion"`
+		RequestorID                string            `json:"requestorId"`
+		RequestorName              string            `json:"requestorName"`
+		TransactionStatus          TransactionStatus `json:"transactionStatus"` // "Y", "N", "C", etc
+	}
+
+	RetrieveTransactionRedirect struct {
+		DomainName string `json:"domainName"`
+	}
+
+	RetrieveTransactionAuthentication struct {
+		ThreeDS          RetrieveTransactionThreeDS  `json:"3ds"`
+		ThreeDS2         RetrieveTransactionThreeDS2 `json:"3ds2"`
+		AcceptVersions   string                      `json:"acceptVersions"` // e.g. "3DS1,3DS2,PASSKEY"
+		Amount           float64                     `json:"amount"`
+		Channel          AuthChannel                 `json:"channel"`
+		Method           AuthenticationMethod        `json:"method"`
+		PayerInteraction PayerInteraction            `json:"payerInteraction"`
+		Purpose          string                      `json:"purpose"` // e.g. "PAYMENT_TRANSACTION"
+		Redirect         RetrieveTransactionRedirect `json:"redirect"`
+		Time             string                      `json:"time"`
+		Version          string                      `json:"version"` // e.g. "3DS2"
+	}
+
 	RetrieveTransactionDevice struct {
 		Browser   string `json:"browser"`
 		IPAddress string `json:"ipAddress"`
 	}
+
+	RetrieveTransactionChargeback struct {
+		Amount   float64 `json:"amount"`
+		Currency string  `json:"currency"`
+	}
+
+	RetrieveTransactionValueTransfer struct {
+		AccountType string `json:"accountType"` // e.g. "NOT_A_TRANSFER"
+	}
+
 	RetrieveTransactionOrder struct {
-		Amount               float64 `json:"amount"`
-		AuthenticationStatus string  `json:"authenticationStatus"`
-		CreationTime         string  `json:"creationTime"`
-		Currency             string  `json:"currency"`
-		ID                   string  `json:"id"`
-		Status               string  `json:"status"`
+		Amount                float64                          `json:"amount"`
+		AuthenticationStatus  string                           `json:"authenticationStatus"` // "AUTHENTICATION_SUCCESSFUL", "AUTHENTICATION_PENDING"
+		Chargeback            RetrieveTransactionChargeback    `json:"chargeback"`
+		CreationTime          string                           `json:"creationTime"`
+		Currency              string                           `json:"currency"`
+		ID                    string                           `json:"id"`
+		LastUpdatedTime       string                           `json:"lastUpdatedTime"`
+		MerchantAmount        float64                          `json:"merchantAmount"`
+		MerchantCategoryCode  string                           `json:"merchantCategoryCode"`
+		MerchantCurrency      string                           `json:"merchantCurrency"`
+		Status                string                           `json:"status"` // "AUTHENTICATED", "AUTHENTICATION_INITIATED"
+		TotalAuthorizedAmount float64                          `json:"totalAuthorizedAmount"`
+		TotalCapturedAmount   float64                          `json:"totalCapturedAmount"`
+		TotalDisbursedAmount  float64                          `json:"totalDisbursedAmount"`
+		TotalRefundedAmount   float64                          `json:"totalRefundedAmount"`
+		ValueTransfer         RetrieveTransactionValueTransfer `json:"valueTransfer"`
 	}
+
 	RetrieveTransactionGatewayResp struct {
-		GatewayCode           string `json:"gatewayCode"`
-		GatewayRecommendation string `json:"gatewayRecommendation"`
+		GatewayCode           GatewayCode           `json:"gatewayCode"`
+		GatewayRecommendation GatewayRecommendation `json:"gatewayRecommendation"`
 	}
+
+	RetrieveTransactionCardExpiry struct {
+		Month string `json:"month"`
+		Year  string `json:"year"`
+	}
+
+	RetrieveTransactionCard struct {
+		Brand         string                        `json:"brand"`
+		Expiry        RetrieveTransactionCardExpiry `json:"expiry"`
+		FundingMethod string                        `json:"fundingMethod"` // e.g. "DEBIT", "CREDIT"
+		NameOnCard    string                        `json:"nameOnCard"`
+		Number        string                        `json:"number"` // masked, e.g. "512345xxxxxx0008"
+		Scheme        string                        `json:"scheme"`
+	}
+
 	RetrieveTransactionSourceOfFunds struct {
 		Provided struct {
-			Card struct {
-				Brand  string `json:"brand"`
-				Number string `json:"number"`
-				Scheme string `json:"scheme"`
-			} `json:"card"`
+			Card RetrieveTransactionCard `json:"card"`
 		} `json:"provided"`
-		Type string `json:"type"`
+		Type string `json:"type"` // e.g. "CARD"
 	}
+
+	RetrieveTransactionAcquirer struct {
+		MerchantID string `json:"merchantId"`
+	}
+
 	RetrieveTransactionTx struct {
-		Acquirer struct {
-			MerchantID string `json:"merchantId"`
-		} `json:"acquirer"`
-		Amount               float64 `json:"amount"`
-		AuthenticationStatus string  `json:"authenticationStatus"`
-		Currency             string  `json:"currency"`
-		ID                   string  `json:"id"`
-		Type                 string  `json:"type"`
+		Acquirer             RetrieveTransactionAcquirer `json:"acquirer"`
+		Amount               float64                     `json:"amount"`
+		AuthenticationStatus string                      `json:"authenticationStatus"`
+		Currency             string                      `json:"currency"`
+		ID                   string                      `json:"id"`
+		Stan                 string                      `json:"stan"` // System Trace Audit Number
+		Type                 TransactionType             `json:"type"`
 	}
+
 	RetrieveTransactionResponse struct {
-		Authentication RetrieveTransactionAuthentication `json:"authentication"`
-		Device         RetrieveTransactionDevice         `json:"device"`
-		Merchant       string                            `json:"merchant"`
-		Order          RetrieveTransactionOrder          `json:"order"`
-		Response       RetrieveTransactionGatewayResp    `json:"response"`
-		Result         string                            `json:"result"`
-		SourceOfFunds  RetrieveTransactionSourceOfFunds  `json:"sourceOfFunds"`
-		Transaction    RetrieveTransactionTx             `json:"transaction"`
-		Version        string                            `json:"version"`
+		Authentication   RetrieveTransactionAuthentication `json:"authentication"`
+		Device           RetrieveTransactionDevice         `json:"device"`
+		Merchant         string                            `json:"merchant"`
+		Order            RetrieveTransactionOrder          `json:"order"`
+		Response         RetrieveTransactionGatewayResp    `json:"response"`
+		Result           string                            `json:"result"` // "SUCCESS", "PENDING"
+		SourceOfFunds    RetrieveTransactionSourceOfFunds  `json:"sourceOfFunds"`
+		TimeOfLastUpdate string                            `json:"timeOfLastUpdate"`
+		TimeOfRecord     string                            `json:"timeOfRecord"`
+		Transaction      RetrieveTransactionTx             `json:"transaction"`
+		Version          string                            `json:"version"` // e.g. "100"
 	}
 )
 
