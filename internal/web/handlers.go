@@ -258,9 +258,9 @@ func (h *handlers) CheckoutPayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authTxResp.Data.Transaction.AuthenticationStatus != "AUTHENTICATION_SUCCESSFUL" {
+	if authTxResp.Data.Transaction.AuthenticationStatus != mpgsclient.AuthStatusSuccessful {
 		log.Ctx(ctx).Warn().
-			Str("auth_status", authTxResp.Data.Transaction.AuthenticationStatus).
+			Str("auth_status", string(authTxResp.Data.Transaction.AuthenticationStatus)).
 			Msg("authentication not successful")
 		http.Error(w, "authentication not completed", 400)
 		return
@@ -279,8 +279,7 @@ func (h *handlers) CheckoutPayHandler(w http.ResponseWriter, r *http.Request) {
 			TransactionID: authTxID,
 		},
 		Order: mpgsclient.ExecutePayReqOrder{
-			// TODO: fx this
-			// Amount:    authTxResp.Data.Order.Amount,
+			Amount:    fmt.Sprintf("%.2f", authTxResp.Data.Order.Amount),
 			Currency:  authTxResp.Data.Order.Currency,
 			Reference: fmt.Sprintf("order-%s", pid),
 		},

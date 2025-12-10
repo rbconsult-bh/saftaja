@@ -500,7 +500,7 @@ type (
 	RetrieveTransactionTx struct {
 		Acquirer             RetrieveTransactionAcquirer `json:"acquirer"`
 		Amount               float64                     `json:"amount"`
-		AuthenticationStatus string                      `json:"authenticationStatus"`
+		AuthenticationStatus AuthStatus                  `json:"authenticationStatus"`
 		Currency             string                      `json:"currency"`
 		ID                   string                      `json:"id"`
 		Stan                 string                      `json:"stan"` // System Trace Audit Number
