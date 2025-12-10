@@ -78,11 +78,15 @@ func decodeResponse[T any](resp *http.Response, expectedStatus int) (*Response[T
 	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+
 		var errResponse ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResponse); err != nil {
-			return nil, fmt.Errorf("failed to decode error response: %w, response status: %d", err, resp.StatusCode)
+		if err := json.Unmarshal(bodyBytes, &errResponse); err != nil {
+			return nil, fmt.Errorf("unexpected status code: got %d, expected %d. Response body: %s",
+				resp.StatusCode, expectedStatus, string(bodyBytes))
 		}
-		return nil, errResponse
+
+		return nil, fmt.Errorf("API returned %d (expected %d): %w", resp.StatusCode, expectedStatus, errResponse)
 	}
 
 	var data T
@@ -166,7 +170,7 @@ func (c *client) RetrieveTransaction(ctx context.Context, orderID, txID string) 
 		return nil, err
 	}
 
-	return decodeResponse[RetrieveTransactionResponse](resp, http.StatusCreated)
+	return decodeResponse[RetrieveTransactionResponse](resp, http.StatusOK)
 }
 
 func (c *client) ExecutePay(ctx context.Context, orderID, txID string, req *ExecutePayRequest) (*Response[ExecutePayResponse], error) {

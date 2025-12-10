@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -177,7 +178,7 @@ func (h *handlers) CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Req
 	resp, err := h.mpgsCli.AuthenticatePayer(ctx, pid, txID, &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
-			RedirectResponseURL: "https://rbconsult.bh", // TODO: make it configurable, perhaps from DB even somehow :D
+			RedirectResponseURL: fmt.Sprintf("http://localhost:8080/checkout/%s/pay/%s/%s", pid, sid, txID), // TODO: make it configurable, perhaps from DB even somehow :D
 		},
 		// TODO: browser and ip address from server, but auth payer req browser details from client parse from body
 		Device: mpgsclient.AuthenticatePayerReqDevice{
@@ -253,6 +254,13 @@ func (h *handlers) CheckoutPayHandler(w http.ResponseWriter, r *http.Request) {
 
 	authTxResp, err := h.mpgsCli.RetrieveTransaction(ctx, pid, authTxID)
 	if err != nil {
+		var errResp mpgsclient.ErrorResponse
+		if errors.As(err, &errResp) {
+			log.Ctx(ctx).Error().Err(errResp).Msg("failed to retrieve auth transaction")
+			http.Error(w, "failed to verify authentication", 500)
+			return
+		}
+
 		log.Ctx(ctx).Error().Err(err).Msg("failed to retrieve auth transaction")
 		http.Error(w, "failed to verify authentication", 500)
 		return
