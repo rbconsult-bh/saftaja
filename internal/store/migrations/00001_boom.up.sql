@@ -45,19 +45,25 @@ VALUES (
 );
 
 -- ============================================================================
--- GATEWAY CONFIGS
+-- GATEWAY ACCOUNTS
 -- ============================================================================
 
-CREATE TABLE gateway_configs (
+CREATE TABLE gateway_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
 
-    name VARCHAR(50) NOT NULL,
-    gateway_type VARCHAR(30) NOT NULL DEFAULT 'mpgs',
+    connector_type VARCHAR(50) NOT NULL, -- "mpgs"
 
-    base_url VARCHAR(255) NOT NULL,
-    merchant_id VARCHAR(100) NOT NULL,
-    api_password VARCHAR(255) NOT NULL,
+    account_name VARCHAR(100) NOT NULL,
+
+    -- 🔒 SECRETS (Password, Merchant ID, Keys) - Never send to frontend
+    credentials JSONB NOT NULL DEFAULT '{}',
+
+    -- 🌍 SETTINGS (Display Name, Test Mode, Logos) - Safe for frontend
+    settings JSONB NOT NULL DEFAULT '{}',
+
+    -- 🧭 ROUTING (e.g. ['card', 'apple_pay'])
+    payment_methods JSONB NOT NULL DEFAULT '[]',
 
     is_active BOOLEAN NOT NULL DEFAULT true,
 
@@ -116,7 +122,7 @@ CREATE TABLE payment_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_id UUID NOT NULL REFERENCES invoices(id),
     project_id UUID NOT NULL REFERENCES projects(id),
-    gateway_config_id UUID NOT NULL REFERENCES gateway_configs(id),
+    gateway_account_id UUID NOT NULL REFERENCES gateway_accounts(id),
 
     gateway_session_id VARCHAR(100) NOT NULL,
 
@@ -167,18 +173,19 @@ CREATE INDEX idx_organizations_subdomain ON organizations(subdomain) WHERE delet
 
 CREATE INDEX idx_projects_org ON projects(organization_id) WHERE deleted_at IS NULL;
 
-CREATE INDEX idx_gateway_configs_project ON gateway_configs(project_id) 
-    WHERE deleted_at IS NULL AND is_active = true;
+CREATE INDEX idx_gateway_accounts_lookup ON gateway_accounts(project_id, is_active)
+    WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_invoices_project ON invoices(project_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_invoices_status ON invoices(project_id, status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_invoices_external ON invoices(project_id, external_id) 
+CREATE INDEX idx_invoices_external ON invoices(project_id, external_id)
     WHERE deleted_at IS NULL AND external_id IS NOT NULL;
 
 CREATE INDEX idx_invoice_items_invoice ON invoice_items(invoice_id);
 
 CREATE INDEX idx_payment_sessions_invoice ON payment_sessions(invoice_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_payment_sessions_gateway ON payment_sessions(gateway_session_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_payment_sessions_account ON payment_sessions(gateway_account_id);
 
 CREATE INDEX idx_transactions_session ON transactions(payment_session_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_transactions_invoice ON transactions(invoice_id) WHERE deleted_at IS NULL;
@@ -201,7 +208,7 @@ CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_gateway_configs_updated_at BEFORE UPDATE ON gateway_configs
+CREATE TRIGGER update_gateway_accounts_updated_at BEFORE UPDATE ON gateway_accounts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices

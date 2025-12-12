@@ -10,18 +10,18 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type GatewayConfig struct {
-	ID          uuid.UUID
-	ProjectID   uuid.UUID
-	Name        string
-	GatewayType string
-	BaseUrl     string
-	MerchantID  string
-	ApiPassword string
-	IsActive    bool
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
-	DeletedAt   pgtype.Timestamptz
+type GatewayAccount struct {
+	ID             uuid.UUID
+	ProjectID      uuid.UUID
+	ConnectorType  string
+	AccountName    string
+	Credentials    []byte
+	Settings       []byte
+	PaymentMethods []byte
+	IsActive       bool
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+	DeletedAt      pgtype.Timestamptz
 }
 
 type Invoice struct {
@@ -64,7 +64,7 @@ type PaymentSession struct {
 	ID               uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
-	GatewayConfigID  uuid.UUID
+	GatewayAccountID uuid.UUID
 	GatewaySessionID string
 	Status           PaymentSessionStatus
 	PaymentMethod    PaymentSessionPaymentMethod
