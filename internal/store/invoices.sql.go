@@ -9,35 +9,14 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createInvoice = `-- name: CreateInvoice :one
-INSERT INTO invoices (project_id, amount, currency, external_id, customer_email, customer_name, description)
-  VALUES ($1, $2, $3, $4, $5, $6, $7)
-  RETURNING id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at
+const getInvoiceByID = `-- name: GetInvoiceByID :one
+SELECT id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at FROM invoices WHERE id = $1
 `
 
-type CreateInvoiceParams struct {
-	ProjectID     uuid.UUID
-	Amount        pgtype.Numeric
-	Currency      string
-	ExternalID    pgtype.Text
-	CustomerEmail pgtype.Text
-	CustomerName  pgtype.Text
-	Description   pgtype.Text
-}
-
-func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {
-	row := q.db.QueryRow(ctx, createInvoice,
-		arg.ProjectID,
-		arg.Amount,
-		arg.Currency,
-		arg.ExternalID,
-		arg.CustomerEmail,
-		arg.CustomerName,
-		arg.Description,
-	)
+func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error) {
+	row := q.db.QueryRow(ctx, getInvoiceByID, id)
 	var i Invoice
 	err := row.Scan(
 		&i.ID,

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/RBConsult-BH/pay/internal/utils"
 	"github.com/RBConsult-BH/pay/internal/web/templfiles"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,32 +36,53 @@ func New(mpgsBaseURL, mpgsMerchantID string, mpgsCli mpgsclient.Client, queries 
 func (h *handlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// TODO: get this from store in the future when payment links concept is made in the db
-	// for now we are acting like this is a sessionID, but yea in the future it should be the payment id
-	pid := chi.URLParam(r, "pid")
-	if pid == "" {
-		http.Error(w, "missing pid ", 400)
+	rawInvoiceID := chi.URLParam(r, "invoice_id")
+	if rawInvoiceID == "" {
+		http.Error(w, "missing invoice_id", http.StatusBadRequest)
 		return
 	}
 
-	log.Ctx(ctx).Info().Str("pid", pid).Msg("got pid :D")
+	// TODO: pass the organization id, we need to map this from Host header somehow, so that tenants don't get mad :D
+	invoiceID, err := uuid.Parse(rawInvoiceID)
+	if err != nil {
+		http.Error(w, "invalid invoice_id", http.StatusBadRequest)
+		return
+	}
+
+	invoice, err := h.queries.GetInvoiceByID(ctx, invoiceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "invoice not found", http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if invoice.Status == store.InvoiceStatusPaid {
+		http.Error(w, "Invoice already paid", http.StatusConflict)
+		return
+	}
+
+	// TODO: create a payment session in db
 
 	resp, err := h.mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
-			AuthenticationLimit: utils.Ptr[int32](25),
+			AuthenticationLimit: utils.Ptr[int32](25), // TODO: revisit this, to perhaps make this exactly the number of operations we do, so that is less prone to be misused
 		},
 	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create session with mpgs")
-		http.Error(w, "internal server error", 500)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	_, err = h.mpgsCli.UpdateSession(ctx, resp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
 		Order: mpgsclient.UpdateSessionOrder{
-			Amount:   "100", // TODO: this should be fetched from DB
-			Currency: "BHD", // TODO: this should be fetched from DB
-			ID:       pid,
+			Amount:   invoice.Amount,
+			Currency: invoice.Currency,
+			ID:       invoice.ID.String(),
 		},
 	})
 	if err != nil {

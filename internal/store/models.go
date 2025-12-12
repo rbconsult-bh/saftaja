@@ -7,6 +7,7 @@ package store
 import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 type GatewayConfig struct {
@@ -26,7 +27,7 @@ type GatewayConfig struct {
 type Invoice struct {
 	ID            uuid.UUID
 	ProjectID     uuid.UUID
-	Amount        pgtype.Numeric
+	Amount        decimal.Decimal
 	Currency      string
 	Status        InvoiceStatus
 	ExternalID    pgtype.Text
@@ -37,6 +38,17 @@ type Invoice struct {
 	CreatedAt     pgtype.Timestamptz
 	UpdatedAt     pgtype.Timestamptz
 	DeletedAt     pgtype.Timestamptz
+}
+
+type InvoiceItem struct {
+	ID          uuid.UUID
+	InvoiceID   uuid.UUID
+	Name        string
+	Description pgtype.Text
+	Quantity    int32
+	UnitPrice   decimal.Decimal
+	Amount      decimal.Decimal
+	CreatedAt   pgtype.Timestamptz
 }
 
 type Organization struct {
@@ -80,7 +92,7 @@ type Transaction struct {
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
 	TransactionType  TransactionTransactionType
-	Amount           pgtype.Numeric
+	Amount           decimal.Decimal
 	Currency         string
 	Status           TransactionStatus
 	RawRequest       []byte

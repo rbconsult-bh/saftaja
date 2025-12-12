@@ -41,7 +41,7 @@ func main() {
 			User:     cfg.DBUser,
 			Password: cfg.DBPassword,
 		},
-		Tracer: nil,
+		Tracer: nil, // TODO: handle this or use it somehow :D
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect using pgx to db")
@@ -59,10 +59,10 @@ func main() {
 
 	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli, *queries)
 
-	r.Get("/checkout/{pid}", h.CheckoutHandler)
-	r.Post("/checkout/{pid}/initiate-auth/{sid}", h.CheckoutInitiateAuthHandler)
-	r.Post("/checkout/{pid}/process-auth/{sid}/{txid}", h.CheckoutProcessAuthHandler)
-	r.Post("/checkout/{pid}/pay/{sid}/{txid}", h.CheckoutPayHandler)
+	r.Get("/checkout/{invoice_id}", h.CheckoutHandler)
+	r.Post("/checkout/{invoice_id}/initiate-auth", h.CheckoutInitiateAuthHandler)
+	r.Post("/checkout/{invoice_id}/process-auth", h.CheckoutProcessAuthHandler)
+	r.Post("/checkout/{invoice_id}/pay", h.CheckoutPayHandler)
 
 	log.Info().Msg("starting listener on port 8080")
 

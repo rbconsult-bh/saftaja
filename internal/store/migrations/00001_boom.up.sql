@@ -93,6 +93,21 @@ CREATE TABLE invoices (
     UNIQUE(project_id, external_id)
 );
 
+CREATE TABLE invoice_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID NOT NULL REFERENCES invoices(id),
+
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price DECIMAL(12, 3) NOT NULL,
+
+    amount DECIMAL(12, 3) NOT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ============================================================================
 -- PAYMENT SESSIONS
 -- ============================================================================
@@ -159,6 +174,8 @@ CREATE INDEX idx_invoices_project ON invoices(project_id) WHERE deleted_at IS NU
 CREATE INDEX idx_invoices_status ON invoices(project_id, status) WHERE deleted_at IS NULL;
 CREATE INDEX idx_invoices_external ON invoices(project_id, external_id) 
     WHERE deleted_at IS NULL AND external_id IS NOT NULL;
+
+CREATE INDEX idx_invoice_items_invoice ON invoice_items(invoice_id);
 
 CREATE INDEX idx_payment_sessions_invoice ON payment_sessions(invoice_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_payment_sessions_gateway ON payment_sessions(gateway_session_id) WHERE deleted_at IS NULL;

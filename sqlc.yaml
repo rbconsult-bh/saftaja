@@ -21,6 +21,18 @@ sql:
               import: "github.com/google/uuid"
               type: "UUID"
 
+          - db_type: "pg_catalog.numeric"
+            nullable: true
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "NullDecimal"
+
+          - db_type: "pg_catalog.numeric"
+            nullable: false
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"
+
           - column: "projects.environment"
             go_type:
               type: "ProjectEnvironment"

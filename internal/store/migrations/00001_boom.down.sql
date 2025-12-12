@@ -9,6 +9,7 @@ DROP FUNCTION IF EXISTS update_updated_at_column();
 
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS payment_sessions;
+DROP TABLE IF EXISTS invoice_items;
 DROP TABLE IF EXISTS invoices;
 DROP TABLE IF EXISTS gateway_configs;
 DROP TABLE IF EXISTS projects;
