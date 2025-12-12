@@ -80,7 +80,7 @@ func (h *handlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.mpgsCli.UpdateSession(ctx, resp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
 		Order: mpgsclient.UpdateSessionOrder{
-			Amount:   invoice.Amount,
+			Amount:   invoice.Amount.String(),
 			Currency: invoice.Currency,
 			ID:       invoice.ID.String(),
 		},
@@ -91,7 +91,7 @@ func (h *handlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := templfiles.CheckoutPage(h.mpgsBaseURL, mpgsclient.APIVersion, h.mpgsMerchantID, resp.Data.Session.ID, pid).Render(ctx, w); err != nil {
+	if err := templfiles.CheckoutPage(h.mpgsBaseURL, mpgsclient.APIVersion, h.mpgsMerchantID, resp.Data.Session.ID, invoice.ID.String()).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("failed to render checkout page")
 	}
 }
