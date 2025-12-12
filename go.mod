@@ -10,7 +10,9 @@ tool (
 require (
 	github.com/a-h/templ v0.3.943
 	github.com/go-chi/chi v1.5.5
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
+	github.com/jackc/pgx/v5 v5.7.5
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.20.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0
@@ -36,11 +38,9 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/cel-go v0.26.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.7.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
