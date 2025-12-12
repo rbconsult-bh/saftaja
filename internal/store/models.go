@@ -5,12 +5,13 @@
 package store
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type GatewayConfig struct {
-	ID          pgtype.UUID
-	ProjectID   pgtype.UUID
+	ID          uuid.UUID
+	ProjectID   uuid.UUID
 	Name        string
 	GatewayType string
 	BaseUrl     string
@@ -23,8 +24,8 @@ type GatewayConfig struct {
 }
 
 type Invoice struct {
-	ID            pgtype.UUID
-	ProjectID     pgtype.UUID
+	ID            uuid.UUID
+	ProjectID     uuid.UUID
 	Amount        pgtype.Numeric
 	Currency      string
 	Status        string
@@ -39,7 +40,7 @@ type Invoice struct {
 }
 
 type Organization struct {
-	ID        pgtype.UUID
+	ID        uuid.UUID
 	Name      string
 	Subdomain pgtype.Text
 	CreatedAt pgtype.Timestamptz
@@ -48,10 +49,10 @@ type Organization struct {
 }
 
 type PaymentSession struct {
-	ID               pgtype.UUID
-	InvoiceID        pgtype.UUID
-	ProjectID        pgtype.UUID
-	GatewayConfigID  pgtype.UUID
+	ID               uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID        uuid.UUID
+	GatewayConfigID  uuid.UUID
 	GatewaySessionID string
 	Status           string
 	PaymentMethod    string
@@ -64,8 +65,8 @@ type PaymentSession struct {
 }
 
 type Project struct {
-	ID             pgtype.UUID
-	OrganizationID pgtype.UUID
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
 	Name           string
 	Environment    string
 	CreatedAt      pgtype.Timestamptz
@@ -74,10 +75,10 @@ type Project struct {
 }
 
 type Transaction struct {
-	ID               pgtype.UUID
-	PaymentSessionID pgtype.UUID
-	InvoiceID        pgtype.UUID
-	ProjectID        pgtype.UUID
+	ID               uuid.UUID
+	PaymentSessionID uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID        uuid.UUID
 	TransactionType  string
 	Amount           pgtype.Numeric
 	Currency         string

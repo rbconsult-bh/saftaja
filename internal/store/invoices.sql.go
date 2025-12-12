@@ -8,6 +8,7 @@ package store
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -18,7 +19,7 @@ INSERT INTO invoices (project_id, amount, currency, external_id, customer_email,
 `
 
 type CreateInvoiceParams struct {
-	ProjectID     pgtype.UUID
+	ProjectID     uuid.UUID
 	Amount        pgtype.Numeric
 	Currency      string
 	ExternalID    pgtype.Text
