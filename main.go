@@ -1,21 +1,27 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
 
 	mpgsclient "github.com/RBConsult-BH/pay/internal/clients/mpgs"
 	"github.com/RBConsult-BH/pay/internal/config"
+	"github.com/RBConsult-BH/pay/internal/store"
 	"github.com/RBConsult-BH/pay/internal/web"
 	"github.com/RBConsult-BH/pay/internal/web/middlewares"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	ctx := context.Background()
+
 	zerolog.TimeFieldFormat = time.RFC3339
 	log.Logger = zerolog.New(zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 		w.Out = os.Stderr
@@ -27,6 +33,22 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to loading config")
 	}
 
+	pgxConn, err := pgx.ConnectConfig(ctx, &pgx.ConnConfig{
+		Config: pgconn.Config{
+			Host:     cfg.DBHost,
+			Port:     cfg.DBPort,
+			Database: cfg.DBDatabase,
+			User:     cfg.DBUser,
+			Password: cfg.DBPassword,
+		},
+		Tracer: nil,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect using pgx to db")
+	}
+
+	queries := store.New(pgxConn)
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -35,7 +57,7 @@ func main() {
 
 	mpgsCli := mpgsclient.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, cfg.MPGSAPIPassword)
 
-	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli)
+	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli, *queries)
 
 	r.Get("/checkout/{pid}", h.CheckoutHandler)
 	r.Post("/checkout/{pid}/initiate-auth/{sid}", h.CheckoutInitiateAuthHandler)

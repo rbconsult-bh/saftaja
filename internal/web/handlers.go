@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	mpgsclient "github.com/RBConsult-BH/pay/internal/clients/mpgs"
+	"github.com/RBConsult-BH/pay/internal/store"
 	"github.com/RBConsult-BH/pay/internal/utils"
 	"github.com/RBConsult-BH/pay/internal/web/templfiles"
 	"github.com/go-chi/chi"
@@ -18,13 +19,15 @@ type handlers struct {
 	mpgsBaseURL    string
 	mpgsMerchantID string
 	mpgsCli        mpgsclient.Client
+	queries        store.Queries
 }
 
-func New(mpgsBaseURL, mpgsMerchantID string, mpgsCli mpgsclient.Client) Handlers {
+func New(mpgsBaseURL, mpgsMerchantID string, mpgsCli mpgsclient.Client, queries store.Queries) Handlers {
 	return &handlers{
 		mpgsBaseURL:    mpgsBaseURL,
 		mpgsMerchantID: mpgsMerchantID,
 		mpgsCli:        mpgsCli,
+		queries:        queries,
 	}
 }
 
