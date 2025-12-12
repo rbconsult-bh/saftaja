@@ -14,8 +14,33 @@ sql:
             go_type:
               import: "github.com/google/uuid"
               type: "UUID"
+
           - db_type: "uuid"
             nullable: false
             go_type:
               import: "github.com/google/uuid"
               type: "UUID"
+
+          - column: "projects.environment"
+            go_type:
+              type: "ProjectEnvironment"
+
+          - column: "invoices.status"
+            go_type:
+              type: "InvoiceStatus"
+
+          - column: "payment_sessions.status"
+            go_type:
+              type: "PaymentSessionStatus"
+
+          - column: "payment_sessions.payment_method"
+            go_type:
+              type: "PaymentSessionPaymentMethod"
+
+          - column: "transactions.transaction_type"
+            go_type:
+              type: "TransactionTransactionType"
+
+          - column: "transactions.status"
+            go_type:
+              type: "TransactionStatus"

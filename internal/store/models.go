@@ -28,7 +28,7 @@ type Invoice struct {
 	ProjectID     uuid.UUID
 	Amount        pgtype.Numeric
 	Currency      string
-	Status        string
+	Status        InvoiceStatus
 	ExternalID    pgtype.Text
 	CustomerEmail pgtype.Text
 	CustomerName  pgtype.Text
@@ -54,8 +54,8 @@ type PaymentSession struct {
 	ProjectID        uuid.UUID
 	GatewayConfigID  uuid.UUID
 	GatewaySessionID string
-	Status           string
-	PaymentMethod    string
+	Status           PaymentSessionStatus
+	PaymentMethod    PaymentSessionPaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	ExpiresAt        pgtype.Timestamptz
@@ -68,7 +68,7 @@ type Project struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID
 	Name           string
-	Environment    string
+	Environment    ProjectEnvironment
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
 	DeletedAt      pgtype.Timestamptz
@@ -79,10 +79,10 @@ type Transaction struct {
 	PaymentSessionID uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
-	TransactionType  string
+	TransactionType  TransactionTransactionType
 	Amount           pgtype.Numeric
 	Currency         string
-	Status           string
+	Status           TransactionStatus
 	RawRequest       []byte
 	RawResponse      []byte
 	CreatedAt        pgtype.Timestamptz
