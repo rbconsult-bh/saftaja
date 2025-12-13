@@ -253,7 +253,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp, err := h.mpgsCli.InitiateAuthentication(ctx, invoice.ProjectID.String(), gatewayTxID.String(), &mpgsclient.InitiateAuthenticationRequest{
+	resp, err := h.mpgsCli.InitiateAuthentication(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.InitiateAuthenticationRequest{
 		APIOperation: mpgsclient.OperationInitiateAuthentication,
 		Authentication: mpgsclient.InitiateAuthenticationReqAuthentication{
 			Channel: mpgsclient.ChannelPayerBrowser,
@@ -373,13 +373,12 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	gatewayTxID := uuid.New()
 	dbTx, err := h.queries.CreateTransaction(ctx, store.CreateTransactionParams{
 		PaymentSessionID:     session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
 		TransactionType:      store.TransactionTransactionTypeAuthenticatePayer,
-		GatewayTransactionID: gatewayTxID.String(),
+		GatewayTransactionID: lastTx.GatewayTransactionID,
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
 	})
@@ -422,11 +421,11 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := h.mpgsCli.AuthenticatePayer(ctx, invoice.ProjectID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
+	resp, err := h.mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
 			// TODO: fetch this subdomain or domain or whatever from the organization :D
-			RedirectResponseURL: fmt.Sprintf("%s/checkout/%s/pay/card/%s", "http://localhost:8080", invoiceID, session.ID),
+			RedirectResponseURL: fmt.Sprintf("%s/checkout/%s/pay/card/%s/finalize", "http://localhost:8080", invoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
 			Browser:        r.Header.Get("User-Agent"),
@@ -555,7 +554,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.mpgsCli.ExecutePay(ctx, invoice.ProjectID.String(), gatewayTxID.String(), &mpgsclient.ExecutePayRequest{
+	resp, err := h.mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.ExecutePayRequest{
 		APIOperation: mpgsclient.OperationPay,
 		Authentication: mpgsclient.ExecutePayReqAuthentication{
 			TransactionID: authTx.GatewayTransactionID,
