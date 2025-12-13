@@ -60,8 +60,17 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if invoice.Status == store.InvoiceStatusPaid {
-		// TODO: Show a proper "already paid" page
-		w.Write([]byte("Invoice already paid!"))
+		data := templfiles.CheckoutPageData{
+			Invoice: templfiles.CheckoutInvoice{
+				ID:       invoice.ID.String(),
+				Amount:   invoice.Amount.String(),
+				Currency: invoice.Currency,
+			},
+			IsPaid: true,
+		}
+		if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
+			log.Error().Err(err).Msg("failed to render checkout page")
+		}
 		return
 	}
 
@@ -139,6 +148,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		Items:   checkoutItems,
 		Options: options,
+		IsPaid:  false,
 	}
 
 	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
@@ -173,7 +183,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if ip == "::1" {
-		ip = "0000:0000:0000:0000:0000:0000:0000:0001" // Full IPv6 loopback
+		ip = "0000:0000:0000:0000:0000:0000:0000:0001"
 	}
 
 	if net.ParseIP(ip) == nil {
@@ -612,7 +622,14 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	checkoutURL := fmt.Sprintf("/checkout/%s", invoiceID)
+	status := "failed"
+	message := "Your bank declined this transaction."
+
 	if resp.Data.Response.GatewayCode == mpgsclient.CodeApproved {
+		status = "success"
+		message = "Payment successful"
+
 		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID: dbTx.ID, Status: store.TransactionStatusSuccess, RawResponse: rawResp,
 		}); err != nil {
@@ -629,19 +646,75 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
-
-		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 	} else {
 		h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
 			Status:      store.TransactionStatusFailed,
 			RawResponse: rawResp,
 		})
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "declined",
-			"message": "Your bank declined this transaction.",
-		})
 	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// TODO: we need to make this a gotempl template :D
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+	<title>Completing Payment...</title>
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+			background: #0f172a;
+			color: white;
+		}
+		.container { text-align: center; padding: 2rem; }
+		.spinner {
+			width: 48px;
+			height: 48px;
+			border: 4px solid rgba(255,255,255,0.2);
+			border-top-color: white;
+			border-radius: 50%%;
+			animation: spin 0.8s linear infinite;
+			margin: 0 auto 1.5rem;
+		}
+		@keyframes spin { to { transform: rotate(360deg); } }
+		h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+		p { color: #94a3b8; font-size: 0.875rem; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="spinner"></div>
+		<h2>Completing Payment</h2>
+		<p>Please wait...</p>
+	</div>
+	<script>
+		(function() {
+			var status = '%s';
+			var message = '%s';
+			var checkoutURL = '%s';
+
+			// Send message to parent window (for iframe/modal flow)
+			if (window.parent && window.parent !== window) {
+				window.parent.postMessage({
+					type: '3DS_COMPLETE',
+					status: status,
+					message: message
+				}, '*');
+			}
+
+			// Fallback: redirect after 3 seconds (for full page flow or if postMessage fails)
+			setTimeout(function() {
+				window.top.location.href = checkoutURL;
+			}, 3000);
+		})();
+	</script>
+</body>
+</html>`, status, message, checkoutURL)
 }
 
 func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
