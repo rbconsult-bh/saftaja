@@ -87,17 +87,18 @@ type Project struct {
 }
 
 type Transaction struct {
-	ID               uuid.UUID
-	PaymentSessionID uuid.UUID
-	InvoiceID        uuid.UUID
-	ProjectID        uuid.UUID
-	TransactionType  TransactionTransactionType
-	Amount           decimal.Decimal
-	Currency         string
-	Status           TransactionStatus
-	RawRequest       []byte
-	RawResponse      []byte
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	DeletedAt        pgtype.Timestamptz
+	ID                   uuid.UUID
+	PaymentSessionID     uuid.UUID
+	InvoiceID            uuid.UUID
+	ProjectID            uuid.UUID
+	TransactionType      TransactionTransactionType
+	GatewayTransactionID string
+	Amount               decimal.Decimal
+	Currency             string
+	Status               TransactionStatus
+	RawRequest           []byte
+	RawResponse          []byte
+	CreatedAt            pgtype.Timestamptz
+	UpdatedAt            pgtype.Timestamptz
+	DeletedAt            pgtype.Timestamptz
 }

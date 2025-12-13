@@ -151,6 +151,7 @@ CREATE TABLE transactions (
     project_id UUID NOT NULL REFERENCES projects(id),
 
     transaction_type VARCHAR(30) NOT NULL, -- initiate_authentication, authenticate_payer, pay
+    gateway_transaction_id VARCHAR(100) NOT NULL,
 
     amount DECIMAL(12, 3) NOT NULL,
     currency VARCHAR(3) NOT NULL,

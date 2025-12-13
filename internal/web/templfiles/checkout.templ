@@ -1,218 +1,290 @@
 package templfiles
 
-templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, sessionID, pid string) {
+import "fmt"
+
+type PaymentOption struct {
+	ID    string
+	Label string
+	Type  string
+}
+
+templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string, options []PaymentOption) {
 	<!DOCTYPE html>
 	<html>
 		<head>
-			<title>Checkout Page :D</title>
+			<title>Secure Checkout</title>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<style id="antiClickjack">body{display:none !important;}</style>
-			<!-- Helper class for the silent iframe -->
-			<style> .hidden-frame { width: 0; height: 0; border: 0; display: none; } </style>
+			<style>
+				body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+				.hidden { display: none !important; }
+				
+				/* Payment Method Buttons */
+				.option-btn {
+					display: block;
+					width: 100%;
+					padding: 15px;
+					margin-bottom: 10px;
+					border: 1px solid #ddd;
+					background: #fff;
+					border-radius: 8px;
+					cursor: pointer;
+					text-align: left;
+					font-size: 16px;
+					transition: all 0.2s;
+				}
+				.option-btn:hover { background: #f9f9f9; border-color: #bbb; }
+				.option-btn.selected { border-color: #000; background: #f0f0f0; }
+
+				/* Form Styles */
+				.input-group { margin-bottom: 15px; }
+				.input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
+				.input-field { 
+					width: 100%; 
+					padding: 10px; 
+					border: 1px solid #ccc; 
+					border-radius: 4px; 
+					box-sizing: border-box; /* Important for padding */
+				}
+
+				/* Pay Button */
+				#payButton {
+					width: 100%;
+					padding: 15px;
+					background: #000;
+					color: #fff;
+					border: none;
+					border-radius: 8px;
+					font-size: 16px;
+					cursor: pointer;
+					margin-top: 10px;
+				}
+				#payButton:disabled { background: #ccc; }
+
+				/* Loader */
+				.loader { text-align: center; padding: 20px; color: #666; }
+			</style>
 			<script src={ mpgsBaseURL + "/form/version/" + mpgsAPIVersion + "/merchant/" + mpgsMerchantID + "/session.js" }></script>
-			<!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
 		</head>
 		<body>
-			<div id="paymentUI">
-				<div>
-					Please enter your payment details:
+			<div id="checkout-container">
+				<h2>Select Payment Method</h2>
+				<div id="payment-options">
+					if len(options) == 0 {
+						<p>No payment methods available.</p>
+					}
+					for _, opt := range options {
+						<button
+							class="option-btn"
+							{ templ.Attributes{"onclick": fmt.Sprintf("selectMethod(this, '%s', '%s')", opt.ID, opt.Type)}... }
+						>
+							{ opt.Label }
+						</button>
+					}
 				</div>
-				<h3>
-					Credit Card
-				</h3>
-				<div>
-					Card Number:
-					<input
-						type="text"
-						id="card-number"
-						class="input-field"
-						title="card number"
-						aria-label="enter your card number"
-						value=""
-						tabindex="1"
-						readonly
-					/>
+				<div id="loader" class="hidden loader">
+					Processing...
 				</div>
-				<div>
-					Expiry Month:
-					<input
-						type="text"
-						id="expiry-month"
-						class="input-field"
-						title="expiry month"
-						aria-label="two digit expiry month"
-						value=""
-						tabindex="2"
-						readonly
-					/>
-				</div>
-				<div>
-					Expiry Year:
-					<input
-						type="text"
-						id="expiry-year"
-						class="input-field"
-						title="expiry year"
-						aria-label="two digit expiry year"
-						value=""
-						tabindex="3"
-						readonly
-					/>
-				</div>
-				<div>
-					Security Code:
-					<input
-						type="text"
-						id="security-code"
-						class="input-field"
-						title="security code"
-						aria-label="three digit CCV security code"
-						value=""
-						tabindex="4"
-						readonly
-					/>
-				</div>
-				<div>
-					Cardholder Name:
-					<input
-						type="text"
-						id="cardholder-name"
-						class="input-field"
-						title="cardholder name"
-						aria-label="enter name on card"
-						value=""
-						tabindex="5"
-						readonly
-					/>
-				</div>
-				<div>
-					<button id="payButton" onclick="pay();">
-						Pay Now
-					</button>
+				<div id="card-form-container" class="hidden" style="margin-top: 20px;">
+					<div class="input-group">
+						<label>Card Number</label>
+						<input type="text" id="card-number" class="input-field" readonly/>
+					</div>
+					<div style="display: flex; gap: 10px;">
+						<div class="input-group" style="flex: 1;">
+							<label>Expiry Month</label>
+							<input type="text" id="expiry-month" class="input-field" readonly/>
+						</div>
+						<div class="input-group" style="flex: 1;">
+							<label>Expiry Year</label>
+							<input type="text" id="expiry-year" class="input-field" readonly/>
+						</div>
+					</div>
+					<div class="input-group">
+						<label>Security Code (CVC)</label>
+						<input type="text" id="security-code" class="input-field" readonly/>
+					</div>
+					<div class="input-group">
+						<label>Cardholder Name</label>
+						<input type="text" id="cardholder-name" class="input-field" readonly/>
+					</div>
+					<button id="payButton" onclick="pay()">Pay Now</button>
 				</div>
 			</div>
-			<!-- 3DS Method (Silent Iframe) Container -->
-			<div id="method-container"></div>
-			<!-- 3DS Challenge (Visible Iframe) Container -->
+			<div id="method-container" class="hidden"></div>
 			<div id="challenge-container"></div>
 			<script type="text/javascript">
-// Anti-clickjack protection
-if (self === top) {
-  var antiClickjack = document.getElementById("antiClickjack");
-  antiClickjack.parentNode.removeChild(antiClickjack);
-} else {
-  top.location = self.location;
-}
+				if (self === top) {
+					var antiClickjack = document.getElementById("antiClickjack");
+					antiClickjack.parentNode.removeChild(antiClickjack);
+				} else {
+					top.location = self.location;
+				}
 
-// Global variables from backend
-const SESSION_ID = {{ sessionID }};
-const PID = {{ pid }};
+				const INVOICE_ID = {{ invoiceID }};
+				let CURRENT_PAYMENT_SESSION_ID = null;
 
-// Configure Payment Session
-PaymentSession.configure({
-  session: SESSION_ID,
-  fields: {
-    card: {
-      number: "#card-number",
-      securityCode: "#security-code",
-      expiryMonth: "#expiry-month",
-      expiryYear: "#expiry-year",
-      nameOnCard: "#cardholder-name"
-    }
-  },
-  frameEmbeddingMitigation: ["javascript"],
-  callbacks: {
-    initialized: function(response) {
-      // Handle initialization if needed
-    },
-    formSessionUpdate: function(response) {
-      if (response.status === "ok") {
-        console.log("Session updated. Starting 3DS Flow...");
-        startPaymentFlow(SESSION_ID);
-      } else {
-        console.log("Session update failed: " + response.status);
-      }
-    }
-  },
-  interaction: {
-    displayControl: {
-      formatCard: "EMBOSSED",
-      invalidFieldCharacters: "REJECT"
-    }
-  }
-});
+				async function selectMethod(btnElement, accountId, type) {
+					document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+					btnElement.classList.add('selected');
+					
+					document.getElementById('loader').classList.remove('hidden');
+					document.getElementById('card-form-container').classList.add('hidden');
 
-function pay() {
-  PaymentSession.updateSessionFromForm('card');
-}
+					try {
+						const resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								gateway_account_id: accountId,
+								payment_method: type
+							})
+						});
+						
+						const data = await resp.json();
+						if (data.action === 'render_embedded') {
+							CURRENT_PAYMENT_SESSION_ID = data.payment_session_id;
+							initializeMPGS(data.mpgs_session_id);
 
-// Get browser details for 3DS
-function getBrowserDetails() {
-  const w = window.screen.width;
-  const h = window.screen.height;
-  let windowSize = "250_X_400";
-  if (w >= 600 && h >= 400) windowSize = "FULL_SCREEN";
-  else if (w >= 500 && h >= 600) windowSize = "500_X_600";
-  else if (w >= 390 && h >= 400) windowSize = "390_X_400";
-  
-  return {
-    "3DSecureChallengeWindowSize": windowSize,
-    "acceptHeaders": "*/*",
-    "colorDepth": window.screen.colorDepth,
-    "javaEnabled": navigator.javaEnabled ? navigator.javaEnabled() : false,
-    "language": navigator.language,
-    "screenHeight": window.screen.height,
-    "screenWidth": window.screen.width,
-    "timeZone": -new Date().getTimezoneOffset()
-  };
-}
+							document.getElementById('loader').classList.add('hidden');
+							document.getElementById('card-form-container').classList.remove('hidden');
+						}
 
-async function startPaymentFlow(sessionId) {
-  const initRes = await fetch("/checkout/" + PID + "/initiate-auth/" + sessionId, {
-    method: "POST",
-    body: JSON.stringify({ sessionId: sessionId })
-  }).then(r => r.json());
+					} catch (e) {
+						console.error("Init failed", e);
+						alert("Failed to initialize payment. Please try again.");
+						document.getElementById('loader').classList.add('hidden');
+					}
+				}
 
-  if (initRes.next_step === "authenticate") {
-    doAuthenticatePayer(sessionId, initRes.tx_id);
-  } else if (initRes.next_step === "another_payment_method") {
-    console.log("Try another payment method");
-  } else if (initRes.next_step === "cant_continue") {
-    console.log("Cannot continue with payment");
-  }
-}
+				function initializeMPGS(mpgsSessionId) {
+					if (typeof PaymentSession === 'undefined') {
+						alert("Payment Gateway failed to load. Please refresh.");
+						return;
+					}
 
-async function doAuthenticatePayer(sessionId, txId) {
-  const authRes = await fetch("/checkout/" + PID + "/process-auth/" + sessionId + "/" + txId, {
-    method: "POST",
-    body: JSON.stringify(getBrowserDetails())
-  }).then(r => r.json());
+					PaymentSession.configure({
+						session: mpgsSessionId,
+						fields: {
+							card: {
+								number: "#card-number",
+								securityCode: "#security-code",
+								expiryMonth: "#expiry-month",
+								expiryYear: "#expiry-year",
+								nameOnCard: "#cardholder-name"
+							}
+						},
+						frameEmbeddingMitigation: ["javascript"],
+						callbacks: {
+							initialized: function(response) {
+								// console.log("Fields initialized");
+							},
+							formSessionUpdate: function(response) {
+								if (response.status === "ok") {
+									console.log("Card Tokenized. Starting 3DS...");
+									start3DSFlow();
+								} else {
+									console.error("Tokenization failed", response);
+									let errorMsg = "Please check your card details.";
+									if (response.errors) {
+										errorMsg += " (" + Object.keys(response.errors).join(", ") + ")";
+									}
+									alert(errorMsg);
+									document.getElementById('payButton').disabled = false;
+									document.getElementById('payButton').innerText = "Pay Now";
+								}
+							}
+						},
+						interaction: {
+							displayControl: {
+								formatCard: "EMBOSSED",
+								invalidFieldCharacters: "REJECT"
+							}
+						}
+					});
+				}
 
-  if (authRes.next_step === "3ds_challenge") {
-        console.log("3DS Challenge required");
-    
-    // Inject the HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = authRes.redirect_html;
-    document.body.appendChild(tempDiv);
-    
-    // Execute the script to auto-submit the form
-    const script = document.getElementById('authenticate-payer-script');
-    if (script) {
-        eval(script.text);
-    }
-    
-    // Hide payment UI
-    document.getElementById("paymentUI").style.display = 'none';
-  } else if (authRes.next_step === "pay") {
-    console.log("Ready to pay");
-    // TODO: Call payment endpoint
-  } else if (authRes.next_step === "another_payment_method") {
-    console.log("Try another payment method");
-  } else if (authRes.next_step === "cant_continue") {
-    console.log("Cannot continue with payment");
-  }
-}
-</script>
+				function pay() {
+					document.getElementById('payButton').disabled = true;
+					document.getElementById('payButton').innerText = "Processing...";
+					PaymentSession.updateSessionFromForm('card');
+				}
+
+				async function start3DSFlow() {
+					const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/initiate-auth`;
+					
+					try {
+						const initRes = await fetch(url, { method: "POST" }).then(r => r.json());
+
+						if (initRes.next_step === "authenticate") {
+							doAuthenticatePayer(initRes.tx_id);
+						} else if (initRes.next_step === "cant_continue") {
+							alert("Payment rejected by gateway.");
+							location.reload();
+						} else {
+							alert("Unexpected error: " + initRes.next_step);
+						}
+					} catch (e) {
+						console.error(e);
+						alert("Network error occurred.");
+					}
+				}
+
+				async function doAuthenticatePayer(txId) {
+					const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/process-auth`;
+					
+					const browserDetails = {
+						"3DSecureChallengeWindowSize": "FULL_SCREEN",
+						"acceptHeaders": "*/*",
+						"colorDepth": window.screen.colorDepth,
+						"javaEnabled": navigator.javaEnabled ? navigator.javaEnabled() : false,
+						"language": navigator.language,
+						"screenHeight": window.screen.height,
+						"screenWidth": window.screen.width,
+						"timeZone": -new Date().getTimezoneOffset()
+					};
+
+					const authRes = await fetch(url, {
+						method: "POST",
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(browserDetails)
+					}).then(r => r.json());
+
+					if (authRes.next_step === "3ds_challenge") {
+						const tempDiv = document.createElement('div');
+						tempDiv.innerHTML = authRes.redirect_html;
+						document.body.appendChild(tempDiv);
+						
+            const script = document.getElementById('authenticate-payer-script');
+            if (script) {
+              eval(script.text);
+            }
+			    } else if (authRes.next_step === "pay") {
+            doFinalizePayment(txId);
+				  }
+				}
+
+				async function doFinalizePayment(authTxId) {
+					const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;
+					
+					const payRes = await fetch(url, {
+						method: "POST",
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ auth_tx_id: authTxId })
+					}).then(r => r.json());
+
+					if (payRes.status === "success") {
+						document.getElementById('checkout-container').innerHTML =
+							`<div style="text-align:center; padding:50px;">
+								<h1 style="color:green;">✔ Payment Successful!</h1>
+								<p>Thank you for your purchase.</p>
+							 </div>`;
+					} else {
+						alert("Payment Failed: " + payRes.message);
+						location.reload();
+					}
+				}
+			</script>
 		</body>
 	</html>
 }

@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	mpgsclient "github.com/RBConsult-BH/pay/internal/clients/mpgs"
 	"github.com/RBConsult-BH/pay/internal/config"
@@ -13,10 +18,6 @@ import (
 	"github.com/RBConsult-BH/pay/internal/web/middlewares"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -30,24 +31,23 @@ func main() {
 
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to loading config")
+		log.Fatal().Err(err).Msg("failed to load config")
 	}
 
-	pgxConn, err := pgx.ConnectConfig(ctx, &pgx.ConnConfig{
-		Config: pgconn.Config{
-			Host:     cfg.DBHost,
-			Port:     cfg.DBPort,
-			Database: cfg.DBDatabase,
-			User:     cfg.DBUser,
-			Password: cfg.DBPassword,
-		},
-		Tracer: nil, // TODO: handle this or use it somehow :D
-	})
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBDatabase)
+
+	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to connect using pgx to db")
+		log.Fatal().Err(err).Msg("unable to parse db config")
 	}
+	dbPool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create connection pool")
+	}
+	defer dbPool.Close()
 
-	queries := store.New(pgxConn)
+	queries := store.New(dbPool)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -57,15 +57,28 @@ func main() {
 
 	mpgsCli := mpgsclient.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, cfg.MPGSAPIPassword)
 
-	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli, *queries)
+	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli, queries)
 
-	r.Get("/checkout/{invoice_id}", h.CheckoutHandler)
-	r.Post("/checkout/{invoice_id}/initiate-auth", h.CheckoutInitiateAuthHandler)
-	r.Post("/checkout/{invoice_id}/process-auth", h.CheckoutProcessAuthHandler)
-	r.Post("/checkout/{invoice_id}/pay", h.CheckoutPayHandler)
+	// =========================================================================
+	// ROUTING
+	// =========================================================================
+
+	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
+
+	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
+
+	r.Route("/checkout/{invoice_id}/pay/card/{payment_session_id}", func(r chi.Router) {
+		r.Post("/initiate-auth", h.CardInitiateAuthHandler)
+		r.Post("/process-auth", h.CardProcessAuthHandler)
+		r.Post("/finalize", h.CardFinalizeHandler)
+	})
+
+	// TODO: in the future, insha Allah :D
+	// r.Route("/checkout/{invoice_id}/pay/wallet/{session_id}", func(r chi.Router) {
+	// 	r.Post("/finalize", h.WalletPayHandler)
+	// })
 
 	log.Info().Msg("starting listener on port 8080")
-
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatal().Err(err).Msg("failed to listen on port 8080")
 	}

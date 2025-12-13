@@ -35,3 +35,19 @@ func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, er
 	)
 	return i, err
 }
+
+const updateInvoiceStatus = `-- name: UpdateInvoiceStatus :exec
+UPDATE invoices
+SET status = $2
+WHERE id = $1
+`
+
+type UpdateInvoiceStatusParams struct {
+	ID     uuid.UUID
+	Status InvoiceStatus
+}
+
+func (q *Queries) UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) error {
+	_, err := q.db.Exec(ctx, updateInvoiceStatus, arg.ID, arg.Status)
+	return err
+}
