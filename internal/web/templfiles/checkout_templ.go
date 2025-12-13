@@ -63,27 +63,27 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><title>Secure Checkout</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script><style>\n\t\t\t\t/* Anti-clickjacking */\n\t\t\t\t#antiClickjack { display: none !important; }\n\t\t\t\t\n\t\t\t\t/* MPGS hosted field overrides */\n\t\t\t\t#card-number, #expiry-month, #expiry-year, #security-code, #cardholder-name {\n\t\t\t\t\tfont-family: 'SF Mono', 'Fira Code', 'Consolas', monospace !important;\n\t\t\t\t\tletter-spacing: 0.05em;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Skeleton shimmer animation */\n\t\t\t\t@keyframes shimmer {\n\t\t\t\t\t0% { background-position: -200% 0; }\n\t\t\t\t\t100% { background-position: 200% 0; }\n\t\t\t\t}\n\t\t\t\t.skeleton {\n\t\t\t\t\tbackground: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);\n\t\t\t\t\tbackground-size: 200% 100%;\n\t\t\t\t\tanimation: shimmer 1.5s infinite;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Smooth transitions */\n\t\t\t\t.fade-in {\n\t\t\t\t\tanimation: fadeIn 0.3s ease-out;\n\t\t\t\t}\n\t\t\t\t@keyframes fadeIn {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(10px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Button loading spinner */\n\t\t\t\t.spinner {\n\t\t\t\t\twidth: 20px;\n\t\t\t\t\theight: 20px;\n\t\t\t\t\tborder: 2px solid transparent;\n\t\t\t\t\tborder-top-color: white;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tanimation: spin 0.8s linear infinite;\n\t\t\t\t}\n\t\t\t\t@keyframes spin {\n\t\t\t\t\tto { transform: rotate(360deg); }\n\t\t\t\t}\n\t\t\t</style><script src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><title>Secure Checkout</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script><style>\n\t\t\t\t/* Anti-clickjacking */\n\t\t\t\t#antiClickjack { display: none !important; }\n\t\t\t\t\n\t\t\t\t/* Skeleton shimmer animation */\n\t\t\t\t@keyframes shimmer {\n\t\t\t\t\t0% { background-position: -200% 0; }\n\t\t\t\t\t100% { background-position: 200% 0; }\n\t\t\t\t}\n\t\t\t\t.skeleton {\n\t\t\t\t\tbackground: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);\n\t\t\t\t\tbackground-size: 200% 100%;\n\t\t\t\t\tanimation: shimmer 1.5s infinite;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Smooth fade in */\n\t\t\t\t@keyframes fadeIn {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(10px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.fade-in {\n\t\t\t\t\tanimation: fadeIn 0.3s ease-out forwards;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Fade in up (for success page) */\n\t\t\t\t@keyframes fadeInUp {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(30px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.fade-in-up {\n\t\t\t\t\tanimation: fadeInUp 0.5s ease-out forwards;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Staggered animation delays */\n\t\t\t\t.delay-100 { animation-delay: 100ms; }\n\t\t\t\t.delay-200 { animation-delay: 200ms; }\n\t\t\t\t.delay-300 { animation-delay: 300ms; }\n\t\t\t\t.delay-400 { animation-delay: 400ms; }\n\t\t\t\t\n\t\t\t\t/* Checkmark animation */\n\t\t\t\t@keyframes checkmark {\n\t\t\t\t\t0% { stroke-dashoffset: 100; }\n\t\t\t\t\t100% { stroke-dashoffset: 0; }\n\t\t\t\t}\n\t\t\t\t.checkmark-circle {\n\t\t\t\t\tstroke-dasharray: 166;\n\t\t\t\t\tstroke-dashoffset: 166;\n\t\t\t\t\tanimation: checkmark 0.6s ease-in-out forwards;\n\t\t\t\t}\n\t\t\t\t.checkmark-check {\n\t\t\t\t\tstroke-dasharray: 48;\n\t\t\t\t\tstroke-dashoffset: 48;\n\t\t\t\t\tanimation: checkmark 0.3s ease-in-out 0.4s forwards;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* X mark animation */\n\t\t\t\t@keyframes xmark {\n\t\t\t\t\t0% { stroke-dashoffset: 50; }\n\t\t\t\t\t100% { stroke-dashoffset: 0; }\n\t\t\t\t}\n\t\t\t\t.xmark-circle {\n\t\t\t\t\tstroke-dasharray: 166;\n\t\t\t\t\tstroke-dashoffset: 166;\n\t\t\t\t\tanimation: checkmark 0.6s ease-in-out forwards;\n\t\t\t\t}\n\t\t\t\t.xmark-x {\n\t\t\t\t\tstroke-dasharray: 50;\n\t\t\t\t\tstroke-dashoffset: 50;\n\t\t\t\t\tanimation: xmark 0.3s ease-in-out 0.4s forwards;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Spinner */\n\t\t\t\t@keyframes spin {\n\t\t\t\t\tto { transform: rotate(360deg); }\n\t\t\t\t}\n\t\t\t\t.spinner {\n\t\t\t\t\twidth: 24px;\n\t\t\t\t\theight: 24px;\n\t\t\t\t\tborder: 3px solid transparent;\n\t\t\t\t\tborder-top-color: currentColor;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tanimation: spin 0.8s linear infinite;\n\t\t\t\t}\n\t\t\t\t.spinner-large {\n\t\t\t\t\twidth: 48px;\n\t\t\t\t\theight: 48px;\n\t\t\t\t\tborder-width: 4px;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Pulse animation for processing */\n\t\t\t\t@keyframes pulse {\n\t\t\t\t\t0%, 100% { opacity: 1; }\n\t\t\t\t\t50% { opacity: 0.5; }\n\t\t\t\t}\n\t\t\t\t.pulse {\n\t\t\t\t\tanimation: pulse 2s ease-in-out infinite;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* Modal backdrop blur */\n\t\t\t\t.backdrop-blur {\n\t\t\t\t\tbackdrop-filter: blur(8px);\n\t\t\t\t\t-webkit-backdrop-filter: blur(8px);\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t/* 3DS iframe container */\n\t\t\t\t#challenge-iframe-container iframe {\n\t\t\t\t\twidth: 100%;\n\t\t\t\t\theight: 100%;\n\t\t\t\t\tborder: none;\n\t\t\t\t}\n\t\t\t</style><script src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(data.MPGSBaseURL + "/form/version/" + data.MPGSAPIVersion + "/merchant/" + data.MPGSMerchantID + "/session.js")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 88, Col: 127}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 156, Col: 127}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"></script></head><body class=\"min-h-screen bg-gradient-to-br from-slate-50 to-slate-100\"><div id=\"antiClickjack\"></div><!-- Main Container --><div class=\"min-h-screen flex items-center justify-center p-4 md:p-8\"><div class=\"w-full max-w-4xl\"><!-- Two Column Layout (stacked on mobile) --><div class=\"bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2\"><!-- LEFT: Invoice Summary --><div class=\"bg-slate-900 text-white p-6 md:p-8\"><div class=\"h-full flex flex-col\"><!-- Header --><div class=\"mb-8\"><div class=\"w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4\"><svg class=\"w-5 h-5 text-white\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg></div><p class=\"text-slate-400 text-sm uppercase tracking-wider\">Amount Due</p></div><!-- Amount --><div class=\"mb-8\"><div class=\"flex items-baseline gap-2\"><span class=\"text-4xl md:text-5xl font-bold tracking-tight\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"></script></head><body class=\"min-h-screen bg-gradient-to-br from-slate-50 to-slate-100\"><div id=\"antiClickjack\"></div><!-- ============================================== --><!-- MAIN CHECKOUT CONTAINER --><!-- ============================================== --><div id=\"checkout-main\" class=\"min-h-screen flex items-center justify-center p-4 md:p-8\"><div class=\"w-full max-w-4xl\"><div class=\"bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2\"><!-- LEFT: Invoice Summary --><div class=\"bg-slate-900 text-white p-6 md:p-8\"><div class=\"h-full flex flex-col\"><div class=\"mb-6\"><div class=\"w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4\"><svg class=\"w-5 h-5 text-white\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg></div><p class=\"text-slate-400 text-sm uppercase tracking-wider\">Amount Due</p></div><div class=\"mb-6\"><div class=\"flex items-baseline gap-2\"><span class=\"text-4xl md:text-5xl font-bold tracking-tight\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 112, Col: 91}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 179, Col: 91}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -96,13 +96,13 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 113, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 180, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></div></div><!-- Invoice Details --><div class=\"space-y-4 flex-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></div></div><div class=\"space-y-4 flex-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -114,7 +114,7 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 121, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 187, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -133,7 +133,7 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.CustomerEmail)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 127, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 193, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -151,7 +151,7 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.CustomerName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 129, Col: 73}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 195, Col: 73}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -167,265 +167,300 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<!-- Invoice Items Dropdown -->")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
 		if len(data.Items) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"pt-4 border-t border-slate-700\"><button type=\"button\" onclick=\"toggleItems()\" class=\"w-full flex items-center justify-between text-left group\"><span class=\"text-slate-400 text-xs uppercase tracking-wider\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"pt-4 border-t border-slate-700\"><button type=\"button\" onclick=\"toggleItems()\" class=\"w-full flex items-center justify-between text-left group cursor-pointer\"><span class=\"text-slate-400 text-xs uppercase tracking-wider\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(data.Items)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 142, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 207, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, " ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(pluralize(len(data.Items), "item", "items"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 142, Col: 97}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 207, Col: 97}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span> <svg id=\"items-chevron\" class=\"w-4 h-4 text-slate-400 transition-transform\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"></path></svg></button><div id=\"items-list\" class=\"hidden mt-3 space-y-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</span> <svg id=\"items-chevron\" class=\"w-4 h-4 text-slate-400 transition-transform duration-200\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"></path></svg></button><div id=\"items-list\" class=\"hidden mt-3 space-y-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, item := range data.Items {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"flex justify-between items-start py-2 border-b border-slate-800 last:border-0\"><div class=\"flex-1\"><p class=\"text-white text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"flex justify-between items-start py-2 border-b border-slate-800 last:border-0\"><div class=\"flex-1\"><p class=\"text-white text-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(item.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 152, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 217, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</p><p class=\"text-slate-500 text-xs\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</p><p class=\"text-slate-500 text-xs\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", item.Quantity))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 153, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 218, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " × ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " × ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(item.UnitPrice)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 153, Col: 105}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 218, Col: 105}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, " ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 153, Col: 131}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 218, Col: 131}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</p></div><p class=\"text-white text-sm ml-4\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</p></div><p class=\"text-white text-sm ml-4\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(item.Amount)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 155, Col: 62}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 220, Col: 62}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div><!-- Security Badge --><div class=\"mt-8 pt-4 border-t border-slate-700\"><div class=\"flex items-center gap-2 text-slate-400 text-xs\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z\"></path></svg> <span>Secured with 256-bit encryption</span></div></div></div></div><!-- RIGHT: Payment Form --><div class=\"p-6 md:p-8\"><div id=\"checkout-content\"><!-- Payment Method Selection --><div id=\"method-selection\"><h2 class=\"text-lg font-semibold text-slate-900 mb-4\">Payment Method</h2><div class=\"space-y-3\" id=\"payment-options\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div><div class=\"mt-6 pt-4 border-t border-slate-700\"><div class=\"flex items-center gap-2 text-slate-400 text-xs\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z\"></path></svg> <span>256-bit encryption</span></div></div></div></div><!-- RIGHT: Payment Form --><div class=\"p-6 md:p-8\"><!-- Payment Method Selection --><div id=\"method-selection\"><h2 class=\"text-lg font-semibold text-slate-900 mb-4\">Payment Method</h2><div class=\"space-y-3\" id=\"payment-options\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(data.Options) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<p class=\"text-slate-500 text-sm\">No payment methods available.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"text-slate-500 text-sm\">No payment methods available.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		for _, opt := range data.Options {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<button type=\"button\" class=\"option-btn w-full flex items-center gap-4 p-4 border-2 border-slate-200 rounded-xl transition-all hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2\" data-account-id=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<button type=\"button\" class=\"option-btn w-full flex items-center gap-4 p-4 border-2 border-slate-200 rounded-xl transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 cursor-pointer\" data-account-id=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(opt.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 187, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 250, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" data-type=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" data-type=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Type)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 188, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 251, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" onclick=\"selectMethod(this)\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" onclick=\"selectMethod(this)\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if opt.Type == "card" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z\"></path></svg></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<div class=\"w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg flex items-center justify-center\"><svg class=\"w-5 h-5 text-slate-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z\"></path></svg></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else if opt.Type == "apple_pay" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<div class=\"w-10 h-10 bg-black rounded-lg flex items-center justify-center\"><svg class=\"w-5 h-5 text-white\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z\"></path></svg></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"w-10 h-10 bg-black rounded-lg flex items-center justify-center\"><svg class=\"w-5 h-5 text-white\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z\"></path></svg></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div class=\"flex-1 text-left\"><p class=\"font-medium text-slate-900\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<div class=\"flex-1 text-left\"><p class=\"font-medium text-slate-900\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 205, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 268, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if opt.Type == "card" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<p class=\"text-sm text-slate-500\">Visa, Mastercard, Amex</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<p class=\"text-sm text-slate-500\">Visa, Mastercard, Amex</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else if opt.Type == "apple_pay" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<p class=\"text-sm text-slate-500\">Quick and secure</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<p class=\"text-sm text-slate-500\">Quick and secure</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div><svg class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5l7 7-7 7\"></path></svg></button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</div><svg class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5l7 7-7 7\"></path></svg></button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div></div><!-- Loading State --><div id=\"loading-state\" class=\"hidden\"><button type=\"button\" onclick=\"goBack()\" class=\"flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg> <span class=\"text-sm\">Back</span></button><h2 class=\"text-lg font-semibold text-slate-900 mb-4\">Card Details</h2><div class=\"space-y-4\"><div><div class=\"skeleton h-5 w-24 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div class=\"grid grid-cols-2 gap-4\"><div><div class=\"skeleton h-5 w-20 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div><div class=\"skeleton h-5 w-16 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div></div><div><div class=\"skeleton h-5 w-32 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div class=\"skeleton h-14 rounded-xl mt-6\"></div></div></div><!-- Card Form --><div id=\"card-form-container\" class=\"hidden fade-in\"><button type=\"button\" onclick=\"goBack()\" class=\"flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg> <span class=\"text-sm\">Back</span></button><h2 class=\"text-lg font-semibold text-slate-900 mb-4\">Card Details</h2><div class=\"space-y-4\"><!-- Card Number --><div><label for=\"card-number\" class=\"block text-sm font-medium text-slate-700 mb-2\">Card Number</label> <input type=\"text\" id=\"card-number\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors\" placeholder=\"1234 5678 9012 3456\" readonly></div><!-- Expiry & CVC Row --><div class=\"grid grid-cols-3 gap-4\"><div><label for=\"expiry-month\" class=\"block text-sm font-medium text-slate-700 mb-2\">Month</label> <input type=\"text\" id=\"expiry-month\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors\" placeholder=\"MM\" readonly></div><div><label for=\"expiry-year\" class=\"block text-sm font-medium text-slate-700 mb-2\">Year</label> <input type=\"text\" id=\"expiry-year\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors\" placeholder=\"YY\" readonly></div><div><label for=\"security-code\" class=\"block text-sm font-medium text-slate-700 mb-2\">CVC</label> <input type=\"text\" id=\"security-code\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors\" placeholder=\"123\" readonly></div></div><!-- Cardholder Name --><div><label for=\"cardholder-name\" class=\"block text-sm font-medium text-slate-700 mb-2\">Cardholder Name</label> <input type=\"text\" id=\"cardholder-name\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors\" placeholder=\"John Doe\" readonly></div><!-- Pay Button --><button id=\"payButton\" type=\"button\" onclick=\"pay()\" class=\"w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-2 mt-6\"><span id=\"payButtonText\">Pay ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><!-- Loading State (Skeleton) --><div id=\"loading-state\" class=\"hidden\"><button type=\"button\" onclick=\"goBack()\" class=\"flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors cursor-pointer\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg> <span class=\"text-sm\">Back</span></button><h2 class=\"text-lg font-semibold text-slate-900 mb-4\">Card Details</h2><div class=\"space-y-4\"><div><div class=\"skeleton h-4 w-24 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div class=\"grid grid-cols-3 gap-3\"><div><div class=\"skeleton h-4 w-12 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div><div class=\"skeleton h-4 w-10 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div><div class=\"skeleton h-4 w-8 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div></div><div><div class=\"skeleton h-4 w-28 rounded mb-2\"></div><div class=\"skeleton h-12 rounded-lg\"></div></div><div class=\"skeleton h-14 rounded-xl mt-6\"></div></div><p class=\"text-center text-slate-400 text-sm mt-4 pulse\">Securing connection...</p></div><!-- Card Form --><div id=\"card-form-container\" class=\"hidden\"><button type=\"button\" onclick=\"goBack()\" class=\"flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors cursor-pointer\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg> <span class=\"text-sm\">Back</span></button><h2 class=\"text-lg font-semibold text-slate-900 mb-4\">Card Details</h2><div class=\"space-y-4\"><div><label for=\"card-number\" class=\"block text-sm font-medium text-slate-700 mb-2\">Card Number</label> <input type=\"text\" id=\"card-number\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors font-mono tracking-wider\" placeholder=\"1234 5678 9012 3456\" readonly></div><div class=\"grid grid-cols-3 gap-3\"><div><label for=\"expiry-month\" class=\"block text-sm font-medium text-slate-700 mb-2\">Month</label> <input type=\"text\" id=\"expiry-month\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors text-center font-mono\" placeholder=\"MM\" readonly></div><div><label for=\"expiry-year\" class=\"block text-sm font-medium text-slate-700 mb-2\">Year</label> <input type=\"text\" id=\"expiry-year\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors text-center font-mono\" placeholder=\"YY\" readonly></div><div><label for=\"security-code\" class=\"block text-sm font-medium text-slate-700 mb-2\">CVC</label> <input type=\"text\" id=\"security-code\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors text-center font-mono\" placeholder=\"123\" readonly></div></div><div><label for=\"cardholder-name\" class=\"block text-sm font-medium text-slate-700 mb-2\">Cardholder Name</label> <input type=\"text\" id=\"cardholder-name\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors\" placeholder=\"Mohammad\" readonly></div><button id=\"payButton\" type=\"button\" onclick=\"pay()\" class=\"w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:bg-slate-400 disabled:cursor-not-allowed\"><span id=\"payButtonText\">Pay ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 330, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 394, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, " ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, " ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 330, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 394, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</span><div id=\"payButtonSpinner\" class=\"spinner hidden\"></div></button></div><!-- Card Brands --><div class=\"flex items-center justify-center gap-3 mt-6\"><div class=\"w-10 h-6 bg-slate-100 rounded flex items-center justify-center\"><span class=\"text-xs font-bold text-slate-600\">VISA</span></div><div class=\"w-10 h-6 bg-slate-100 rounded flex items-center justify-center\"><span class=\"text-xs font-bold text-slate-600\">MC</span></div><div class=\"w-10 h-6 bg-slate-100 rounded flex items-center justify-center\"><span class=\"text-xs font-bold text-slate-600\">AMEX</span></div></div></div><!-- Success State --><div id=\"success-state\" class=\"hidden fade-in\"><div class=\"text-center py-8\"><div class=\"w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4\"><svg class=\"w-8 h-8 text-green-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"></path></svg></div><h2 class=\"text-xl font-semibold text-slate-900 mb-2\">Payment Successful!</h2><p class=\"text-slate-500\">Thank you for your purchase.</p></div></div><!-- Error State --><div id=\"error-state\" class=\"hidden fade-in\"><div class=\"text-center py-8\"><div class=\"w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4\"><svg class=\"w-8 h-8 text-red-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"></path></svg></div><h2 class=\"text-xl font-semibold text-slate-900 mb-2\">Payment Failed</h2><p id=\"error-message\" class=\"text-slate-500 mb-4\">Something went wrong. Please try again.</p><button type=\"button\" onclick=\"location.reload()\" class=\"px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors\">Try Again</button></div></div></div></div></div><!-- Footer --><div class=\"text-center mt-6\"><p class=\"text-slate-400 text-sm\">Powered by Pay</p></div></div></div><!-- 3DS Challenge Container (hidden, used by MPGS) --><div id=\"method-container\" class=\"hidden\"></div><div id=\"challenge-container\"></div><script type=\"text/javascript\">\n\t\t\t\t// Anti-clickjacking\n\t\t\t\tif (self === top) {\n\t\t\t\t\tvar antiClickjack = document.getElementById(\"antiClickjack\");\n\t\t\t\t\tif (antiClickjack) antiClickjack.parentNode.removeChild(antiClickjack);\n\t\t\t\t} else {\n\t\t\t\t\ttop.location = self.location;\n\t\t\t\t}\n\n\t\t\t\tconst INVOICE_ID = ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</span><div id=\"payButtonSpinner\" class=\"spinner hidden\"></div></button></div><div class=\"flex items-center justify-center gap-4 mt-6\"><img src=\"https://cdn.jsdelivr.net/gh/nicholasRutworworworworwthy/card-brands@main/visa.svg\" alt=\"Visa\" class=\"h-6 opacity-50\" onerror=\"this.style.display='none'\"><div class=\"px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500\">VISA</div><div class=\"px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500\">MC</div><div class=\"px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500\">AMEX</div></div></div></div></div><div class=\"text-center mt-6\"><p class=\"text-slate-400 text-sm\">Powered by Pay</p></div></div></div><!-- ============================================== --><!-- PROCESSING OVERLAY --><!-- ============================================== --><div id=\"processing-overlay\" class=\"hidden fixed inset-0 z-50 bg-black/50 backdrop-blur flex items-center justify-center p-4\"><div class=\"bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center\"><div class=\"spinner spinner-large text-slate-900 mx-auto mb-6\"></div><h3 class=\"text-xl font-semibold text-slate-900 mb-2\">Processing Payment</h3><p class=\"text-slate-500\">Please wait while we securely process your payment...</p></div></div><!-- ============================================== --><!-- 3DS CHALLENGE MODAL --><!-- ============================================== --><div id=\"challenge-overlay\" class=\"hidden fixed inset-0 z-50 bg-black/50 backdrop-blur flex items-center justify-center p-4\"><div class=\"bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden\"><!-- Header --><div class=\"bg-slate-900 text-white px-6 py-4\"><div class=\"flex items-center gap-3\"><div class=\"w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z\"></path></svg></div><div><h3 class=\"font-semibold\">Bank Verification</h3><p class=\"text-slate-300 text-sm\">Confirm your identity</p></div></div></div><!-- 3DS Content Area --><div id=\"challenge-iframe-container\" class=\"min-h-[400px] max-h-[60vh] overflow-auto\"><!-- MPGS 3DS content will be injected here --></div><!-- Footer --><div class=\"bg-slate-50 px-6 py-3 border-t border-slate-200\"><div class=\"flex items-center gap-2 text-slate-500 text-xs\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> <span>This secure verification is required by your bank.</span></div></div></div></div><!-- ============================================== --><!-- SUCCESS PAGE --><!-- ============================================== --><div id=\"success-page\" class=\"hidden fixed inset-0 z-50 bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4\"><div class=\"max-w-md w-full text-center\"><!-- Animated Checkmark --><div class=\"mb-8 fade-in-up\"><svg class=\"w-24 h-24 mx-auto\" viewBox=\"0 0 52 52\"><circle class=\"checkmark-circle\" cx=\"26\" cy=\"26\" r=\"25\" fill=\"none\" stroke=\"#22c55e\" stroke-width=\"2\"></circle> <path class=\"checkmark-check\" fill=\"none\" stroke=\"#22c55e\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M14 27l7 7 16-16\"></path></svg></div><h1 class=\"text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100\" style=\"opacity: 0;\">Payment Successful!</h1><div class=\"fade-in-up delay-200\" style=\"opacity: 0;\"><div class=\"flex items-baseline justify-center gap-2 mb-6\"><span class=\"text-4xl font-bold text-slate-900\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var20, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.ID)
+		var templ_7745c5c3_Var20 string
+		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 399, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 471, Col: 76}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, ";\n\t\t\t\tlet CURRENT_PAYMENT_SESSION_ID = null;\n\t\t\t\tlet CURRENT_PAYMENT_TYPE = null;\n\n\t\t\t\t// Toggle invoice items dropdown\n\t\t\t\tfunction toggleItems() {\n\t\t\t\t\tconst list = document.getElementById('items-list');\n\t\t\t\t\tconst chevron = document.getElementById('items-chevron');\n\t\t\t\t\tlist.classList.toggle('hidden');\n\t\t\t\t\tchevron.classList.toggle('rotate-180');\n\t\t\t\t}\n\n\t\t\t\t// Go back to method selection\n\t\t\t\tfunction goBack() {\n\t\t\t\t\tdocument.getElementById('method-selection').classList.remove('hidden');\n\t\t\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\t\t\tdocument.getElementById('card-form-container').classList.add('hidden');\n\t\t\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => b.classList.remove('border-slate-900', 'bg-slate-50'));\n\t\t\t\t\tCURRENT_PAYMENT_SESSION_ID = null;\n\t\t\t\t\tCURRENT_PAYMENT_TYPE = null;\n\t\t\t\t}\n\n\t\t\t\t// Select payment method\n\t\t\t\tasync function selectMethod(btnElement) {\n\t\t\t\t\tconst accountId = btnElement.dataset.accountId;\n\t\t\t\t\tconst type = btnElement.dataset.type;\n\t\t\t\t\t\n\t\t\t\t\t// Highlight selected button\n\t\t\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t\t\t});\n\t\t\t\t\tbtnElement.classList.add('border-slate-900', 'bg-slate-50');\n\t\t\t\t\t\n\t\t\t\t\t// Show loading, hide method selection\n\t\t\t\t\tdocument.getElementById('method-selection').classList.add('hidden');\n\t\t\t\t\tdocument.getElementById('loading-state').classList.remove('hidden');\n\t\t\t\t\t\n\t\t\t\t\tCURRENT_PAYMENT_TYPE = type;\n\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\tgateway_account_id: accountId,\n\t\t\t\t\t\t\t\tpayment_method: type\n\t\t\t\t\t\t\t})\n\t\t\t\t\t\t});\n\t\t\t\t\t\t\n\t\t\t\t\t\tconst data = await resp.json();\n\t\t\t\t\t\t\n\t\t\t\t\t\tif (data.action === 'render_embedded') {\n\t\t\t\t\t\t\tCURRENT_PAYMENT_SESSION_ID = data.payment_session_id;\n\t\t\t\t\t\t\tinitializeMPGS(data.mpgs_session_id);\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(\"Init failed\", e);\n\t\t\t\t\t\tshowError(\"Failed to initialize payment. Please try again.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tfunction initializeMPGS(mpgsSessionId) {\n\t\t\t\t\tif (typeof PaymentSession === 'undefined') {\n\t\t\t\t\t\tshowError(\"Payment gateway failed to load. Please refresh the page.\");\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\tPaymentSession.configure({\n\t\t\t\t\t\tsession: mpgsSessionId,\n\t\t\t\t\t\tfields: {\n\t\t\t\t\t\t\tcard: {\n\t\t\t\t\t\t\t\tnumber: \"#card-number\",\n\t\t\t\t\t\t\t\tsecurityCode: \"#security-code\",\n\t\t\t\t\t\t\t\texpiryMonth: \"#expiry-month\",\n\t\t\t\t\t\t\t\texpiryYear: \"#expiry-year\",\n\t\t\t\t\t\t\t\tnameOnCard: \"#cardholder-name\"\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t},\n\t\t\t\t\t\tframeEmbeddingMitigation: [\"javascript\"],\n\t\t\t\t\t\tcallbacks: {\n\t\t\t\t\t\t\tinitialized: function(response) {\n\t\t\t\t\t\t\t\t// Hide loading, show card form\n\t\t\t\t\t\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.remove('hidden');\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tformSessionUpdate: function(response) {\n\t\t\t\t\t\t\t\tif (response.status === \"ok\") {\n\t\t\t\t\t\t\t\t\tconsole.log(\"Card tokenized. Starting 3DS...\");\n\t\t\t\t\t\t\t\t\tstart3DSFlow();\n\t\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\t\tconsole.error(\"Tokenization failed\", response);\n\t\t\t\t\t\t\t\t\tlet errorMsg = \"Please check your card details.\";\n\t\t\t\t\t\t\t\t\tif (response.errors) {\n\t\t\t\t\t\t\t\t\t\tconst fields = Object.keys(response.errors).map(f => {\n\t\t\t\t\t\t\t\t\t\t\tswitch(f) {\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'cardNumber': return 'Card Number';\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'securityCode': return 'CVC';\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'expiryMonth': return 'Expiry Month';\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'expiryYear': return 'Expiry Year';\n\t\t\t\t\t\t\t\t\t\t\t\tdefault: return f;\n\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\t\terrorMsg = \"Please check: \" + fields.join(\", \");\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\talert(errorMsg);\n\t\t\t\t\t\t\t\t\tresetPayButton();\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t},\n\t\t\t\t\t\tinteraction: {\n\t\t\t\t\t\t\tdisplayControl: {\n\t\t\t\t\t\t\t\tformatCard: \"EMBOSSED\",\n\t\t\t\t\t\t\t\tinvalidFieldCharacters: \"REJECT\"\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tfunction pay() {\n\t\t\t\t\tconst btn = document.getElementById('payButton');\n\t\t\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\t\t\t\t\t\n\t\t\t\t\tbtn.disabled = true;\n\t\t\t\t\ttext.textContent = 'Processing...';\n\t\t\t\t\tspinner.classList.remove('hidden');\n\t\t\t\t\t\n\t\t\t\t\tPaymentSession.updateSessionFromForm('card');\n\t\t\t\t}\n\n\t\t\t\tfunction resetPayButton() {\n\t\t\t\t\tconst btn = document.getElementById('payButton');\n\t\t\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\t\t\t\t\t\n\t\t\t\t\tbtn.disabled = false;\n\t\t\t\t\ttext.textContent = `Pay ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var21, templ_7745c5c3_Err := templruntime.ScriptContentInsideStringLiteral(data.Invoice.Amount)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 535, Col: 51}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</span> <span class=\"text-xl text-slate-500\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, " ")
+		var templ_7745c5c3_Var21 string
+		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 472, Col: 67}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var22, templ_7745c5c3_Err := templruntime.ScriptContentInsideStringLiteral(data.Invoice.Currency)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 535, Col: 79}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</span></div></div><div class=\"bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300\" style=\"opacity: 0;\"><div class=\"space-y-3 text-left\"><div class=\"flex justify-between\"><span class=\"text-slate-500\">Invoice</span> <span class=\"text-slate-900 font-medium font-mono text-sm\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "`;\n\t\t\t\t\tspinner.classList.add('hidden');\n\t\t\t\t}\n\n\t\t\t\tasync function start3DSFlow() {\n\t\t\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/initiate-auth`;\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst initRes = await fetch(url, { method: \"POST\" }).then(r => r.json());\n\n\t\t\t\t\t\tif (initRes.next_step === \"authenticate\") {\n\t\t\t\t\t\t\tdoAuthenticatePayer(initRes.tx_id);\n\t\t\t\t\t\t} else if (initRes.next_step === \"cant_continue\") {\n\t\t\t\t\t\t\tshowError(\"Payment was rejected by the gateway. Please try a different card.\");\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tshowError(\"An unexpected error occurred. Please try again.\");\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(e);\n\t\t\t\t\t\tshowError(\"A network error occurred. Please check your connection.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tasync function doAuthenticatePayer(txId) {\n\t\t\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/process-auth`;\n\t\t\t\t\t\n\t\t\t\t\tconst browserDetails = {\n\t\t\t\t\t\t\"3DSecureChallengeWindowSize\": \"FULL_SCREEN\",\n\t\t\t\t\t\t\"acceptHeaders\": \"*/*\",\n\t\t\t\t\t\t\"colorDepth\": window.screen.colorDepth,\n\t\t\t\t\t\t\"javaEnabled\": navigator.javaEnabled ? navigator.javaEnabled() : false,\n\t\t\t\t\t\t\"language\": navigator.language,\n\t\t\t\t\t\t\"screenHeight\": window.screen.height,\n\t\t\t\t\t\t\"screenWidth\": window.screen.width,\n\t\t\t\t\t\t\"timeZone\": -new Date().getTimezoneOffset()\n\t\t\t\t\t};\n\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst authRes = await fetch(url, {\n\t\t\t\t\t\t\tmethod: \"POST\",\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\t\t\tbody: JSON.stringify(browserDetails)\n\t\t\t\t\t\t}).then(r => r.json());\n\n\t\t\t\t\t\tif (authRes.next_step === \"3ds_challenge\") {\n\t\t\t\t\t\t\t// Inject 3DS challenge HTML\n\t\t\t\t\t\t\tconst container = document.getElementById('challenge-container');\n\t\t\t\t\t\t\tcontainer.innerHTML = authRes.redirect_html;\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tconst script = document.getElementById('authenticate-payer-script');\n\t\t\t\t\t\t\tif (script) {\n\t\t\t\t\t\t\t\teval(script.text);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t} else if (authRes.next_step === \"pay\") {\n\t\t\t\t\t\t\tdoFinalizePayment(txId);\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(e);\n\t\t\t\t\t\tshowError(\"Authentication failed. Please try again.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tasync function doFinalizePayment(authTxId) {\n\t\t\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst payRes = await fetch(url, {\n\t\t\t\t\t\t\tmethod: \"POST\",\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\t\t\tbody: JSON.stringify({ auth_tx_id: authTxId })\n\t\t\t\t\t\t}).then(r => r.json());\n\n\t\t\t\t\t\tif (payRes.status === \"success\") {\n\t\t\t\t\t\t\tshowSuccess();\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tshowError(payRes.message || \"Payment was declined. Please try a different card.\");\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(e);\n\t\t\t\t\t\tshowError(\"Failed to complete payment. Please try again.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tfunction showSuccess() {\n\t\t\t\t\tdocument.getElementById('checkout-content').innerHTML = '';\n\t\t\t\t\tdocument.getElementById('success-state').classList.remove('hidden');\n\t\t\t\t\tdocument.getElementById('checkout-content').appendChild(document.getElementById('success-state'));\n\t\t\t\t\tdocument.getElementById('success-state').classList.remove('hidden');\n\t\t\t\t\t\n\t\t\t\t\t// Actually just replace content\n\t\t\t\t\tdocument.getElementById('checkout-content').innerHTML = `\n\t\t\t\t\t\t<div class=\"fade-in\">\n\t\t\t\t\t\t\t<div class=\"text-center py-8\">\n\t\t\t\t\t\t\t\t<div class=\"w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4\">\n\t\t\t\t\t\t\t\t\t<svg class=\"w-8 h-8 text-green-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n\t\t\t\t\t\t\t\t\t\t<path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"/>\n\t\t\t\t\t\t\t\t\t</svg>\n\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t\t<h2 class=\"text-xl font-semibold text-slate-900 mb-2\">Payment Successful!</h2>\n\t\t\t\t\t\t\t\t<p class=\"text-slate-500\">Thank you for your purchase.</p>\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t`;\n\t\t\t\t}\n\n\t\t\t\tfunction showError(message) {\n\t\t\t\t\tdocument.getElementById('checkout-content').innerHTML = `\n\t\t\t\t\t\t<div class=\"fade-in\">\n\t\t\t\t\t\t\t<div class=\"text-center py-8\">\n\t\t\t\t\t\t\t\t<div class=\"w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4\">\n\t\t\t\t\t\t\t\t\t<svg class=\"w-8 h-8 text-red-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n\t\t\t\t\t\t\t\t\t\t<path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"/>\n\t\t\t\t\t\t\t\t\t</svg>\n\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t\t<h2 class=\"text-xl font-semibold text-slate-900 mb-2\">Payment Failed</h2>\n\t\t\t\t\t\t\t\t<p class=\"text-slate-500 mb-4\">${message}</p>\n\t\t\t\t\t\t\t\t<button \n\t\t\t\t\t\t\t\t\ttype=\"button\"\n\t\t\t\t\t\t\t\t\tonclick=\"location.reload()\"\n\t\t\t\t\t\t\t\t\tclass=\"px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors\"\n\t\t\t\t\t\t\t\t>\n\t\t\t\t\t\t\t\t\tTry Again\n\t\t\t\t\t\t\t\t</button>\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t`;\n\t\t\t\t}\n\t\t\t</script></body></html>")
+		var templ_7745c5c3_Var22 string
+		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(truncateID(data.Invoice.ID))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 479, Col: 96}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</span></div><div class=\"flex justify-between\"><span class=\"text-slate-500\">Date</span> <span class=\"text-slate-900 font-medium\" id=\"success-date\">-</span></div><div class=\"flex justify-between\"><span class=\"text-slate-500\">Method</span> <span class=\"text-slate-900 font-medium\" id=\"success-method\">Card</span></div></div></div><p class=\"text-slate-500 mb-8 fade-in-up delay-400\" style=\"opacity: 0;\">Thank you for your purchase!</p><div class=\"text-center mt-8\"><p class=\"text-slate-400 text-sm\">Powered by Pay</p></div></div></div><!-- ============================================== --><!-- FAILED PAGE --><!-- ============================================== --><div id=\"failed-page\" class=\"hidden fixed inset-0 z-50 bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4\"><div class=\"max-w-md w-full text-center\"><!-- Animated X Mark --><div class=\"mb-8 fade-in-up\"><svg class=\"w-24 h-24 mx-auto\" viewBox=\"0 0 52 52\"><circle class=\"xmark-circle\" cx=\"26\" cy=\"26\" r=\"25\" fill=\"none\" stroke=\"#ef4444\" stroke-width=\"2\"></circle> <path class=\"xmark-x\" fill=\"none\" stroke=\"#ef4444\" stroke-width=\"3\" stroke-linecap=\"round\" d=\"M16 16l20 20M36 16L16 36\"></path></svg></div><h1 class=\"text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100\" style=\"opacity: 0;\">Payment Failed</h1><p class=\"text-slate-500 mb-6 fade-in-up delay-200\" style=\"opacity: 0;\" id=\"failed-message\">Your bank declined this transaction.</p><div class=\"bg-white rounded-xl shadow-lg p-6 mb-8 text-left fade-in-up delay-300\" style=\"opacity: 0;\"><p class=\"text-slate-700 font-medium mb-3\">This could happen due to:</p><ul class=\"space-y-2 text-slate-500\"><li class=\"flex items-center gap-2\"><span class=\"w-1.5 h-1.5 bg-slate-400 rounded-full\"></span> Insufficient funds</li><li class=\"flex items-center gap-2\"><span class=\"w-1.5 h-1.5 bg-slate-400 rounded-full\"></span> Card restrictions or limits</li><li class=\"flex items-center gap-2\"><span class=\"w-1.5 h-1.5 bg-slate-400 rounded-full\"></span> Incorrect card details</li><li class=\"flex items-center gap-2\"><span class=\"w-1.5 h-1.5 bg-slate-400 rounded-full\"></span> Bank security block</li></ul></div><div class=\"space-y-3 fade-in-up delay-400\" style=\"opacity: 0;\"><button type=\"button\" onclick=\"location.reload()\" class=\"w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors cursor-pointer\">Try Again</button></div><div class=\"text-center mt-8\"><p class=\"text-slate-400 text-sm\">Powered by Pay</p></div></div></div><!-- Hidden container for MPGS method (if needed) --><div id=\"method-container\" class=\"hidden\"></div><script type=\"text/javascript\">\n\t\t\t\t// Anti-clickjacking\n\t\t\t\tif (self === top) {\n\t\t\t\t\tvar antiClickjack = document.getElementById(\"antiClickjack\");\n\t\t\t\t\tif (antiClickjack) antiClickjack.parentNode.removeChild(antiClickjack);\n\t\t\t\t} else {\n\t\t\t\t\ttop.location = self.location;\n\t\t\t\t}\n\n\t\t\t\tconst INVOICE_ID = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var23, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.ID)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 557, Col: 41}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, ";\n\t\t\t\tconst INVOICE_AMOUNT = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var24, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.Amount)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 558, Col: 49}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, ";\n\t\t\t\tconst INVOICE_CURRENCY = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var25, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.Currency)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 559, Col: 53}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, ";\n\t\t\t\tlet CURRENT_PAYMENT_SESSION_ID = null;\n\t\t\t\tlet CURRENT_PAYMENT_TYPE = null;\n\n\t\t\t\t// Toggle invoice items dropdown\n\t\t\t\tfunction toggleItems() {\n\t\t\t\t\tconst list = document.getElementById('items-list');\n\t\t\t\t\tconst chevron = document.getElementById('items-chevron');\n\t\t\t\t\tlist.classList.toggle('hidden');\n\t\t\t\t\tchevron.classList.toggle('rotate-180');\n\t\t\t\t}\n\n\t\t\t\t// Go back to method selection\n\t\t\t\tfunction goBack() {\n\t\t\t\t\tdocument.getElementById('method-selection').classList.remove('hidden');\n\t\t\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\t\t\tdocument.getElementById('card-form-container').classList.add('hidden');\n\t\t\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t\t\t});\n\t\t\t\t\tCURRENT_PAYMENT_SESSION_ID = null;\n\t\t\t\t\tCURRENT_PAYMENT_TYPE = null;\n\t\t\t\t}\n\n\t\t\t\t// Select payment method\n\t\t\t\tasync function selectMethod(btnElement) {\n\t\t\t\t\tconst accountId = btnElement.dataset.accountId;\n\t\t\t\t\tconst type = btnElement.dataset.type;\n\t\t\t\t\t\n\t\t\t\t\t// Highlight selected\n\t\t\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t\t\t});\n\t\t\t\t\tbtnElement.classList.add('border-slate-900', 'bg-slate-50');\n\t\t\t\t\t\n\t\t\t\t\t// Show loading\n\t\t\t\t\tdocument.getElementById('method-selection').classList.add('hidden');\n\t\t\t\t\tdocument.getElementById('loading-state').classList.remove('hidden');\n\t\t\t\t\t\n\t\t\t\t\tCURRENT_PAYMENT_TYPE = type;\n\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\tgateway_account_id: accountId,\n\t\t\t\t\t\t\t\tpayment_method: type\n\t\t\t\t\t\t\t})\n\t\t\t\t\t\t});\n\t\t\t\t\t\t\n\t\t\t\t\t\tconst data = await resp.json();\n\t\t\t\t\t\t\n\t\t\t\t\t\tif (data.action === 'render_embedded') {\n\t\t\t\t\t\t\tCURRENT_PAYMENT_SESSION_ID = data.payment_session_id;\n\t\t\t\t\t\t\tinitializeMPGS(data.mpgs_session_id);\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(\"Init failed\", e);\n\t\t\t\t\t\tshowFailed(\"Failed to initialize payment. Please try again.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tfunction initializeMPGS(mpgsSessionId) {\n\t\t\t\t\tif (typeof PaymentSession === 'undefined') {\n\t\t\t\t\t\tshowFailed(\"Payment gateway failed to load. Please refresh the page.\");\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\tPaymentSession.configure({\n\t\t\t\t\t\tsession: mpgsSessionId,\n\t\t\t\t\t\tfields: {\n\t\t\t\t\t\t\tcard: {\n\t\t\t\t\t\t\t\tnumber: \"#card-number\",\n\t\t\t\t\t\t\t\tsecurityCode: \"#security-code\",\n\t\t\t\t\t\t\t\texpiryMonth: \"#expiry-month\",\n\t\t\t\t\t\t\t\texpiryYear: \"#expiry-year\",\n\t\t\t\t\t\t\t\tnameOnCard: \"#cardholder-name\"\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t},\n\t\t\t\t\t\tframeEmbeddingMitigation: [\"javascript\"],\n\t\t\t\t\t\tcallbacks: {\n\t\t\t\t\t\t\tinitialized: function(response) {\n\t\t\t\t\t\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.remove('hidden');\n\t\t\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.add('fade-in');\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tformSessionUpdate: function(response) {\n\t\t\t\t\t\t\t\tif (response.status === \"ok\") {\n\t\t\t\t\t\t\t\t\tconsole.log(\"Card tokenized. Starting 3DS...\");\n\t\t\t\t\t\t\t\t\tstart3DSFlow();\n\t\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\t\tconsole.error(\"Tokenization failed\", response);\n\t\t\t\t\t\t\t\t\tlet errorMsg = \"Please check your card details.\";\n\t\t\t\t\t\t\t\t\tif (response.errors) {\n\t\t\t\t\t\t\t\t\t\tconst fields = Object.keys(response.errors).map(f => {\n\t\t\t\t\t\t\t\t\t\t\tswitch(f) {\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'cardNumber': return 'Card Number';\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'securityCode': return 'CVC';\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'expiryMonth': return 'Expiry Month';\n\t\t\t\t\t\t\t\t\t\t\t\tcase 'expiryYear': return 'Expiry Year';\n\t\t\t\t\t\t\t\t\t\t\t\tdefault: return f;\n\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\t\terrorMsg = \"Please check: \" + fields.join(\", \");\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\talert(errorMsg);\n\t\t\t\t\t\t\t\t\tresetPayButton();\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t},\n\t\t\t\t\t\tinteraction: {\n\t\t\t\t\t\t\tdisplayControl: {\n\t\t\t\t\t\t\t\tformatCard: \"EMBOSSED\",\n\t\t\t\t\t\t\t\tinvalidFieldCharacters: \"REJECT\"\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tfunction pay() {\n\t\t\t\t\tconst btn = document.getElementById('payButton');\n\t\t\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\t\t\t\t\t\n\t\t\t\t\tbtn.disabled = true;\n\t\t\t\t\ttext.textContent = 'Processing...';\n\t\t\t\t\tspinner.classList.remove('hidden');\n\t\t\t\t\t\n\t\t\t\t\tPaymentSession.updateSessionFromForm('card');\n\t\t\t\t}\n\n\t\t\t\tfunction resetPayButton() {\n\t\t\t\t\tconst btn = document.getElementById('payButton');\n\t\t\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\t\t\t\t\t\n\t\t\t\t\tbtn.disabled = false;\n\t\t\t\t\ttext.textContent = `Pay ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;\n\t\t\t\t\tspinner.classList.add('hidden');\n\t\t\t\t}\n\n\t\t\t\tfunction showProcessing() {\n\t\t\t\t\tdocument.getElementById('processing-overlay').classList.remove('hidden');\n\t\t\t\t}\n\n\t\t\t\tfunction hideProcessing() {\n\t\t\t\t\tdocument.getElementById('processing-overlay').classList.add('hidden');\n\t\t\t\t}\n\n\t\t\t\tfunction showChallenge(html) {\n\t\t\t\t\thideProcessing();\n\t\t\t\t\tconst container = document.getElementById('challenge-iframe-container');\n\t\t\t\t\tcontainer.innerHTML = html;\n\t\t\t\t\tdocument.getElementById('challenge-overlay').classList.remove('hidden');\n\t\t\t\t\t\n\t\t\t\t\t// Execute any scripts in the 3DS content\n\t\t\t\t\tconst script = document.getElementById('authenticate-payer-script');\n\t\t\t\t\tif (script) {\n\t\t\t\t\t\teval(script.text);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tfunction hideChallenge() {\n\t\t\t\t\tdocument.getElementById('challenge-overlay').classList.add('hidden');\n\t\t\t\t}\n\n\t\t\t\tfunction showSuccess() {\n\t\t\t\t\thideProcessing();\n\t\t\t\t\thideChallenge();\n\t\t\t\t\tdocument.getElementById('checkout-main').classList.add('hidden');\n\t\t\t\t\t\n\t\t\t\t\t// Set date\n\t\t\t\t\tconst now = new Date();\n\t\t\t\t\tdocument.getElementById('success-date').textContent = now.toLocaleDateString('en-US', {\n\t\t\t\t\t\tyear: 'numeric',\n\t\t\t\t\t\tmonth: 'short',\n\t\t\t\t\t\tday: 'numeric',\n\t\t\t\t\t\thour: '2-digit',\n\t\t\t\t\t\tminute: '2-digit'\n\t\t\t\t\t});\n\t\t\t\t\t\n\t\t\t\t\t// Set method\n\t\t\t\t\tdocument.getElementById('success-method').textContent = CURRENT_PAYMENT_TYPE === 'card' ? 'Card' : 'Apple Pay';\n\t\t\t\t\t\n\t\t\t\t\tdocument.getElementById('success-page').classList.remove('hidden');\n\t\t\t\t}\n\n\t\t\t\tfunction showFailed(message) {\n\t\t\t\t\thideProcessing();\n\t\t\t\t\thideChallenge();\n\t\t\t\t\tdocument.getElementById('checkout-main').classList.add('hidden');\n\t\t\t\t\t\n\t\t\t\t\tif (message) {\n\t\t\t\t\t\tdocument.getElementById('failed-message').textContent = message;\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\tdocument.getElementById('failed-page').classList.remove('hidden');\n\t\t\t\t}\n\n\t\t\t\tasync function start3DSFlow() {\n\t\t\t\t\tshowProcessing();\n\t\t\t\t\t\n\t\t\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/initiate-auth`;\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst initRes = await fetch(url, { method: \"POST\" }).then(r => r.json());\n\n\t\t\t\t\t\tif (initRes.next_step === \"authenticate\") {\n\t\t\t\t\t\t\tdoAuthenticatePayer(initRes.tx_id);\n\t\t\t\t\t\t} else if (initRes.next_step === \"cant_continue\") {\n\t\t\t\t\t\t\tshowFailed(\"Payment was rejected by the gateway. Please try a different card.\");\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tshowFailed(\"An unexpected error occurred. Please try again.\");\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(e);\n\t\t\t\t\t\tshowFailed(\"A network error occurred. Please check your connection.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tasync function doAuthenticatePayer(txId) {\n\t\t\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/process-auth`;\n\t\t\t\t\t\n\t\t\t\t\tconst browserDetails = {\n\t\t\t\t\t\t\"3DSecureChallengeWindowSize\": \"FULL_SCREEN\",\n\t\t\t\t\t\t\"acceptHeaders\": \"*/*\",\n\t\t\t\t\t\t\"colorDepth\": window.screen.colorDepth,\n\t\t\t\t\t\t\"javaEnabled\": navigator.javaEnabled ? navigator.javaEnabled() : false,\n\t\t\t\t\t\t\"language\": navigator.language,\n\t\t\t\t\t\t\"screenHeight\": window.screen.height,\n\t\t\t\t\t\t\"screenWidth\": window.screen.width,\n\t\t\t\t\t\t\"timeZone\": -new Date().getTimezoneOffset()\n\t\t\t\t\t};\n\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst authRes = await fetch(url, {\n\t\t\t\t\t\t\tmethod: \"POST\",\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\t\t\tbody: JSON.stringify(browserDetails)\n\t\t\t\t\t\t}).then(r => r.json());\n\n\t\t\t\t\t\tif (authRes.next_step === \"3ds_challenge\") {\n\t\t\t\t\t\t\tshowChallenge(authRes.redirect_html);\n\t\t\t\t\t\t} else if (authRes.next_step === \"pay\") {\n\t\t\t\t\t\t\t// Frictionless flow - no challenge needed\n\t\t\t\t\t\t\tdoFinalizePayment(txId);\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(e);\n\t\t\t\t\t\tshowFailed(\"Authentication failed. Please try again.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tasync function doFinalizePayment(authTxId) {\n\t\t\t\t\tshowProcessing();\n\t\t\t\t\t\n\t\t\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst payRes = await fetch(url, {\n\t\t\t\t\t\t\tmethod: \"POST\",\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\t\t\tbody: JSON.stringify({ auth_tx_id: authTxId })\n\t\t\t\t\t\t}).then(r => r.json());\n\n\t\t\t\t\t\tif (payRes.status === \"success\") {\n\t\t\t\t\t\t\tshowSuccess();\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tshowFailed(payRes.message || \"Payment was declined by your bank.\");\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error(e);\n\t\t\t\t\t\tshowFailed(\"Failed to complete payment. Please try again.\");\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\t// Listen for 3DS completion (MPGS redirects back)\n\t\t\t\twindow.addEventListener('message', function(event) {\n\t\t\t\t\t// Handle 3DS completion messages if needed\n\t\t\t\t\tconsole.log('Received message:', event.data);\n\t\t\t\t});\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -438,6 +473,13 @@ func pluralize(count int, singular, plural string) string {
 		return singular
 	}
 	return plural
+}
+
+func truncateID(id string) string {
+	if len(id) > 8 {
+		return id[:8] + "..."
+	}
+	return id
 }
 
 var _ = templruntime.GeneratedTemplate

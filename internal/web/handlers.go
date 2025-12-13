@@ -60,6 +60,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if invoice.Status == store.InvoiceStatusPaid {
+		// TODO: Show a proper "already paid" page
 		w.Write([]byte("Invoice already paid!"))
 		return
 	}
@@ -334,7 +335,10 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		nextStep = "error"
 	}
 
-	if err := json.NewEncoder(w).Encode(map[string]any{"next_step": nextStep, "tx_id": gatewayTxID.String()}); err != nil {
+	if err := json.NewEncoder(w).Encode(map[string]any{
+		"next_step": nextStep,
+		"tx_id":     gatewayTxID.String(),
+	}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to encode the response")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -628,8 +632,15 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 
 		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 	} else {
-		h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{ID: dbTx.ID, Status: "declined", RawResponse: rawResp})
-		json.NewEncoder(w).Encode(map[string]string{"status": "declined", "message": "Bank declined transaction"})
+		h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
+			ID:          dbTx.ID,
+			Status:      store.TransactionStatusFailed,
+			RawResponse: rawResp,
+		})
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "declined",
+			"message": "Your bank declined this transaction.",
+		})
 	}
 }
 
