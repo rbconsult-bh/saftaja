@@ -2,134 +2,438 @@ package templfiles
 
 import "fmt"
 
+type CheckoutPageData struct {
+	MPGSBaseURL    string
+	MPGSAPIVersion string
+	MPGSMerchantID string
+	Invoice        CheckoutInvoice
+	Items          []CheckoutItem
+	Options        []PaymentOption
+}
+
+type CheckoutInvoice struct {
+	ID            string
+	Amount        string // formatted: "10.000"
+	Currency      string // "BHD"
+	Description   string
+	CustomerEmail string
+	CustomerName  string
+}
+
+type CheckoutItem struct {
+	Name      string
+	Quantity  int32
+	UnitPrice string
+	Amount    string
+}
+
 type PaymentOption struct {
 	ID    string
 	Label string
-	Type  string
+	Type  string // "card" or "apple_pay"
+	Icon  string // "card" or "apple"
 }
 
-templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string, options []PaymentOption) {
+templ CheckoutPage(data CheckoutPageData) {
 	<!DOCTYPE html>
-	<html>
+	<html lang="en">
 		<head>
 			<title>Secure Checkout</title>
+			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<style id="antiClickjack">body{display:none !important;}</style>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<style>
-				body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
-				.hidden { display: none !important; }
+				/* Anti-clickjacking */
+				#antiClickjack { display: none !important; }
 				
-				/* Payment Method Buttons */
-				.option-btn {
-					display: block;
-					width: 100%;
-					padding: 15px;
-					margin-bottom: 10px;
-					border: 1px solid #ddd;
-					background: #fff;
-					border-radius: 8px;
-					cursor: pointer;
-					text-align: left;
-					font-size: 16px;
-					transition: all 0.2s;
+				/* MPGS hosted field overrides */
+				#card-number, #expiry-month, #expiry-year, #security-code, #cardholder-name {
+					font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace !important;
+					letter-spacing: 0.05em;
 				}
-				.option-btn:hover { background: #f9f9f9; border-color: #bbb; }
-				.option-btn.selected { border-color: #000; background: #f0f0f0; }
-
-				/* Form Styles */
-				.input-group { margin-bottom: 15px; }
-				.input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
-				.input-field { 
-					width: 100%; 
-					padding: 10px; 
-					border: 1px solid #ccc; 
-					border-radius: 4px; 
-					box-sizing: border-box; /* Important for padding */
+				
+				/* Skeleton shimmer animation */
+				@keyframes shimmer {
+					0% { background-position: -200% 0; }
+					100% { background-position: 200% 0; }
 				}
-
-				/* Pay Button */
-				#payButton {
-					width: 100%;
-					padding: 15px;
-					background: #000;
-					color: #fff;
-					border: none;
-					border-radius: 8px;
-					font-size: 16px;
-					cursor: pointer;
-					margin-top: 10px;
+				.skeleton {
+					background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+					background-size: 200% 100%;
+					animation: shimmer 1.5s infinite;
 				}
-				#payButton:disabled { background: #ccc; }
-
-				/* Loader */
-				.loader { text-align: center; padding: 20px; color: #666; }
+				
+				/* Smooth transitions */
+				.fade-in {
+					animation: fadeIn 0.3s ease-out;
+				}
+				@keyframes fadeIn {
+					from { opacity: 0; transform: translateY(10px); }
+					to { opacity: 1; transform: translateY(0); }
+				}
+				
+				/* Button loading spinner */
+				.spinner {
+					width: 20px;
+					height: 20px;
+					border: 2px solid transparent;
+					border-top-color: white;
+					border-radius: 50%;
+					animation: spin 0.8s linear infinite;
+				}
+				@keyframes spin {
+					to { transform: rotate(360deg); }
+				}
 			</style>
-			<script src={ mpgsBaseURL + "/form/version/" + mpgsAPIVersion + "/merchant/" + mpgsMerchantID + "/session.js" }></script>
+			<script src={ data.MPGSBaseURL + "/form/version/" + data.MPGSAPIVersion + "/merchant/" + data.MPGSMerchantID + "/session.js" }></script>
 		</head>
-		<body>
-			<div id="checkout-container">
-				<h2>Select Payment Method</h2>
-				<div id="payment-options">
-					if len(options) == 0 {
-						<p>No payment methods available.</p>
-					}
-					for _, opt := range options {
-						<button
-							class="option-btn"
-							{ templ.Attributes{"onclick": fmt.Sprintf("selectMethod(this, '%s', '%s')", opt.ID, opt.Type)}... }
-						>
-							{ opt.Label }
-						</button>
-					}
-				</div>
-				<div id="loader" class="hidden loader">
-					Processing...
-				</div>
-				<div id="card-form-container" class="hidden" style="margin-top: 20px;">
-					<div class="input-group">
-						<label>Card Number</label>
-						<input type="text" id="card-number" class="input-field" readonly/>
-					</div>
-					<div style="display: flex; gap: 10px;">
-						<div class="input-group" style="flex: 1;">
-							<label>Expiry Month</label>
-							<input type="text" id="expiry-month" class="input-field" readonly/>
+		<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+			<div id="antiClickjack"></div>
+			<!-- Main Container -->
+			<div class="min-h-screen flex items-center justify-center p-4 md:p-8">
+				<div class="w-full max-w-4xl">
+					<!-- Two Column Layout (stacked on mobile) -->
+					<div class="bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2">
+						<!-- LEFT: Invoice Summary -->
+						<div class="bg-slate-900 text-white p-6 md:p-8">
+							<div class="h-full flex flex-col">
+								<!-- Header -->
+								<div class="mb-8">
+									<div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4">
+										<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+										</svg>
+									</div>
+									<p class="text-slate-400 text-sm uppercase tracking-wider">Amount Due</p>
+								</div>
+								<!-- Amount -->
+								<div class="mb-8">
+									<div class="flex items-baseline gap-2">
+										<span class="text-4xl md:text-5xl font-bold tracking-tight">{ data.Invoice.Amount }</span>
+										<span class="text-xl text-slate-400">{ data.Invoice.Currency }</span>
+									</div>
+								</div>
+								<!-- Invoice Details -->
+								<div class="space-y-4 flex-1">
+									if data.Invoice.Description != "" {
+										<div>
+											<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Description</p>
+											<p class="text-white">{ data.Invoice.Description }</p>
+										</div>
+									}
+									if data.Invoice.CustomerEmail != "" {
+										<div>
+											<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Customer</p>
+											<p class="text-white">{ data.Invoice.CustomerEmail }</p>
+											if data.Invoice.CustomerName != "" {
+												<p class="text-slate-300 text-sm">{ data.Invoice.CustomerName }</p>
+											}
+										</div>
+									}
+									<!-- Invoice Items Dropdown -->
+									if len(data.Items) > 0 {
+										<div class="pt-4 border-t border-slate-700">
+											<button
+												type="button"
+												onclick="toggleItems()"
+												class="w-full flex items-center justify-between text-left group"
+											>
+												<span class="text-slate-400 text-xs uppercase tracking-wider">
+													{ fmt.Sprintf("%d", len(data.Items)) } { pluralize(len(data.Items), "item", "items") }
+												</span>
+												<svg id="items-chevron" class="w-4 h-4 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+												</svg>
+											</button>
+											<div id="items-list" class="hidden mt-3 space-y-2">
+												for _, item := range data.Items {
+													<div class="flex justify-between items-start py-2 border-b border-slate-800 last:border-0">
+														<div class="flex-1">
+															<p class="text-white text-sm">{ item.Name }</p>
+															<p class="text-slate-500 text-xs">{ fmt.Sprintf("%d", item.Quantity) } × { item.UnitPrice } { data.Invoice.Currency }</p>
+														</div>
+														<p class="text-white text-sm ml-4">{ item.Amount }</p>
+													</div>
+												}
+											</div>
+										</div>
+									}
+								</div>
+								<!-- Security Badge -->
+								<div class="mt-8 pt-4 border-t border-slate-700">
+									<div class="flex items-center gap-2 text-slate-400 text-xs">
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+										</svg>
+										<span>Secured with 256-bit encryption</span>
+									</div>
+								</div>
+							</div>
 						</div>
-						<div class="input-group" style="flex: 1;">
-							<label>Expiry Year</label>
-							<input type="text" id="expiry-year" class="input-field" readonly/>
+						<!-- RIGHT: Payment Form -->
+						<div class="p-6 md:p-8">
+							<div id="checkout-content">
+								<!-- Payment Method Selection -->
+								<div id="method-selection">
+									<h2 class="text-lg font-semibold text-slate-900 mb-4">Payment Method</h2>
+									<div class="space-y-3" id="payment-options">
+										if len(data.Options) == 0 {
+											<p class="text-slate-500 text-sm">No payment methods available.</p>
+										}
+										for _, opt := range data.Options {
+											<button
+												type="button"
+												class="option-btn w-full flex items-center gap-4 p-4 border-2 border-slate-200 rounded-xl transition-all hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+												data-account-id={ opt.ID }
+												data-type={ opt.Type }
+												onclick="selectMethod(this)"
+											>
+												if opt.Type == "card" {
+													<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+														<svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+														</svg>
+													</div>
+												} else if opt.Type == "apple_pay" {
+													<div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+														<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+															<path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"></path>
+														</svg>
+													</div>
+												}
+												<div class="flex-1 text-left">
+													<p class="font-medium text-slate-900">{ opt.Label }</p>
+													if opt.Type == "card" {
+														<p class="text-sm text-slate-500">Visa, Mastercard, Amex</p>
+													} else if opt.Type == "apple_pay" {
+														<p class="text-sm text-slate-500">Quick and secure</p>
+													}
+												</div>
+												<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+												</svg>
+											</button>
+										}
+									</div>
+								</div>
+								<!-- Loading State -->
+								<div id="loading-state" class="hidden">
+									<button
+										type="button"
+										onclick="goBack()"
+										class="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+										</svg>
+										<span class="text-sm">Back</span>
+									</button>
+									<h2 class="text-lg font-semibold text-slate-900 mb-4">Card Details</h2>
+									<div class="space-y-4">
+										<div>
+											<div class="skeleton h-5 w-24 rounded mb-2"></div>
+											<div class="skeleton h-12 rounded-lg"></div>
+										</div>
+										<div class="grid grid-cols-2 gap-4">
+											<div>
+												<div class="skeleton h-5 w-20 rounded mb-2"></div>
+												<div class="skeleton h-12 rounded-lg"></div>
+											</div>
+											<div>
+												<div class="skeleton h-5 w-16 rounded mb-2"></div>
+												<div class="skeleton h-12 rounded-lg"></div>
+											</div>
+										</div>
+										<div>
+											<div class="skeleton h-5 w-32 rounded mb-2"></div>
+											<div class="skeleton h-12 rounded-lg"></div>
+										</div>
+										<div class="skeleton h-14 rounded-xl mt-6"></div>
+									</div>
+								</div>
+								<!-- Card Form -->
+								<div id="card-form-container" class="hidden fade-in">
+									<button
+										type="button"
+										onclick="goBack()"
+										class="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+										</svg>
+										<span class="text-sm">Back</span>
+									</button>
+									<h2 class="text-lg font-semibold text-slate-900 mb-4">Card Details</h2>
+									<div class="space-y-4">
+										<!-- Card Number -->
+										<div>
+											<label for="card-number" class="block text-sm font-medium text-slate-700 mb-2">Card Number</label>
+											<input
+												type="text"
+												id="card-number"
+												class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors"
+												placeholder="1234 5678 9012 3456"
+												readonly
+											/>
+										</div>
+										<!-- Expiry & CVC Row -->
+										<div class="grid grid-cols-3 gap-4">
+											<div>
+												<label for="expiry-month" class="block text-sm font-medium text-slate-700 mb-2">Month</label>
+												<input
+													type="text"
+													id="expiry-month"
+													class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors"
+													placeholder="MM"
+													readonly
+												/>
+											</div>
+											<div>
+												<label for="expiry-year" class="block text-sm font-medium text-slate-700 mb-2">Year</label>
+												<input
+													type="text"
+													id="expiry-year"
+													class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors"
+													placeholder="YY"
+													readonly
+												/>
+											</div>
+											<div>
+												<label for="security-code" class="block text-sm font-medium text-slate-700 mb-2">CVC</label>
+												<input
+													type="text"
+													id="security-code"
+													class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors"
+													placeholder="123"
+													readonly
+												/>
+											</div>
+										</div>
+										<!-- Cardholder Name -->
+										<div>
+											<label for="cardholder-name" class="block text-sm font-medium text-slate-700 mb-2">Cardholder Name</label>
+											<input
+												type="text"
+												id="cardholder-name"
+												class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:ring-0 transition-colors"
+												placeholder="John Doe"
+												readonly
+											/>
+										</div>
+										<!-- Pay Button -->
+										<button
+											id="payButton"
+											type="button"
+											onclick="pay()"
+											class="w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-2 mt-6"
+										>
+											<span id="payButtonText">Pay { data.Invoice.Amount } { data.Invoice.Currency }</span>
+											<div id="payButtonSpinner" class="spinner hidden"></div>
+										</button>
+									</div>
+									<!-- Card Brands -->
+									<div class="flex items-center justify-center gap-3 mt-6">
+										<div class="w-10 h-6 bg-slate-100 rounded flex items-center justify-center">
+											<span class="text-xs font-bold text-slate-600">VISA</span>
+										</div>
+										<div class="w-10 h-6 bg-slate-100 rounded flex items-center justify-center">
+											<span class="text-xs font-bold text-slate-600">MC</span>
+										</div>
+										<div class="w-10 h-6 bg-slate-100 rounded flex items-center justify-center">
+											<span class="text-xs font-bold text-slate-600">AMEX</span>
+										</div>
+									</div>
+								</div>
+								<!-- Success State -->
+								<div id="success-state" class="hidden fade-in">
+									<div class="text-center py-8">
+										<div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+											<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+											</svg>
+										</div>
+										<h2 class="text-xl font-semibold text-slate-900 mb-2">Payment Successful!</h2>
+										<p class="text-slate-500">Thank you for your purchase.</p>
+									</div>
+								</div>
+								<!-- Error State -->
+								<div id="error-state" class="hidden fade-in">
+									<div class="text-center py-8">
+										<div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+											<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+											</svg>
+										</div>
+										<h2 class="text-xl font-semibold text-slate-900 mb-2">Payment Failed</h2>
+										<p id="error-message" class="text-slate-500 mb-4">Something went wrong. Please try again.</p>
+										<button
+											type="button"
+											onclick="location.reload()"
+											class="px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors"
+										>
+											Try Again
+										</button>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
-					<div class="input-group">
-						<label>Security Code (CVC)</label>
-						<input type="text" id="security-code" class="input-field" readonly/>
+					<!-- Footer -->
+					<div class="text-center mt-6">
+						<p class="text-slate-400 text-sm">Powered by Pay</p>
 					</div>
-					<div class="input-group">
-						<label>Cardholder Name</label>
-						<input type="text" id="cardholder-name" class="input-field" readonly/>
-					</div>
-					<button id="payButton" onclick="pay()">Pay Now</button>
 				</div>
 			</div>
+			<!-- 3DS Challenge Container (hidden, used by MPGS) -->
 			<div id="method-container" class="hidden"></div>
 			<div id="challenge-container"></div>
 			<script type="text/javascript">
+				// Anti-clickjacking
 				if (self === top) {
 					var antiClickjack = document.getElementById("antiClickjack");
-					antiClickjack.parentNode.removeChild(antiClickjack);
+					if (antiClickjack) antiClickjack.parentNode.removeChild(antiClickjack);
 				} else {
 					top.location = self.location;
 				}
 
-				const INVOICE_ID = {{ invoiceID }};
+				const INVOICE_ID = {{ data.Invoice.ID }};
 				let CURRENT_PAYMENT_SESSION_ID = null;
+				let CURRENT_PAYMENT_TYPE = null;
 
-				async function selectMethod(btnElement, accountId, type) {
-					document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-					btnElement.classList.add('selected');
-					
-					document.getElementById('loader').classList.remove('hidden');
+				// Toggle invoice items dropdown
+				function toggleItems() {
+					const list = document.getElementById('items-list');
+					const chevron = document.getElementById('items-chevron');
+					list.classList.toggle('hidden');
+					chevron.classList.toggle('rotate-180');
+				}
+
+				// Go back to method selection
+				function goBack() {
+					document.getElementById('method-selection').classList.remove('hidden');
+					document.getElementById('loading-state').classList.add('hidden');
 					document.getElementById('card-form-container').classList.add('hidden');
+					document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('border-slate-900', 'bg-slate-50'));
+					CURRENT_PAYMENT_SESSION_ID = null;
+					CURRENT_PAYMENT_TYPE = null;
+				}
+
+				// Select payment method
+				async function selectMethod(btnElement) {
+					const accountId = btnElement.dataset.accountId;
+					const type = btnElement.dataset.type;
+					
+					// Highlight selected button
+					document.querySelectorAll('.option-btn').forEach(b => {
+						b.classList.remove('border-slate-900', 'bg-slate-50');
+					});
+					btnElement.classList.add('border-slate-900', 'bg-slate-50');
+					
+					// Show loading, hide method selection
+					document.getElementById('method-selection').classList.add('hidden');
+					document.getElementById('loading-state').classList.remove('hidden');
+					
+					CURRENT_PAYMENT_TYPE = type;
 
 					try {
 						const resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {
@@ -142,24 +446,20 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string
 						});
 						
 						const data = await resp.json();
+						
 						if (data.action === 'render_embedded') {
 							CURRENT_PAYMENT_SESSION_ID = data.payment_session_id;
 							initializeMPGS(data.mpgs_session_id);
-
-							document.getElementById('loader').classList.add('hidden');
-							document.getElementById('card-form-container').classList.remove('hidden');
 						}
-
 					} catch (e) {
 						console.error("Init failed", e);
-						alert("Failed to initialize payment. Please try again.");
-						document.getElementById('loader').classList.add('hidden');
+						showError("Failed to initialize payment. Please try again.");
 					}
 				}
 
 				function initializeMPGS(mpgsSessionId) {
 					if (typeof PaymentSession === 'undefined') {
-						alert("Payment Gateway failed to load. Please refresh.");
+						showError("Payment gateway failed to load. Please refresh the page.");
 						return;
 					}
 
@@ -177,21 +477,31 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string
 						frameEmbeddingMitigation: ["javascript"],
 						callbacks: {
 							initialized: function(response) {
-								// console.log("Fields initialized");
+								// Hide loading, show card form
+								document.getElementById('loading-state').classList.add('hidden');
+								document.getElementById('card-form-container').classList.remove('hidden');
 							},
 							formSessionUpdate: function(response) {
 								if (response.status === "ok") {
-									console.log("Card Tokenized. Starting 3DS...");
+									console.log("Card tokenized. Starting 3DS...");
 									start3DSFlow();
 								} else {
 									console.error("Tokenization failed", response);
 									let errorMsg = "Please check your card details.";
 									if (response.errors) {
-										errorMsg += " (" + Object.keys(response.errors).join(", ") + ")";
+										const fields = Object.keys(response.errors).map(f => {
+											switch(f) {
+												case 'cardNumber': return 'Card Number';
+												case 'securityCode': return 'CVC';
+												case 'expiryMonth': return 'Expiry Month';
+												case 'expiryYear': return 'Expiry Year';
+												default: return f;
+											}
+										});
+										errorMsg = "Please check: " + fields.join(", ");
 									}
 									alert(errorMsg);
-									document.getElementById('payButton').disabled = false;
-									document.getElementById('payButton').innerText = "Pay Now";
+									resetPayButton();
 								}
 							}
 						},
@@ -205,9 +515,25 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string
 				}
 
 				function pay() {
-					document.getElementById('payButton').disabled = true;
-					document.getElementById('payButton').innerText = "Processing...";
+					const btn = document.getElementById('payButton');
+					const text = document.getElementById('payButtonText');
+					const spinner = document.getElementById('payButtonSpinner');
+					
+					btn.disabled = true;
+					text.textContent = 'Processing...';
+					spinner.classList.remove('hidden');
+					
 					PaymentSession.updateSessionFromForm('card');
+				}
+
+				function resetPayButton() {
+					const btn = document.getElementById('payButton');
+					const text = document.getElementById('payButtonText');
+					const spinner = document.getElementById('payButtonSpinner');
+					
+					btn.disabled = false;
+					text.textContent = `Pay {{ data.Invoice.Amount }} {{ data.Invoice.Currency }}`;
+					spinner.classList.add('hidden');
 				}
 
 				async function start3DSFlow() {
@@ -219,14 +545,13 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string
 						if (initRes.next_step === "authenticate") {
 							doAuthenticatePayer(initRes.tx_id);
 						} else if (initRes.next_step === "cant_continue") {
-							alert("Payment rejected by gateway.");
-							location.reload();
+							showError("Payment was rejected by the gateway. Please try a different card.");
 						} else {
-							alert("Unexpected error: " + initRes.next_step);
+							showError("An unexpected error occurred. Please try again.");
 						}
 					} catch (e) {
 						console.error(e);
-						alert("Network error occurred.");
+						showError("A network error occurred. Please check your connection.");
 					}
 				}
 
@@ -244,47 +569,104 @@ templ CheckoutPage(mpgsBaseURL, mpgsAPIVersion, mpgsMerchantID, invoiceID string
 						"timeZone": -new Date().getTimezoneOffset()
 					};
 
-					const authRes = await fetch(url, {
-						method: "POST",
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(browserDetails)
-					}).then(r => r.json());
+					try {
+						const authRes = await fetch(url, {
+							method: "POST",
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(browserDetails)
+						}).then(r => r.json());
 
-					if (authRes.next_step === "3ds_challenge") {
-						const tempDiv = document.createElement('div');
-						tempDiv.innerHTML = authRes.redirect_html;
-						document.body.appendChild(tempDiv);
-						
-            const script = document.getElementById('authenticate-payer-script');
-            if (script) {
-              eval(script.text);
-            }
-			    } else if (authRes.next_step === "pay") {
-            doFinalizePayment(txId);
-				  }
+						if (authRes.next_step === "3ds_challenge") {
+							// Inject 3DS challenge HTML
+							const container = document.getElementById('challenge-container');
+							container.innerHTML = authRes.redirect_html;
+							
+							const script = document.getElementById('authenticate-payer-script');
+							if (script) {
+								eval(script.text);
+							}
+						} else if (authRes.next_step === "pay") {
+							doFinalizePayment(txId);
+						}
+					} catch (e) {
+						console.error(e);
+						showError("Authentication failed. Please try again.");
+					}
 				}
 
 				async function doFinalizePayment(authTxId) {
 					const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;
 					
-					const payRes = await fetch(url, {
-						method: "POST",
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ auth_tx_id: authTxId })
-					}).then(r => r.json());
+					try {
+						const payRes = await fetch(url, {
+							method: "POST",
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ auth_tx_id: authTxId })
+						}).then(r => r.json());
 
-					if (payRes.status === "success") {
-						document.getElementById('checkout-container').innerHTML =
-							`<div style="text-align:center; padding:50px;">
-								<h1 style="color:green;">✔ Payment Successful!</h1>
-								<p>Thank you for your purchase.</p>
-							 </div>`;
-					} else {
-						alert("Payment Failed: " + payRes.message);
-						location.reload();
+						if (payRes.status === "success") {
+							showSuccess();
+						} else {
+							showError(payRes.message || "Payment was declined. Please try a different card.");
+						}
+					} catch (e) {
+						console.error(e);
+						showError("Failed to complete payment. Please try again.");
 					}
+				}
+
+				function showSuccess() {
+					document.getElementById('checkout-content').innerHTML = '';
+					document.getElementById('success-state').classList.remove('hidden');
+					document.getElementById('checkout-content').appendChild(document.getElementById('success-state'));
+					document.getElementById('success-state').classList.remove('hidden');
+					
+					// Actually just replace content
+					document.getElementById('checkout-content').innerHTML = `
+						<div class="fade-in">
+							<div class="text-center py-8">
+								<div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+									<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+									</svg>
+								</div>
+								<h2 class="text-xl font-semibold text-slate-900 mb-2">Payment Successful!</h2>
+								<p class="text-slate-500">Thank you for your purchase.</p>
+							</div>
+						</div>
+					`;
+				}
+
+				function showError(message) {
+					document.getElementById('checkout-content').innerHTML = `
+						<div class="fade-in">
+							<div class="text-center py-8">
+								<div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+									<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+									</svg>
+								</div>
+								<h2 class="text-xl font-semibold text-slate-900 mb-2">Payment Failed</h2>
+								<p class="text-slate-500 mb-4">${message}</p>
+								<button 
+									type="button"
+									onclick="location.reload()"
+									class="px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors"
+								>
+									Try Again
+								</button>
+							</div>
+						</div>
+					`;
 				}
 			</script>
 		</body>
 	</html>
+}
+
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }

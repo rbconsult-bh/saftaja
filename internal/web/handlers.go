@@ -64,6 +64,12 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	items, err := h.queries.GetInvoiceItems(ctx, invoiceID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch invoice items")
+		items = []store.InvoiceItem{}
+	}
+
 	accounts, err := h.queries.ListActiveGatewayAccounts(ctx, invoice.ProjectID)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
@@ -95,7 +101,46 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := templfiles.CheckoutPage(h.mpgsBaseURL, mpgsclient.APIVersion, h.mpgsMerchantID, invoice.ID.String(), options).Render(ctx, w); err != nil {
+	checkoutItems := make([]templfiles.CheckoutItem, 0, len(items))
+	for _, item := range items {
+		checkoutItems = append(checkoutItems, templfiles.CheckoutItem{
+			Name:      item.Name,
+			Quantity:  item.Quantity,
+			UnitPrice: item.UnitPrice.String(),
+			Amount:    item.Amount.String(),
+		})
+	}
+
+	description := ""
+	if invoice.Description.Valid {
+		description = invoice.Description.String
+	}
+	customerEmail := ""
+	if invoice.CustomerEmail.Valid {
+		customerEmail = invoice.CustomerEmail.String
+	}
+	customerName := ""
+	if invoice.CustomerName.Valid {
+		customerName = invoice.CustomerName.String
+	}
+
+	data := templfiles.CheckoutPageData{
+		MPGSBaseURL:    h.mpgsBaseURL,
+		MPGSAPIVersion: mpgsclient.APIVersion,
+		MPGSMerchantID: h.mpgsMerchantID,
+		Invoice: templfiles.CheckoutInvoice{
+			ID:            invoice.ID.String(),
+			Amount:        invoice.Amount.String(),
+			Currency:      invoice.Currency,
+			Description:   description,
+			CustomerEmail: customerEmail,
+			CustomerName:  customerName,
+		},
+		Items:   checkoutItems,
+		Options: options,
+	}
+
+	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("failed to render checkout page")
 	}
 }
@@ -129,13 +174,6 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 	if ip == "::1" {
 		ip = "0000:0000:0000:0000:0000:0000:0000:0001" // Full IPv6 loopback
 	}
-
-	// TODO: read the header of cloudflare, otherwise use remote addr if no cloudflare proxy in front of this.
-	// if isCloudflareIP(ip) {
-	// 	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
-	// 		ip = cfIP
-	// 	}
-	// }
 
 	if net.ParseIP(ip) == nil {
 		log.Ctx(ctx).Error().Str("ip", ip).Msg("invalid ip address")
@@ -271,7 +309,6 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		status = store.TransactionStatusSuccess
 	}
 
-	// TODO: make the mpgs client return the raw resp beside the parsed one :D
 	rawResp, err := json.Marshal(resp)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal raw resp")
@@ -297,7 +334,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		nextStep = "error"
 	}
 
-	if err := json.NewEncoder(w).Encode(map[string]any{"next_step": nextStep}); err != nil {
+	if err := json.NewEncoder(w).Encode(map[string]any{"next_step": nextStep, "tx_id": gatewayTxID.String()}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to encode the response")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -405,15 +442,8 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if ip == "::1" {
-		ip = "0000:0000:0000:0000:0000:0000:0000:0001" // Full IPv6 loopback
+		ip = "0000:0000:0000:0000:0000:0000:0000:0001"
 	}
-
-	// TODO: read the header of cloudflare, otherwise use remote addr if no cloudflare proxy in front of this.
-	// if isCloudflareIP(ip) {
-	// 	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
-	// 		ip = cfIP
-	// 	}
-	// }
 
 	if net.ParseIP(ip) == nil {
 		log.Ctx(ctx).Error().Str("ip", ip).Msg("invalid ip address")
@@ -424,7 +454,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 	resp, err := h.mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
-			// TODO: fetch this subdomain or domain or whatever from the organization :D
+			// TODO: fetch this subdomain or domain from the organization
 			RedirectResponseURL: fmt.Sprintf("%s/checkout/%s/pay/card/%s/finalize", "http://localhost:8080", invoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
@@ -445,13 +475,10 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	status := store.TransactionStatusFailed
-	// PENDING = 3DS Challenge (HTML) returned
-	// SUCCESS = Frictionless (No Challenge)
 	if resp.Data.Result == mpgsclient.ResultPending || resp.Data.Result == mpgsclient.ResultSuccess {
 		status = store.TransactionStatusSuccess
 	}
 
-	// TODO: make the mpgs client return the raw resp beside the parsed one :D
 	rawResp, err := json.Marshal(resp)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal raw resp")
@@ -574,7 +601,6 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: make the mpgs client return the raw resp beside the parsed one :D
 	rawResp, err := json.Marshal(resp)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal raw resp")
@@ -602,14 +628,11 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 
 		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 	} else {
-		h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{ID: dbTx.ID, Status: "declined"})
+		h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{ID: dbTx.ID, Status: "declined", RawResponse: rawResp})
 		json.NewEncoder(w).Encode(map[string]string{"status": "declined", "message": "Bank declined transaction"})
 	}
 }
 
-// 6. Wallet Pay (Apple Pay - Simple Flow)
 func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
-	// Similar to CardFinalize, but no 'AuthTxID' needed usually
-	// if token is pushed to session via JS.
-	// Implementation depends on if you push token from JS or Backend.
+	// TODO: Apple Pay implementation
 }
