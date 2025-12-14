@@ -320,15 +320,8 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		status = store.TransactionStatusSuccess
 	}
 
-	rawResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal raw resp")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
 	if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-		ID: dbTx.ID, Status: status, RawResponse: rawResp,
+		ID: dbTx.ID, Status: status, RawResponse: resp.RawBody,
 	}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -493,15 +486,8 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		status = store.TransactionStatusSuccess
 	}
 
-	rawResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal raw resp")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
 	if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-		ID: dbTx.ID, Status: status, RawResponse: rawResp,
+		ID: dbTx.ID, Status: status, RawResponse: resp.RawBody,
 	}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -615,13 +601,6 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rawResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal raw resp")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
 	checkoutURL := fmt.Sprintf("/checkout/%s", invoiceID)
 	status := "failed"
 	message := "Your bank declined this transaction."
@@ -631,7 +610,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		message = "Payment successful"
 
 		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-			ID: dbTx.ID, Status: store.TransactionStatusSuccess, RawResponse: rawResp,
+			ID: dbTx.ID, Status: store.TransactionStatusSuccess, RawResponse: resp.RawBody,
 		}); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
 			http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -647,11 +626,15 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
+		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
 			Status:      store.TransactionStatusFailed,
-			RawResponse: rawResp,
-		})
+			RawResponse: resp.RawBody,
+		}); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

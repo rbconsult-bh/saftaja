@@ -20,7 +20,8 @@ type Client interface {
 
 // Response is a generic wrapper for all API responses
 type Response[T any] struct {
-	Data T
+	Data    T
+	RawBody []byte
 }
 
 // ErrorResponse represents an error response from the API

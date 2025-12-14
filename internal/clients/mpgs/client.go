@@ -77,9 +77,9 @@ func (c *client) do(ctx context.Context, method, path string, body io.Reader) (*
 func decodeResponse[T any](resp *http.Response, expectedStatus int) (*Response[T], error) {
 	defer resp.Body.Close()
 
-	if resp.StatusCode != expectedStatus {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyBytes, _ := io.ReadAll(resp.Body)
 
+	if resp.StatusCode != expectedStatus {
 		var errResponse ErrorResponse
 		if err := json.Unmarshal(bodyBytes, &errResponse); err != nil {
 			return nil, fmt.Errorf("unexpected status code: got %d, expected %d. Response body: %s",
@@ -90,11 +90,11 @@ func decodeResponse[T any](resp *http.Response, expectedStatus int) (*Response[T
 	}
 
 	var data T
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := json.Unmarshal(bodyBytes, &data); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &Response[T]{Data: data}, nil
+	return &Response[T]{Data: data, RawBody: bodyBytes}, nil
 }
 
 // CreateSession creates a payment session
