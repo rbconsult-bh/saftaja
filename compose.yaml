@@ -2,13 +2,13 @@ services:
   db:
     image: postgres:18
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: somehuman
-      POSTGRES_DB: paydb
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_DATABASE}
     ports:
       - 5432:5432
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U somehuman -d paydb"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,9 +22,39 @@ services:
         "-path",
         "/migrations",
         "-database",
-        "postgres://somehuman:password@db:5432/paydb?sslmode=disable",
+        "postgres://${DB_USER}:${DB_PASSWORD}@db:5432/paydb?sslmode=disable",
         "up",
       ]
     depends_on:
       db:
         condition: service_healthy
+
+  pay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      MPGS_BASE_URL: ${MPGS_BASE_URL}
+      MPGS_MERCHANT_ID: ${MPGS_MERCHANT_ID}
+      MPGS_API_PASSWORD: ${MPGS_API_PASSWORD}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      PORT: ${PORT}
+    develop:
+      watch:
+        - path: .
+          target: /pay
+          action: sync+restart
+          ignore:
+            - go.sum
+        - path: ./pay/go.sum
+          action: rebuild

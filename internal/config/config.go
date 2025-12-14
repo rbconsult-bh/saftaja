@@ -1,6 +1,8 @@
 package config
 
 import (
+	"reflect"
+
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -14,11 +16,10 @@ type Config struct {
 	DBDatabase      string `mapstructure:"DB_DATABASE"`
 	DBUser          string `mapstructure:"DB_USER"`
 	DBPassword      string `mapstructure:"DB_PASSWORD"`
+	Port            int    `mapstructure:"PORT"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {
-	viper.AutomaticEnv()
-
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(configPath)
@@ -30,6 +31,18 @@ func LoadConfig(configPath string) (*Config, error) {
 
 		log.Warn().Err(err).Str("config_path", configPath).Msg("no .env file found, using environments variables only")
 	}
+
+	t := reflect.TypeOf(Config{})
+	for i := 0; i < t.NumField(); i++ {
+		if tag := t.Field(i).Tag.Get("mapstructure"); tag != "" {
+			if err := viper.BindEnv(tag); err != nil {
+				log.Warn().Err(err).Str("config_tag", tag).Msg("failed to bind env")
+				continue
+			}
+		}
+	}
+
+	viper.AutomaticEnv()
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {

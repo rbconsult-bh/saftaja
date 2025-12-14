@@ -78,8 +78,8 @@ func main() {
 	// 	r.Post("/finalize", h.WalletPayHandler)
 	// })
 
-	log.Info().Msg("starting listener on port 8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal().Err(err).Msg("failed to listen on port 8080")
+	log.Info().Msgf("starting listener on port: %d", cfg.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r); err != nil {
+		log.Fatal().Err(err).Msgf("failed to listen on port: %d", cfg.Port)
 	}
 }
