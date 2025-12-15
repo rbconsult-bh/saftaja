@@ -63,6 +63,10 @@ func main() {
 	// ROUTING
 	// =========================================================================
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
 
 	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
