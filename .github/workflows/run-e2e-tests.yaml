@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 20
           cache: "pnpm"
-          cache-dependency-path: tests/e2e/package-lock.yaml
+          cache-dependency-path: tests/e2e/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: tests/e2e
