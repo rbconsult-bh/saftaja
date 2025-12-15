@@ -1,0 +1,5 @@
+- pass merchant id and other details correctly, like figure out the env vars situation
+- try to optimize building pay if not already optimized
+- find a way to run in parallel, perhaps a db per worker, or db per test if fully parallel
+- write a test for the happy path of paying with card, the full cycle
+- write more test for other cases based on test cards, the full cycle
