@@ -176,11 +176,10 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("remote_addr", r.RemoteAddr).Msg("failed to split host port of remote addr")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	ip := r.RemoteAddr
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		ip = host
 	}
 	if ip == "::1" {
 		ip = "0000:0000:0000:0000:0000:0000:0000:0001"
@@ -442,11 +441,10 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		browserDetails.AcceptHeaders = r.Header.Get("Accept")
 	}
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("remote_addr", r.RemoteAddr).Msg("failed to split host port of remote addr")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	ip := r.RemoteAddr
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		ip = host
 	}
 	if ip == "::1" {
 		ip = "0000:0000:0000:0000:0000:0000:0000:0001"
@@ -462,7 +460,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
 			// TODO: fetch this subdomain or domain from the organization
-			RedirectResponseURL: fmt.Sprintf("%s/checkout/%s/pay/card/%s/finalize", "http://localhost:8080", invoiceID, session.ID),
+			RedirectResponseURL: fmt.Sprintf("%s/checkout/%s/pay/card/%s/finalize", "https://yazeed-pc.tailnet-name.ts.net", invoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
 			Browser:        r.Header.Get("User-Agent"),
