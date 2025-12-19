@@ -43,7 +43,5 @@ jobs:
         if: always()
         with:
           name: e2e-debug-bundle
-          path: |
-            tests/e2e/playwright-report/
-            backend-logs.txt
+          path: tests/e2e/playwright-report/
           retention-days: 30

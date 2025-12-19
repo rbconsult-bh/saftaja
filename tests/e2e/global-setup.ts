@@ -45,13 +45,8 @@ async function globalSetup() {
 
   console.log('📝 Initializing backend log stream...');
 
-  const logPath = path.resolve(process.cwd(), 'backend-logs.txt');
-  const logFile = fs.createWriteStream(logPath, { flags: 'a' });
-
   const stream = await payContainer.logs();
-
   stream.on('data', (line) => {
-    logFile.write(line);
     console.log(`[BACKEND]: ${line}`);
   });
 
