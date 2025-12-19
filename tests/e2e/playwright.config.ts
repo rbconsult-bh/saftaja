@@ -23,6 +23,7 @@ export default defineConfig({
     extraHTTPHeaders: {
       'bypass-tunnel-reminder': 'i guess we need this weird header :D'
     },
+    timezoneId: 'Asia/Riyadh',
 
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
