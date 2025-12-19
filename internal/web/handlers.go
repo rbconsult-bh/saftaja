@@ -701,6 +701,8 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	status := "failed"
 	message := "Your bank declined this transaction."
 
+	log.Ctx(ctx).Info().Str("gateway_code", string(resp.Data.Response.GatewayCode)).Msg("gateway code from execute pay transaction")
+
 	if resp.Data.Response.GatewayCode == mpgsclient.CodeApproved {
 		status = "success"
 		message = "Payment successful"
