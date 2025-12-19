@@ -1,4 +1,5 @@
 import './fixtures/types';
+import fs from 'fs';
 import path from 'path';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Network, Wait } from 'testcontainers';
@@ -41,6 +42,18 @@ async function globalSetup() {
     .withExposedPorts(payPort)
     .withWaitStrategy(Wait.forHttp('/health', payPort))
     .start();
+
+  console.log('📝 Initializing backend log stream...');
+
+  const logPath = path.resolve(process.cwd(), 'backend-logs.txt');
+  const logFile = fs.createWriteStream(logPath, { flags: 'a' });
+
+  const stream = await payContainer.logs();
+
+  stream.on('data', (line) => {
+    logFile.write(line);
+    console.log(`[BACKEND]: ${line}`);
+  });
 
   const localPort = payContainer.getMappedPort(payPort);
 
