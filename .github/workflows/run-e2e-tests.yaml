@@ -34,12 +34,12 @@ jobs:
         working-directory: tests/e2e
         run: pnpm exec playwright test -j 1
         env:
-          MPGS_BASE_URL: ${{ secrets.MPGS_BASE_URL }}
-          MPGS_MERCHANT_ID: ${{ secrets.MPGS_MERCHANT_ID }}
-          MPGS_API_PASSWORD: ${{ secrets.MPGS_API_PASSWORD }}
+          TEST_MPGS_BASE_URL: ${{ secrets.TEST_MPGS_BASE_URL }}
+          TEST_MPGS_MERCHANT_ID: ${{ secrets.TEST_MPGS_MERCHANT_ID }}
+          TEST_MPGS_API_PASSWORD: ${{ secrets.TEST_MPGS_API_PASSWORD }}
           CI: true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: playwright-report
