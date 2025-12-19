@@ -8,15 +8,12 @@ import (
 )
 
 type Config struct {
-	MPGSBaseURL     string `mapstructure:"MPGS_BASE_URL"`
-	MPGSMerchantID  string `mapstructure:"MPGS_MERCHANT_ID"`
-	MPGSAPIPassword string `mapstructure:"MPGS_API_PASSWORD"`
-	DBHost          string `mapstructure:"DB_HOST"`
-	DBPort          uint16 `mapstructure:"DB_PORT"`
-	DBDatabase      string `mapstructure:"DB_DATABASE"`
-	DBUser          string `mapstructure:"DB_USER"`
-	DBPassword      string `mapstructure:"DB_PASSWORD"`
-	Port            int    `mapstructure:"PORT"`
+	DBHost     string `mapstructure:"DB_HOST"`
+	DBPort     uint16 `mapstructure:"DB_PORT"`
+	DBDatabase string `mapstructure:"DB_DATABASE"`
+	DBUser     string `mapstructure:"DB_USER"`
+	DBPassword string `mapstructure:"DB_PASSWORD"`
+	Port       int    `mapstructure:"PORT"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {

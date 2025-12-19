@@ -13,7 +13,7 @@ import (
 type GatewayAccount struct {
 	ID             uuid.UUID
 	ProjectID      uuid.UUID
-	ConnectorType  string
+	ConnectorType  GatewayAccountConnectorType
 	AccountName    string
 	Credentials    []byte
 	Settings       []byte
@@ -54,7 +54,6 @@ type InvoiceItem struct {
 type Organization struct {
 	ID        uuid.UUID
 	Name      string
-	Subdomain pgtype.Text
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
 	DeletedAt pgtype.Timestamptz
@@ -81,6 +80,7 @@ type Project struct {
 	OrganizationID uuid.UUID
 	Name           string
 	Environment    ProjectEnvironment
+	CustomDomain   pgtype.Text
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
 	DeletedAt      pgtype.Timestamptz

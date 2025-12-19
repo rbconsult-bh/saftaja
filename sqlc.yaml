@@ -37,6 +37,10 @@ sql:
             go_type:
               type: "ProjectEnvironment"
 
+          - column: "gateway_accounts.connector_type"
+            go_type:
+              type: "GatewayAccountConnectorType"
+
           - column: "invoices.status"
             go_type:
               type: "InvoiceStatus"

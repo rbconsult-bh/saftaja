@@ -6,9 +6,5 @@ export const DB_CONFIG = {
   password: 'test',
 } as const;
 
-export const TEST_IDS = {
-  PROJECT: '00000000-0000-0000-0000-000000000002',
-  GATEWAY_ACCOUNT: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-  INVOICE_PENDING: '11111111-1111-1111-1111-111111111111',
-  INVOICE_PAID: '22222222-2222-2222-2222-222222222222',
-} as const;
+export const TUNNEL_TIMEOUT_MS = 30000;
+export const HEALTH_CHECK_TIMEOUT_MS = 60000;

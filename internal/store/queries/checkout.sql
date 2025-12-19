@@ -8,6 +8,16 @@ AND deleted_at IS NULL;
 SELECT * FROM gateway_accounts
 WHERE id = $1 LIMIT 1;
 
+-- name: GetGatewayAccountByPaymentSessionID :one
+SELECT * FROM gateway_accounts ga
+JOIN payment_sessions ps ON ga.id = ps.gateway_account_id
+WHERE ps.id = $1;
+
+-- name: GetProjectByPaymentSessionID :one
+SELECT * FROM projects p
+JOIN payment_sessions ps ON p.id = ps.project_id
+WHERE ps.id = $1;
+
 -- name: GetLatestPaymentSession :one
 SELECT * FROM payment_sessions
 WHERE invoice_id = $1

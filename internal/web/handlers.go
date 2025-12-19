@@ -20,18 +20,12 @@ import (
 )
 
 type handlers struct {
-	mpgsBaseURL    string
-	mpgsMerchantID string
-	mpgsCli        mpgsclient.Client
-	queries        *store.Queries
+	queries *store.Queries
 }
 
-func New(mpgsBaseURL, mpgsMerchantID string, mpgsCli mpgsclient.Client, queries *store.Queries) *handlers {
+func New(queries *store.Queries) *handlers {
 	return &handlers{
-		mpgsBaseURL:    mpgsBaseURL,
-		mpgsMerchantID: mpgsMerchantID,
-		mpgsCli:        mpgsCli,
-		queries:        queries,
+		queries: queries,
 	}
 }
 
@@ -87,8 +81,26 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mpgsBaseURL := ""
+	mpgsMerchantID := ""
 	var options []templfiles.PaymentOption
 	for _, acc := range accounts {
+		if acc.ConnectorType == store.GatewayAccountConnectorTypeMPGS {
+			type mpgsCreds struct {
+				MerchantID string `json:"merchant_id"`
+				BaseURL    string `json:"base_url"`
+			}
+			var creds mpgsCreds
+			if err := json.Unmarshal(acc.Credentials, &creds); err != nil {
+				log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
+				http.Error(w, "configuration error", http.StatusInternalServerError)
+				return
+			}
+
+			mpgsBaseURL = creds.BaseURL
+			mpgsMerchantID = creds.MerchantID
+		}
+
 		var methods []string
 		_ = json.Unmarshal(acc.PaymentMethods, &methods)
 
@@ -135,9 +147,9 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := templfiles.CheckoutPageData{
-		MPGSBaseURL:    h.mpgsBaseURL,
+		MPGSBaseURL:    mpgsBaseURL,
 		MPGSAPIVersion: mpgsclient.APIVersion,
-		MPGSMerchantID: h.mpgsMerchantID,
+		MPGSMerchantID: mpgsMerchantID,
 		Invoice: templfiles.CheckoutInvoice{
 			ID:            invoice.ID.String(),
 			Amount:        invoice.Amount.String(),
@@ -192,7 +204,20 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if req.PaymentMethod == store.PaymentSessionPaymentMethodCard || req.PaymentMethod == store.PaymentSessionPaymentMethodApplePay {
-		resp, err := h.mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
+		type mpgsCreds struct {
+			MerchantID  string `json:"merchant_id"`
+			BaseURL     string `json:"base_url"`
+			APIPassword string `json:"api_password"`
+		}
+		var creds mpgsCreds
+		if err := json.Unmarshal(account.Credentials, &creds); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
+			http.Error(w, "configuration error", http.StatusInternalServerError)
+			return
+		}
+		mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+
+		resp, err := mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 			Session: &mpgsclient.CreateSessionRequestSession{
 				AuthenticationLimit: utils.Ptr[int32](25),
 			},
@@ -217,7 +242,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		_, err = h.mpgsCli.UpdateSession(ctx, resp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
+		_, err = mpgsCli.UpdateSession(ctx, resp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
 			Order: mpgsclient.UpdateSessionOrder{
 				Amount:   invoice.Amount.String(),
 				Currency: invoice.Currency,
@@ -301,7 +326,27 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp, err := h.mpgsCli.InitiateAuthentication(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.InitiateAuthenticationRequest{
+	account, err := h.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway account by payment session id")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	type mpgsCreds struct {
+		MerchantID  string `json:"merchant_id"`
+		BaseURL     string `json:"base_url"`
+		APIPassword string `json:"api_password"`
+	}
+	var creds mpgsCreds
+	if err := json.Unmarshal(account.Credentials, &creds); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
+		http.Error(w, "configuration error", http.StatusInternalServerError)
+		return
+	}
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+
+	resp, err := mpgsCli.InitiateAuthentication(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.InitiateAuthenticationRequest{
 		APIOperation: mpgsclient.OperationInitiateAuthentication,
 		Authentication: mpgsclient.InitiateAuthenticationReqAuthentication{
 			Channel: mpgsclient.ChannelPayerBrowser,
@@ -456,11 +501,44 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := h.mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
+	account, err := h.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway account by payment session id")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	type mpgsCreds struct {
+		MerchantID  string `json:"merchant_id"`
+		BaseURL     string `json:"base_url"`
+		APIPassword string `json:"api_password"`
+	}
+	var creds mpgsCreds
+	if err := json.Unmarshal(account.Credentials, &creds); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
+		http.Error(w, "configuration error", http.StatusInternalServerError)
+		return
+	}
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+
+	project, err := h.queries.GetProjectByPaymentSessionID(ctx, session.ID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch project by payment session id")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	domain := project.CustomDomain.String
+	if !project.CustomDomain.Valid && domain == "" {
+		log.Ctx(ctx).Error().Err(err).Msg("custom domain of organization is not valid")
+		http.Error(w, "custom domain of organization is not valid", http.StatusExpectationFailed)
+		return
+	}
+
+	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
-			// TODO: fetch this subdomain or domain from the organization
-			RedirectResponseURL: fmt.Sprintf("%s/checkout/%s/pay/card/%s/finalize", "https://yazeed-pc.tailnet-name.ts.net", invoiceID, session.ID),
+			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", domain, invoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
 			Browser:        r.Header.Get("User-Agent"),
@@ -579,7 +657,27 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.ExecutePayRequest{
+	account, err := h.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway account by payment session id")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	type mpgsCreds struct {
+		MerchantID  string `json:"merchant_id"`
+		BaseURL     string `json:"base_url"`
+		APIPassword string `json:"api_password"`
+	}
+	var creds mpgsCreds
+	if err := json.Unmarshal(account.Credentials, &creds); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
+		http.Error(w, "configuration error", http.StatusInternalServerError)
+		return
+	}
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+
+	resp, err := mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.ExecutePayRequest{
 		APIOperation: mpgsclient.OperationPay,
 		Authentication: mpgsclient.ExecutePayReqAuthentication{
 			TransactionID: authTx.GatewayTransactionID,

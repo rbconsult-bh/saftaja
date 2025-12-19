@@ -18,12 +18,35 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	mpgsclient "github.com/RBConsult-BH/pay/internal/clients/mpgs"
 	"github.com/RBConsult-BH/pay/internal/config"
 	"github.com/RBConsult-BH/pay/internal/store"
 	"github.com/RBConsult-BH/pay/internal/web"
 	"github.com/RBConsult-BH/pay/internal/web/middlewares"
 )
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	ctx := context.Background()
@@ -42,13 +65,11 @@ func main() {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBDatabase)
 
-	// ======== MIGRATIONS ========
 	log.Info().Msg("running database migrations...")
 	if err := runMigrations(dsn); err != nil {
 		log.Fatal().Err(err).Msg("failed to run migrations")
 	}
 	log.Info().Msg("migrations completed")
-	// ======== MIGRATIONS ========
 
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -64,13 +85,13 @@ func main() {
 	queries := store.New(dbPool)
 
 	r := chi.NewRouter()
+	r.Use(corsMiddleware)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.ZeroLogger)
 
-	mpgsCli := mpgsclient.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, cfg.MPGSAPIPassword)
-	h := web.New(cfg.MPGSBaseURL, cfg.MPGSMerchantID, mpgsCli, queries)
+	h := web.New(queries)
 
 	// =========================================================================
 	// ROUTING

@@ -7,6 +7,12 @@ const (
 	ProjectEnvironmentSandbox    ProjectEnvironment = "sandbox"
 )
 
+type GatewayAccountConnectorType string
+
+const (
+	GatewayAccountConnectorTypeMPGS GatewayAccountConnectorType = "mpgs"
+)
+
 type InvoiceStatus string
 
 const (

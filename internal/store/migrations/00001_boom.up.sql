@@ -8,15 +8,11 @@ CREATE TABLE organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     name VARCHAR(100) NOT NULL,
-    subdomain VARCHAR(50) UNIQUE,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ
 );
-
-INSERT INTO organizations (id, name, subdomain)
-VALUES ('00000000-0000-0000-0000-000000000001', 'Default', 'default');
 
 -- ============================================================================
 -- PROJECTS
@@ -28,20 +24,13 @@ CREATE TABLE projects (
 
     name VARCHAR(100) NOT NULL,
     environment VARCHAR(20) NOT NULL DEFAULT 'sandbox', -- sandbox, production
+    custom_domain VARCHAR(255) UNIQUE,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
 
     UNIQUE(organization_id, environment)
-);
-
-INSERT INTO projects (id, organization_id, name, environment)
-VALUES (
-    '00000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000001',
-    'Sandbox',
-    'sandbox'
 );
 
 -- ============================================================================
@@ -165,31 +154,6 @@ CREATE TABLE transactions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ
 );
-
--- ============================================================================
--- INDEXES
--- ============================================================================
-
-CREATE INDEX idx_organizations_subdomain ON organizations(subdomain) WHERE deleted_at IS NULL;
-
-CREATE INDEX idx_projects_org ON projects(organization_id) WHERE deleted_at IS NULL;
-
-CREATE INDEX idx_gateway_accounts_lookup ON gateway_accounts(project_id, is_active)
-    WHERE deleted_at IS NULL;
-
-CREATE INDEX idx_invoices_project ON invoices(project_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_invoices_status ON invoices(project_id, status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_invoices_external ON invoices(project_id, external_id)
-    WHERE deleted_at IS NULL AND external_id IS NOT NULL;
-
-CREATE INDEX idx_invoice_items_invoice ON invoice_items(invoice_id);
-
-CREATE INDEX idx_payment_sessions_invoice ON payment_sessions(invoice_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_payment_sessions_gateway ON payment_sessions(gateway_session_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_payment_sessions_account ON payment_sessions(gateway_account_id);
-
-CREATE INDEX idx_transactions_session ON transactions(payment_session_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_transactions_invoice ON transactions(invoice_id) WHERE deleted_at IS NULL;
 
 -- ============================================================================
 -- UPDATED_AT TRIGGER

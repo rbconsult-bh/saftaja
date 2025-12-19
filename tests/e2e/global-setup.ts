@@ -1,16 +1,17 @@
 import './fixtures/types';
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
-import { GenericContainer, Network, Wait } from "testcontainers";
 import path from 'path';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { GenericContainer, Network, Wait } from 'testcontainers';
 import { DB_CONFIG } from './fixtures/config';
-import { seedDb } from './fixtures/db';
+import { startTunnel } from './fixtures/tunnel';
+import { waitForHealthCheck } from './fixtures/health';
 
 async function globalSetup() {
-  console.log("🛜 Starting shared network...");
+  console.log('🛜 Starting shared network...');
   const sharedNetwork = await new Network().start();
 
-  console.log("🐘 Starting postgres...");
-  const pgContainer = await new PostgreSqlContainer("postgres:18")
+  console.log('🐘 Starting postgres...');
+  const pgContainer = await new PostgreSqlContainer('postgres:18')
     .withNetwork(sharedNetwork)
     .withNetworkAliases('db')
     .withDatabase(DB_CONFIG.database)
@@ -18,40 +19,44 @@ async function globalSetup() {
     .withPassword(DB_CONFIG.password)
     .start();
 
-  const connectionString = pgContainer.getConnectionUri();
-  process.env.DATABASE_URL = connectionString;
+  process.env.DATABASE_URL = pgContainer.getConnectionUri();
 
-  console.log("🏗️ Building pay...");
-  const builtPayContainer = await GenericContainer
-    .fromDockerfile(path.resolve(__dirname, "../.."), "Dockerfile")
+  console.log('🏗️  Building pay...');
+  const payImage = await GenericContainer
+    .fromDockerfile(path.resolve(__dirname, '../..'), 'Dockerfile')
     .build();
 
-  console.log("💰 Starting pay...");
-  const payContainer = await builtPayContainer
+  console.log('💰 Starting pay...');
+  const payPort = 8080;
+  const payContainer = await payImage
     .withNetwork(sharedNetwork)
     .withEnvironment({
       DB_HOST: 'db',
-      DB_PORT: '5432',
+      DB_PORT: DB_CONFIG.port.toString(),
       DB_DATABASE: DB_CONFIG.database,
       DB_USER: DB_CONFIG.user,
       DB_PASSWORD: DB_CONFIG.password,
-      PORT: '8080',
-      MPGS_BASE_URL: process.env.MPGS_BASE_URL || '',
-      MPGS_MERCHANT_ID: process.env.MPGS_MERCHANT_ID || '',
-      MPGS_API_PASSWORD: process.env.MPGS_API_PASSWORD || '',
+      PORT: payPort.toString(),
     })
-    .withExposedPorts(8080)
-    .withWaitStrategy(Wait.forHttp('/health', 8080))
+    .withExposedPorts(payPort)
+    .withWaitStrategy(Wait.forHttp('/health', payPort))
     .start();
 
-  console.log("🌱 Seeding database...");
-  await seedDb();
+  const localPort = payContainer.getMappedPort(payPort);
 
-  process.env.BASE_URL = `http://${payContainer.getHost()}:${payContainer.getMappedPort(8080)}`;
+  console.log('🚇 Starting ephemeral tunnel...');
+  const { process: tunnelProcess, publicUrl } = await startTunnel(localPort);
+
+  console.log(`✅ App is live at: ${publicUrl}`);
+  process.env.BASE_URL = publicUrl;
+
+  await waitForHealthCheck(`${publicUrl}/health`, 15000);
 
   globalThis.pgContainer = pgContainer;
   globalThis.payContainer = payContainer;
   globalThis.sharedNetwork = sharedNetwork;
+  globalThis.tunnelProcess = tunnelProcess;
 }
 
 export default globalSetup;
+

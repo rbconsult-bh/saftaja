@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -81,6 +82,71 @@ func (q *Queries) GetGatewayAccount(ctx context.Context, id uuid.UUID) (GatewayA
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getGatewayAccountByPaymentSessionID = `-- name: GetGatewayAccountByPaymentSessionID :one
+SELECT ga.id, ga.project_id, connector_type, account_name, credentials, settings, payment_methods, is_active, ga.created_at, ga.updated_at, ga.deleted_at, ps.id, invoice_id, ps.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at FROM gateway_accounts ga
+JOIN payment_sessions ps ON ga.id = ps.gateway_account_id
+WHERE ps.id = $1
+`
+
+type GetGatewayAccountByPaymentSessionIDRow struct {
+	ID               uuid.UUID
+	ProjectID        uuid.UUID
+	ConnectorType    GatewayAccountConnectorType
+	AccountName      string
+	Credentials      []byte
+	Settings         []byte
+	PaymentMethods   []byte
+	IsActive         bool
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
+	ID_2             uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID_2      uuid.UUID
+	GatewayAccountID uuid.UUID
+	GatewaySessionID string
+	Status           PaymentSessionStatus
+	PaymentMethod    PaymentSessionPaymentMethod
+	PayerIp          pgtype.Text
+	PayerUserAgent   pgtype.Text
+	ExpiresAt        pgtype.Timestamptz
+	CreatedAt_2      pgtype.Timestamptz
+	UpdatedAt_2      pgtype.Timestamptz
+	DeletedAt_2      pgtype.Timestamptz
+}
+
+func (q *Queries) GetGatewayAccountByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentSessionIDRow, error) {
+	row := q.db.QueryRow(ctx, getGatewayAccountByPaymentSessionID, id)
+	var i GetGatewayAccountByPaymentSessionIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.ConnectorType,
+		&i.AccountName,
+		&i.Credentials,
+		&i.Settings,
+		&i.PaymentMethods,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.ID_2,
+		&i.InvoiceID,
+		&i.ProjectID_2,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt_2,
+		&i.UpdatedAt_2,
+		&i.DeletedAt_2,
 	)
 	return i, err
 }
@@ -165,6 +231,65 @@ func (q *Queries) GetPaymentSessionByID(ctx context.Context, id uuid.UUID) (Paym
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getProjectByPaymentSessionID = `-- name: GetProjectByPaymentSessionID :one
+SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at FROM projects p
+JOIN payment_sessions ps ON p.id = ps.project_id
+WHERE ps.id = $1
+`
+
+type GetProjectByPaymentSessionIDRow struct {
+	ID               uuid.UUID
+	OrganizationID   uuid.UUID
+	Name             string
+	Environment      ProjectEnvironment
+	CustomDomain     pgtype.Text
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
+	ID_2             uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID        uuid.UUID
+	GatewayAccountID uuid.UUID
+	GatewaySessionID string
+	Status           PaymentSessionStatus
+	PaymentMethod    PaymentSessionPaymentMethod
+	PayerIp          pgtype.Text
+	PayerUserAgent   pgtype.Text
+	ExpiresAt        pgtype.Timestamptz
+	CreatedAt_2      pgtype.Timestamptz
+	UpdatedAt_2      pgtype.Timestamptz
+	DeletedAt_2      pgtype.Timestamptz
+}
+
+func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentSessionIDRow, error) {
+	row := q.db.QueryRow(ctx, getProjectByPaymentSessionID, id)
+	var i GetProjectByPaymentSessionIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Environment,
+		&i.CustomDomain,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.ID_2,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt_2,
+		&i.UpdatedAt_2,
+		&i.DeletedAt_2,
 	)
 	return i, err
 }
