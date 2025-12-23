@@ -13,10 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog/log"
 
-	mpgsclient "github.com/RBConsult-BH/pay/internal/clients/mpgs"
-	"github.com/RBConsult-BH/pay/internal/store"
-	"github.com/RBConsult-BH/pay/internal/utils"
-	"github.com/RBConsult-BH/pay/internal/web/templfiles"
+	mpgsclient "github.com/rbconsult-bh/saftaja/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/internal/store"
+	"github.com/rbconsult-bh/saftaja/internal/utils"
+	"github.com/rbconsult-bh/saftaja/internal/web/templfiles"
 )
 
 type handlers struct {

@@ -1,4 +1,4 @@
-module github.com/RBConsult-BH/pay
+module github.com/rbconsult-bh/saftaja
 
 go 1.24.3
 

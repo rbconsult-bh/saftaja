@@ -18,10 +18,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/RBConsult-BH/pay/internal/config"
-	"github.com/RBConsult-BH/pay/internal/store"
-	"github.com/RBConsult-BH/pay/internal/web"
-	"github.com/RBConsult-BH/pay/internal/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/internal/config"
+	"github.com/rbconsult-bh/saftaja/internal/store"
+	"github.com/rbconsult-bh/saftaja/internal/web"
+	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
