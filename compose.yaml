@@ -40,9 +40,6 @@ services:
     ports:
       - ${PORT}:${PORT}
     environment:
-      MPGS_BASE_URL: ${MPGS_BASE_URL}
-      MPGS_MERCHANT_ID: ${MPGS_MERCHANT_ID}
-      MPGS_API_PASSWORD: ${MPGS_API_PASSWORD}
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE}
