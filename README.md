@@ -1,4 +1,4 @@
-# saftaja
+# saftaja | سفتجة
 
 ## run migrations
 
