@@ -23,7 +23,7 @@ type handlers struct {
 	queries *store.Queries
 }
 
-func New(queries *store.Queries) *handlers {
+func New(queries *store.Queries) Handlers {
 	return &handlers{
 		queries: queries,
 	}

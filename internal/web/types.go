@@ -3,8 +3,10 @@ package web
 import "net/http"
 
 type Handlers interface {
-	CheckoutHandler(w http.ResponseWriter, r *http.Request)
-	CheckoutInitiateAuthHandler(w http.ResponseWriter, r *http.Request)
-	CheckoutProcessAuthHandler(w http.ResponseWriter, r *http.Request)
-	CheckoutPayHandler(w http.ResponseWriter, r *http.Request)
+	CheckoutPageHandler(w http.ResponseWriter, r *http.Request)
+	InitiateSessionHandler(w http.ResponseWriter, r *http.Request)
+	CardInitiateAuthHandler(w http.ResponseWriter, r *http.Request)
+	CardProcessAuthHandler(w http.ResponseWriter, r *http.Request)
+	CardFinalizeHandler(w http.ResponseWriter, r *http.Request)
+	WalletPayHandler(w http.ResponseWriter, r *http.Request)
 }
