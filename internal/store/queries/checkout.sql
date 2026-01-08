@@ -42,10 +42,17 @@ WHERE id = $1;
 -- name: CreateTransaction :one
 INSERT INTO transactions (
     payment_session_id, invoice_id, project_id,
-    transaction_type, gateway_transaction_id, amount, currency
+    transaction_type, gateway_transaction_id, amount, currency, raw_request
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING *;
+
+-- name: GetPayTransactionBySessionID :one
+SELECT * FROM transactions
+WHERE payment_session_id = $1
+AND transaction_type = 'pay'
+AND status = 'success'
+LIMIT 1;
 
 -- name: UpdateTransactionStatus :exec
 UPDATE transactions

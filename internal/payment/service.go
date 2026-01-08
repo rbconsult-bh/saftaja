@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -211,6 +212,20 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 	mpgsCli := mpgs.NewClient(creds)
 	gatewayTxID := uuid.New()
 
+	mpgsReq := &mpgsclient.InitiateAuthenticationRequest{
+		APIOperation: mpgsclient.OperationInitiateAuthentication,
+		Authentication: mpgsclient.InitiateAuthenticationReqAuthentication{
+			Channel: mpgsclient.ChannelPayerBrowser,
+		},
+		Order:   mpgsclient.InitiateAuthenticationOrder{Currency: invoice.Currency},
+		Session: mpgsclient.InitiateAuthenticationSession{ID: session.GatewaySessionID},
+	}
+
+	rawReq, err := json.Marshal(mpgsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
 	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
 		PaymentSessionID:     session.ID,
 		InvoiceID:            invoice.ID,
@@ -219,19 +234,13 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		GatewayTransactionID: gatewayTxID.String(),
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
+		RawRequest:           rawReq,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
-	resp, err := mpgsCli.InitiateAuthentication(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.InitiateAuthenticationRequest{
-		APIOperation: mpgsclient.OperationInitiateAuthentication,
-		Authentication: mpgsclient.InitiateAuthenticationReqAuthentication{
-			Channel: mpgsclient.ChannelPayerBrowser,
-		},
-		Order:   mpgsclient.InitiateAuthenticationOrder{Currency: invoice.Currency},
-		Session: mpgsclient.InitiateAuthenticationSession{ID: session.GatewaySessionID},
-	})
+	resp, err := mpgsCli.InitiateAuthentication(ctx, invoice.ID.String(), gatewayTxID.String(), mpgsReq)
 	if err != nil {
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
@@ -315,39 +324,24 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 
 	mpgsCli := mpgs.NewClient(creds)
 
-	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
-		InvoiceID:            invoice.ID,
-		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypeAuthenticatePayer,
-		GatewayTransactionID: lastTx.GatewayTransactionID,
-		Amount:               invoice.Amount,
-		Currency:             invoice.Currency,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
-	}
-
-	browserDetails := mpgsclient.AuthenticatePayerReqBrowserDetails{
-		ThreeDSecureChallengeWindowSize: req.BrowserDetails.ThreeDSecureChallengeWindowSize,
-		AcceptHeaders:                   req.BrowserDetails.AcceptHeaders,
-		ColorDepth:                      req.BrowserDetails.ColorDepth,
-		JavaEnabled:                     req.BrowserDetails.JavaEnabled,
-		Language:                        req.BrowserDetails.Language,
-		ScreenHeight:                    req.BrowserDetails.ScreenHeight,
-		ScreenWidth:                     req.BrowserDetails.ScreenWidth,
-		TimeZone:                        req.BrowserDetails.TimeZone,
-	}
-
-	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
+	mpgsReq := &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
 			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", customDomain, req.InvoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
-			Browser:        req.UserAgent,
-			BrowserDetails: &browserDetails,
-			IPAddress:      req.PayerIP,
+			Browser: req.UserAgent,
+			BrowserDetails: &mpgsclient.AuthenticatePayerReqBrowserDetails{
+				ThreeDSecureChallengeWindowSize: req.BrowserDetails.ThreeDSecureChallengeWindowSize,
+				AcceptHeaders:                   req.BrowserDetails.AcceptHeaders,
+				ColorDepth:                      req.BrowserDetails.ColorDepth,
+				JavaEnabled:                     req.BrowserDetails.JavaEnabled,
+				Language:                        req.BrowserDetails.Language,
+				ScreenHeight:                    req.BrowserDetails.ScreenHeight,
+				ScreenWidth:                     req.BrowserDetails.ScreenWidth,
+				TimeZone:                        req.BrowserDetails.TimeZone,
+			},
+			IPAddress: req.PayerIP,
 		},
 		Order: mpgsclient.AuthenticatePayerReqOrder{
 			Amount:   invoice.Amount.String(),
@@ -356,7 +350,28 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		Session: mpgsclient.AuthenticatePayerReqSession{
 			ID: session.GatewaySessionID,
 		},
+	}
+
+	rawReq, err := json.Marshal(mpgsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
+		PaymentSessionID:     session.ID,
+		InvoiceID:            invoice.ID,
+		ProjectID:            invoice.ProjectID,
+		TransactionType:      domain.TransactionTypeAuthenticatePayer,
+		GatewayTransactionID: lastTx.GatewayTransactionID,
+		Amount:               invoice.Amount,
+		Currency:             invoice.Currency,
+		RawRequest:           rawReq,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, mpgsReq)
 	if err != nil {
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
@@ -420,6 +435,15 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, &InvoiceAlreadyPaidError{InvoiceID: invoice.ID.String()}
 	}
 
+	existingTx, err := s.queries.GetPayTransactionBySessionID(ctx, session.ID)
+	if err == nil && existingTx.Status == domain.TransactionStatusSuccess {
+		return &FinalizePaymentResult{
+			Success:     true,
+			ResultCode:  ResultSuccess,
+			CheckoutURL: fmt.Sprintf("/checkout/%s", req.InvoiceID),
+		}, nil
+	}
+
 	authTx, err := s.queries.GetSuccessfulAuthTransaction(ctx, session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("authentication missing: %w", err)
@@ -438,20 +462,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 	mpgsCli := mpgs.NewClient(creds)
 	gatewayTxID := uuid.New()
 
-	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
-		InvoiceID:            invoice.ID,
-		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypePay,
-		GatewayTransactionID: gatewayTxID.String(),
-		Amount:               invoice.Amount,
-		Currency:             invoice.Currency,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
-	}
-
-	resp, err := mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.ExecutePayRequest{
+	mpgsReq := &mpgsclient.ExecutePayRequest{
 		APIOperation: mpgsclient.OperationPay,
 		Authentication: mpgsclient.ExecutePayReqAuthentication{
 			TransactionID: authTx.GatewayTransactionID,
@@ -464,17 +475,46 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		Session: mpgsclient.ExecutePayReqSession{
 			ID: session.GatewaySessionID,
 		},
+	}
+
+	rawReq, err := json.Marshal(mpgsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
+		PaymentSessionID:     session.ID,
+		InvoiceID:            invoice.ID,
+		ProjectID:            invoice.ProjectID,
+		TransactionType:      domain.TransactionTypePay,
+		GatewayTransactionID: gatewayTxID.String(),
+		Amount:               invoice.Amount,
+		Currency:             invoice.Currency,
+		RawRequest:           rawReq,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	resp, err := mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), mpgsReq)
 	if err != nil {
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
+
+	pgxTx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin db transaction: %w", err)
+	}
+	defer pgxTx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(pgxTx)
 
 	result := &FinalizePaymentResult{
 		CheckoutURL: fmt.Sprintf("/checkout/%s", req.InvoiceID),
 	}
 
 	if resp.Data.Response.GatewayCode == mpgsclient.CodeApproved {
-		if err := s.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
+		if err := qtx.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
 			Status:      domain.TransactionStatusSuccess,
 			RawResponse: resp.RawBody,
@@ -482,7 +522,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 			return nil, fmt.Errorf("failed to update transaction: %w", err)
 		}
 
-		if err := s.queries.UpdateInvoiceStatus(ctx, store.UpdateInvoiceStatusParams{
+		if err := qtx.UpdateInvoiceStatus(ctx, store.UpdateInvoiceStatusParams{
 			ID:     invoice.ID,
 			Status: domain.InvoiceStatusPaid,
 		}); err != nil {
@@ -492,7 +532,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		result.Success = true
 		result.ResultCode = ResultSuccess
 	} else {
-		if err := s.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
+		if err := qtx.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
 			Status:      domain.TransactionStatusFailed,
 			RawResponse: resp.RawBody,
@@ -502,6 +542,10 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 		result.Success = false
 		result.ResultCode = ResultDeclined
+	}
+
+	if err := pgxTx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit db transaction: %w", err)
 	}
 
 	return result, nil

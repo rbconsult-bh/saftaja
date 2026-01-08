@@ -17,9 +17,9 @@ import (
 const createTransaction = `-- name: CreateTransaction :one
 INSERT INTO transactions (
     payment_session_id, invoice_id, project_id,
-    transaction_type, gateway_transaction_id, amount, currency
+    transaction_type, gateway_transaction_id, amount, currency, raw_request
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING id, payment_session_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at
 `
 
@@ -31,6 +31,7 @@ type CreateTransactionParams struct {
 	GatewayTransactionID string
 	Amount               decimal.Decimal
 	Currency             string
+	RawRequest           []byte
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
@@ -42,6 +43,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.GatewayTransactionID,
 		arg.Amount,
 		arg.Currency,
+		arg.RawRequest,
 	)
 	var i Transaction
 	err := row.Scan(
@@ -190,6 +192,36 @@ LIMIT 1
 
 func (q *Queries) GetLatestTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error) {
 	row := q.db.QueryRow(ctx, getLatestTransaction, paymentSessionID)
+	var i Transaction
+	err := row.Scan(
+		&i.ID,
+		&i.PaymentSessionID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.TransactionType,
+		&i.GatewayTransactionID,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.RawRequest,
+		&i.RawResponse,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getPayTransactionBySessionID = `-- name: GetPayTransactionBySessionID :one
+SELECT id, payment_session_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
+WHERE payment_session_id = $1
+AND transaction_type = 'pay'
+AND status = 'success'
+LIMIT 1
+`
+
+func (q *Queries) GetPayTransactionBySessionID(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getPayTransactionBySessionID, paymentSessionID)
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
