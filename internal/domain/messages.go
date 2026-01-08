@@ -3,6 +3,10 @@ package domain
 import "golang.org/x/text/language"
 
 var (
+	MsgInvalidRequest = LocalizedString{
+		language.English: "Invalid request",
+		language.Arabic:  "طلب غير صالح",
+	}
 	MsgInvalidInvoiceID = LocalizedString{
 		language.English: "Invalid invoice ID",
 		language.Arabic:  "معرف الفاتورة غير صالح",

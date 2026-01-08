@@ -314,14 +314,13 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	}
 
 	mpgsCli := mpgs.NewClient(creds)
-	gatewayTxID := uuid.New()
 
 	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
 		PaymentSessionID:     session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
 		TransactionType:      domain.TransactionTypeAuthenticatePayer,
-		GatewayTransactionID: gatewayTxID.String(),
+		GatewayTransactionID: lastTx.GatewayTransactionID,
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
 	})
@@ -330,13 +329,14 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	}
 
 	browserDetails := mpgsclient.AuthenticatePayerReqBrowserDetails{
-		AcceptHeaders: req.BrowserDetails.AcceptHeaders,
-		ColorDepth:    req.BrowserDetails.ColorDepth,
-		JavaEnabled:   req.BrowserDetails.JavaEnabled,
-		Language:      req.BrowserDetails.Language,
-		ScreenHeight:  req.BrowserDetails.ScreenHeight,
-		ScreenWidth:   req.BrowserDetails.ScreenWidth,
-		TimeZone:      req.BrowserDetails.TimeZone,
+		ThreeDSecureChallengeWindowSize: req.BrowserDetails.ThreeDSecureChallengeWindowSize,
+		AcceptHeaders:                   req.BrowserDetails.AcceptHeaders,
+		ColorDepth:                      req.BrowserDetails.ColorDepth,
+		JavaEnabled:                     req.BrowserDetails.JavaEnabled,
+		Language:                        req.BrowserDetails.Language,
+		ScreenHeight:                    req.BrowserDetails.ScreenHeight,
+		ScreenWidth:                     req.BrowserDetails.ScreenWidth,
+		TimeZone:                        req.BrowserDetails.TimeZone,
 	}
 
 	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{

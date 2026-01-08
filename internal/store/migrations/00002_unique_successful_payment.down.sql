@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_one_successful_payment_per_invoice;

@@ -65,13 +65,14 @@ type InitiateAuthResult struct {
 }
 
 type BrowserDetails struct {
-	AcceptHeaders string `json:"acceptHeaders,omitempty"`
-	ColorDepth    int    `json:"colorDepth"`
-	JavaEnabled   bool   `json:"javaEnabled"`
-	Language      string `json:"language"`
-	ScreenHeight  int    `json:"screenHeight"`
-	ScreenWidth   int    `json:"screenWidth"`
-	TimeZone      int    `json:"timeZone"`
+	ThreeDSecureChallengeWindowSize string `json:"3DSecureChallengeWindowSize,omitempty"`
+	AcceptHeaders                   string `json:"acceptHeaders,omitempty"`
+	ColorDepth                      int    `json:"colorDepth"`
+	JavaEnabled                     bool   `json:"javaEnabled"`
+	Language                        string `json:"language"`
+	ScreenHeight                    int    `json:"screenHeight"`
+	ScreenWidth                     int    `json:"screenWidth"`
+	TimeZone                        int    `json:"timeZone"`
 }
 
 type ProcessAuthRequest struct {

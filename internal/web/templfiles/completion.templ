@@ -74,9 +74,9 @@ templ CompletionPage(data CompletionPageData) {
 			</div>
 			<script>
 				(function() {
-					var status = '{ data.Status }';
-					var message = '{ data.Message }';
-					var checkoutURL = '{ data.CheckoutURL }';
+					var status = {{ data.Status }};
+					var message = {{ data.Message }};
+					var checkoutURL = {{ data.CheckoutURL }};
 
 					if (window.parent && window.parent !== window) {
 						window.parent.postMessage({

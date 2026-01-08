@@ -110,7 +110,43 @@ func CompletionPage(data CompletionPageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</p></div><script>\n\t\t\t\t(function() {\n\t\t\t\t\tvar status = '{ data.Status }';\n\t\t\t\t\tvar message = '{ data.Message }';\n\t\t\t\t\tvar checkoutURL = '{ data.CheckoutURL }';\n\n\t\t\t\t\tif (window.parent && window.parent !== window) {\n\t\t\t\t\t\twindow.parent.postMessage({\n\t\t\t\t\t\t\ttype: '3DS_COMPLETE',\n\t\t\t\t\t\t\tstatus: status,\n\t\t\t\t\t\t\tmessage: message\n\t\t\t\t\t\t}, '*');\n\t\t\t\t\t}\n\n\t\t\t\t\tsetTimeout(function() {\n\t\t\t\t\t\twindow.top.location.href = checkoutURL;\n\t\t\t\t\t}, 3000);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</p></div><script>\n\t\t\t\t(function() {\n\t\t\t\t\tvar status = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var3, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Status)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/completion.templ`, Line: 77, Col: 32}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, ";\n\t\t\t\t\tvar message = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var4, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Message)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/completion.templ`, Line: 78, Col: 34}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, ";\n\t\t\t\t\tvar checkoutURL = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var5, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.CheckoutURL)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/completion.templ`, Line: 79, Col: 42}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, ";\n\n\t\t\t\t\tif (window.parent && window.parent !== window) {\n\t\t\t\t\t\twindow.parent.postMessage({\n\t\t\t\t\t\t\ttype: '3DS_COMPLETE',\n\t\t\t\t\t\t\tstatus: status,\n\t\t\t\t\t\t\tmessage: message\n\t\t\t\t\t\t}, '*');\n\t\t\t\t\t}\n\n\t\t\t\t\tsetTimeout(function() {\n\t\t\t\t\t\twindow.top.location.href = checkoutURL;\n\t\t\t\t\t}, 3000);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -1,6 +1,11 @@
 package templfiles
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/rbconsult-bh/saftaja/internal/domain"
+	"golang.org/x/text/language"
+)
 
 type CheckoutPageData struct {
 	MPGSBaseURL    string
@@ -10,6 +15,7 @@ type CheckoutPageData struct {
 	Items          []CheckoutItem
 	Options        []PaymentOption
 	IsPaid         bool
+	Lang           language.Tag
 }
 
 type CheckoutInvoice struct {
@@ -35,17 +41,35 @@ type PaymentOption struct {
 	Icon  string
 }
 
+func isRTL(lang language.Tag) bool {
+	return lang == language.Arabic
+}
+
+func langDir(lang language.Tag) string {
+	if isRTL(lang) {
+		return "rtl"
+	}
+	return "ltr"
+}
+
+func langCode(lang language.Tag) string {
+	if lang == language.Arabic {
+		return "ar"
+	}
+	return "en"
+}
+
 templ CheckoutPage(data CheckoutPageData) {
 	<!DOCTYPE html>
-	<html lang="en">
+	<html lang={ langCode(data.Lang) } dir={ langDir(data.Lang) }>
 		<head>
-			<title>Secure Checkout</title>
+			<title>{ domain.LblSecureCheckout.Get(data.Lang) }</title>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<style>
 				#antiClickjack { display: none !important; }
-				
+
 				@keyframes shimmer {
 					0% { background-position: -200% 0; }
 					100% { background-position: 200% 0; }
@@ -55,24 +79,24 @@ templ CheckoutPage(data CheckoutPageData) {
 					background-size: 200% 100%;
 					animation: shimmer 1.5s infinite;
 				}
-				
+
 				@keyframes fadeIn {
 					from { opacity: 0; transform: translateY(10px); }
 					to { opacity: 1; transform: translateY(0); }
 				}
 				.fade-in { animation: fadeIn 0.3s ease-out forwards; }
-				
+
 				@keyframes fadeInUp {
 					from { opacity: 0; transform: translateY(30px); }
 					to { opacity: 1; transform: translateY(0); }
 				}
 				.fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-				
+
 				.delay-100 { animation-delay: 100ms; opacity: 0; }
 				.delay-200 { animation-delay: 200ms; opacity: 0; }
 				.delay-300 { animation-delay: 300ms; opacity: 0; }
 				.delay-400 { animation-delay: 400ms; opacity: 0; }
-				
+
 				@keyframes checkmark {
 					0% { stroke-dashoffset: 100; }
 					100% { stroke-dashoffset: 0; }
@@ -87,7 +111,7 @@ templ CheckoutPage(data CheckoutPageData) {
 					stroke-dashoffset: 48;
 					animation: checkmark 0.3s ease-in-out 0.4s forwards;
 				}
-				
+
 				@keyframes spin {
 					to { transform: rotate(360deg); }
 				}
@@ -104,16 +128,27 @@ templ CheckoutPage(data CheckoutPageData) {
 					height: 48px;
 					border-width: 4px;
 				}
-				
+
 				@keyframes pulse {
 					0%, 100% { opacity: 1; }
 					50% { opacity: 0.5; }
 				}
 				.pulse { animation: pulse 2s ease-in-out infinite; }
-				
+
 				.backdrop-blur {
 					backdrop-filter: blur(8px);
 					-webkit-backdrop-filter: blur(8px);
+				}
+
+				/* RTL support */
+				[dir="rtl"] .rtl\:rotate-180 {
+					transform: rotate(180deg);
+				}
+
+				/* Keep numbers/amounts LTR in RTL mode */
+				.ltr-nums {
+					direction: ltr;
+					unicode-bidi: isolate;
 				}
 			</style>
 			if !data.IsPaid {
@@ -124,7 +159,7 @@ templ CheckoutPage(data CheckoutPageData) {
 			<div id="antiClickjack"></div>
 			if data.IsPaid {
 				<!-- SUCCESS PAGE (when invoice already paid) -->
-				@SuccessPage(data.Invoice)
+				@SuccessPage(data.Invoice, data.Lang)
 			} else {
 				<!-- CHECKOUT PAGE -->
 				@CheckoutForm(data)
@@ -133,7 +168,7 @@ templ CheckoutPage(data CheckoutPageData) {
 	</html>
 }
 
-templ SuccessPage(invoice CheckoutInvoice) {
+templ SuccessPage(invoice CheckoutInvoice, lang language.Tag) {
 	<div class="min-h-screen flex items-center justify-center p-4">
 		<div class="max-w-md w-full text-center">
 			<!-- Animated Checkmark -->
@@ -143,30 +178,30 @@ templ SuccessPage(invoice CheckoutInvoice) {
 					<path class="checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"></path>
 				</svg>
 			</div>
-			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">Payment Successful!</h1>
+			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ domain.LblPaymentSuccessful.Get(lang) }</h1>
 			<div class="fade-in-up delay-200">
-				<div class="flex items-baseline justify-center gap-2 mb-6">
+				<div class="flex items-baseline justify-center gap-2 mb-6 ltr-nums">
 					<span class="text-4xl font-bold text-slate-900">{ invoice.Amount }</span>
 					<span class="text-xl text-slate-500">{ invoice.Currency }</span>
 				</div>
 			</div>
 			<div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300">
-				<div class="space-y-3 text-left">
+				<div class="space-y-3 text-start">
 					<div class="flex justify-between">
-						<span class="text-slate-500">Invoice</span>
-						<span class="text-slate-900 font-medium font-mono text-sm">{ truncateID(invoice.ID) }</span>
+						<span class="text-slate-500">{ domain.LblInvoice.Get(lang) }</span>
+						<span class="text-slate-900 font-medium font-mono text-sm ltr-nums">{ truncateID(invoice.ID) }</span>
 					</div>
 					if invoice.CustomerEmail != "" {
 						<div class="flex justify-between">
-							<span class="text-slate-500">Customer</span>
+							<span class="text-slate-500">{ domain.LblCustomer.Get(lang) }</span>
 							<span class="text-slate-900 font-medium">{ invoice.CustomerEmail }</span>
 						</div>
 					}
 				</div>
 			</div>
-			<p class="text-slate-500 mb-8 fade-in-up delay-400">Thank you for your purchase!</p>
+			<p class="text-slate-500 mb-8 fade-in-up delay-400">{ domain.LblThankYou.Get(lang) }</p>
 			<div class="text-center mt-8">
-				<p class="text-slate-400 text-sm">Powered by Saftaja</p>
+				<p class="text-slate-400 text-sm">{ domain.LblPoweredBy.Get(lang) }</p>
 			</div>
 		</div>
 	</div>
@@ -186,10 +221,10 @@ templ CheckoutForm(data CheckoutPageData) {
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 								</svg>
 							</div>
-							<p class="text-slate-400 text-sm uppercase tracking-wider">Amount Due</p>
+							<p class="text-slate-400 text-sm uppercase tracking-wider">{ domain.LblAmountDue.Get(data.Lang) }</p>
 						</div>
 						<div class="mb-6">
-							<div class="flex items-baseline gap-2">
+							<div class="flex items-baseline gap-2 ltr-nums">
 								<span class="text-4xl md:text-5xl font-bold tracking-tight">{ data.Invoice.Amount }</span>
 								<span class="text-xl text-slate-400">{ data.Invoice.Currency }</span>
 							</div>
@@ -197,13 +232,13 @@ templ CheckoutForm(data CheckoutPageData) {
 						<div class="space-y-4 flex-1">
 							if data.Invoice.Description != "" {
 								<div>
-									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Description</p>
+									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ domain.LblDescription.Get(data.Lang) }</p>
 									<p class="text-white">{ data.Invoice.Description }</p>
 								</div>
 							}
 							if data.Invoice.CustomerEmail != "" {
 								<div>
-									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Customer</p>
+									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ domain.LblCustomer.Get(data.Lang) }</p>
 									<p class="text-white">{ data.Invoice.CustomerEmail }</p>
 									if data.Invoice.CustomerName != "" {
 										<p class="text-slate-300 text-sm">{ data.Invoice.CustomerName }</p>
@@ -215,12 +250,12 @@ templ CheckoutForm(data CheckoutPageData) {
 									<button
 										type="button"
 										onclick="toggleItems()"
-										class="w-full flex items-center justify-between text-left cursor-pointer"
+										class="w-full flex items-center justify-between text-start cursor-pointer"
 									>
 										<span class="text-slate-400 text-xs uppercase tracking-wider">
-											{ fmt.Sprintf("%d", len(data.Items)) } { pluralize(len(data.Items), "item", "items") }
+											{ fmt.Sprintf("%d", len(data.Items)) } { pluralizeLocalized(len(data.Items), domain.LblItem.Get(data.Lang), domain.LblItems.Get(data.Lang)) }
 										</span>
-										<svg id="items-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<svg id="items-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 										</svg>
 									</button>
@@ -229,9 +264,9 @@ templ CheckoutForm(data CheckoutPageData) {
 											<div class="flex justify-between items-start py-2 border-b border-slate-800 last:border-0">
 												<div class="flex-1">
 													<p class="text-white text-sm">{ item.Name }</p>
-													<p class="text-slate-500 text-xs">{ fmt.Sprintf("%d", item.Quantity) } × { item.UnitPrice } { data.Invoice.Currency }</p>
+													<p class="text-slate-500 text-xs ltr-nums">{ fmt.Sprintf("%d", item.Quantity) } × { item.UnitPrice } { data.Invoice.Currency }</p>
 												</div>
-												<p class="text-white text-sm ml-4">{ item.Amount }</p>
+												<p class="text-white text-sm ms-4 ltr-nums">{ item.Amount }</p>
 											</div>
 										}
 									</div>
@@ -243,7 +278,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
 								</svg>
-								<span>256-bit encryption</span>
+								<span>{ domain.Lbl256BitEncryption.Get(data.Lang) }</span>
 							</div>
 						</div>
 					</div>
@@ -259,17 +294,17 @@ templ CheckoutForm(data CheckoutPageData) {
 								</svg>
 							</div>
 							<div>
-								<p class="text-red-800 font-medium text-sm">Payment Failed</p>
-								<p id="error-banner-message" class="text-red-600 text-sm">Please try again.</p>
+								<p class="text-red-800 font-medium text-sm">{ domain.LblPaymentFailed.Get(data.Lang) }</p>
+								<p id="error-banner-message" class="text-red-600 text-sm">{ domain.LblPleaseTryAgain.Get(data.Lang) }</p>
 							</div>
 						</div>
 					</div>
 					<!-- Payment Method Selection -->
 					<div id="method-selection">
-						<h2 class="text-lg font-semibold text-slate-900 mb-4">Payment Method</h2>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ domain.LblPaymentMethod.Get(data.Lang) }</h2>
 						<div class="space-y-3" id="payment-options">
 							if len(data.Options) == 0 {
-								<p class="text-slate-500 text-sm">No payment methods available.</p>
+								<p class="text-slate-500 text-sm">{ domain.LblNoPaymentMethods.Get(data.Lang) }</p>
 							}
 							for _, opt := range data.Options {
 								<button
@@ -292,15 +327,15 @@ templ CheckoutForm(data CheckoutPageData) {
 											</svg>
 										</div>
 									}
-									<div class="flex-1 text-left">
+									<div class="flex-1 text-start">
 										<p class="font-medium text-slate-900">{ opt.Label }</p>
 										if opt.Type == "card" {
-											<p class="text-sm text-slate-500">Visa, Mastercard, Amex</p>
+											<p class="text-sm text-slate-500">{ domain.LblVisaMastercardAmex.Get(data.Lang) }</p>
 										} else if opt.Type == "apple_pay" {
-											<p class="text-sm text-slate-500">Quick and secure</p>
+											<p class="text-sm text-slate-500">{ domain.LblQuickAndSecure.Get(data.Lang) }</p>
 										}
 									</div>
-									<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg class="w-5 h-5 text-slate-400 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
 									</svg>
 								</button>
@@ -314,12 +349,12 @@ templ CheckoutForm(data CheckoutPageData) {
 							onclick="goBack()"
 							class="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors cursor-pointer"
 						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
 							</svg>
-							<span class="text-sm">Back</span>
+							<span class="text-sm">{ domain.LblBack.Get(data.Lang) }</span>
 						</button>
-						<h2 class="text-lg font-semibold text-slate-900 mb-4">Card Details</h2>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ domain.LblCardDetails.Get(data.Lang) }</h2>
 						<div class="space-y-4">
 							<div>
 								<div class="skeleton h-4 w-24 rounded mb-2"></div>
@@ -345,7 +380,7 @@ templ CheckoutForm(data CheckoutPageData) {
 							</div>
 							<div class="skeleton h-14 rounded-xl mt-6"></div>
 						</div>
-						<p class="text-center text-slate-400 text-sm mt-4 pulse">Securing connection...</p>
+						<p class="text-center text-slate-400 text-sm mt-4 pulse">{ domain.LblSecuringConnection.Get(data.Lang) }</p>
 					</div>
 					<!-- Card Form -->
 					<div id="card-form-container" class="hidden">
@@ -354,15 +389,15 @@ templ CheckoutForm(data CheckoutPageData) {
 							onclick="goBack()"
 							class="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors cursor-pointer"
 						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
 							</svg>
-							<span class="text-sm">Back</span>
+							<span class="text-sm">{ domain.LblBack.Get(data.Lang) }</span>
 						</button>
-						<h2 class="text-lg font-semibold text-slate-900 mb-4">Card Details</h2>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ domain.LblCardDetails.Get(data.Lang) }</h2>
 						<div class="space-y-4">
 							<div>
-								<label for="card-number" class="block text-sm font-medium text-slate-700 mb-2">Card Number</label>
+								<label for="card-number" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblCardNumber.Get(data.Lang) }</label>
 								<input
 									type="text"
 									id="card-number"
@@ -373,7 +408,7 @@ templ CheckoutForm(data CheckoutPageData) {
 							</div>
 							<div class="grid grid-cols-3 gap-3">
 								<div>
-									<label for="expiry-month" class="block text-sm font-medium text-slate-700 mb-2">Month</label>
+									<label for="expiry-month" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblMonth.Get(data.Lang) }</label>
 									<input
 										type="text"
 										id="expiry-month"
@@ -383,7 +418,7 @@ templ CheckoutForm(data CheckoutPageData) {
 									/>
 								</div>
 								<div>
-									<label for="expiry-year" class="block text-sm font-medium text-slate-700 mb-2">Year</label>
+									<label for="expiry-year" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblYear.Get(data.Lang) }</label>
 									<input
 										type="text"
 										id="expiry-year"
@@ -393,7 +428,7 @@ templ CheckoutForm(data CheckoutPageData) {
 									/>
 								</div>
 								<div>
-									<label for="security-code" class="block text-sm font-medium text-slate-700 mb-2">CVC</label>
+									<label for="security-code" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblCVC.Get(data.Lang) }</label>
 									<input
 										type="text"
 										id="security-code"
@@ -404,7 +439,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								</div>
 							</div>
 							<div>
-								<label for="cardholder-name" class="block text-sm font-medium text-slate-700 mb-2">Cardholder Name</label>
+								<label for="cardholder-name" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblCardholderName.Get(data.Lang) }</label>
 								<input
 									type="text"
 									id="cardholder-name"
@@ -419,7 +454,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								onclick="pay()"
 								class="w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:bg-slate-400 disabled:cursor-not-allowed"
 							>
-								<span id="payButtonText">Pay { data.Invoice.Amount } { data.Invoice.Currency }</span>
+								<span id="payButtonText">{ domain.LblPay.Get(data.Lang) } <span class="ltr-nums">{ data.Invoice.Amount } { data.Invoice.Currency }</span></span>
 								<div id="payButtonSpinner" class="spinner hidden"></div>
 							</button>
 						</div>
@@ -432,7 +467,7 @@ templ CheckoutForm(data CheckoutPageData) {
 				</div>
 			</div>
 			<div class="text-center mt-6">
-				<p class="text-slate-400 text-sm">Powered by Saftaja</p>
+				<p class="text-slate-400 text-sm">{ domain.LblPoweredBy.Get(data.Lang) }</p>
 			</div>
 		</div>
 	</div>
@@ -440,8 +475,8 @@ templ CheckoutForm(data CheckoutPageData) {
 	<div id="processing-overlay" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur flex items-center justify-center p-4">
 		<div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
 			<div class="spinner spinner-large text-slate-900 mx-auto mb-6"></div>
-			<h3 class="text-xl font-semibold text-slate-900 mb-2">Processing Payment</h3>
-			<p class="text-slate-500">Please wait...</p>
+			<h3 class="text-xl font-semibold text-slate-900 mb-2">{ domain.LblProcessingPayment.Get(data.Lang) }</h3>
+			<p class="text-slate-500">{ domain.LblPleaseWait.Get(data.Lang) }</p>
 		</div>
 	</div>
 	<!-- 3DS Challenge Modal -->
@@ -455,8 +490,8 @@ templ CheckoutForm(data CheckoutPageData) {
 						</svg>
 					</div>
 					<div>
-						<h3 class="font-semibold">Bank Verification</h3>
-						<p class="text-slate-300 text-sm">Confirm your identity</p>
+						<h3 class="font-semibold">{ domain.LblBankVerification.Get(data.Lang) }</h3>
+						<p class="text-slate-300 text-sm">{ domain.LblConfirmIdentity.Get(data.Lang) }</p>
 					</div>
 				</div>
 			</div>
@@ -468,7 +503,7 @@ templ CheckoutForm(data CheckoutPageData) {
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 					</svg>
-					<span>This verification is required by your bank.</span>
+					<span>{ domain.LblBankRequired.Get(data.Lang) }</span>
 				</div>
 			</div>
 		</div>
@@ -482,28 +517,28 @@ templ CheckoutForm(data CheckoutPageData) {
 					<path class="checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"></path>
 				</svg>
 			</div>
-			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">Payment Successful!</h1>
+			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ domain.LblPaymentSuccessful.Get(data.Lang) }</h1>
 			<div class="fade-in-up delay-200">
-				<div class="flex items-baseline justify-center gap-2 mb-6">
+				<div class="flex items-baseline justify-center gap-2 mb-6 ltr-nums">
 					<span class="text-4xl font-bold text-slate-900">{ data.Invoice.Amount }</span>
 					<span class="text-xl text-slate-500">{ data.Invoice.Currency }</span>
 				</div>
 			</div>
 			<div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300">
-				<div class="space-y-3 text-left">
+				<div class="space-y-3 text-start">
 					<div class="flex justify-between">
-						<span class="text-slate-500">Invoice</span>
-						<span class="text-slate-900 font-medium font-mono text-sm">{ truncateID(data.Invoice.ID) }</span>
+						<span class="text-slate-500">{ domain.LblInvoice.Get(data.Lang) }</span>
+						<span class="text-slate-900 font-medium font-mono text-sm ltr-nums">{ truncateID(data.Invoice.ID) }</span>
 					</div>
 					<div class="flex justify-between">
-						<span class="text-slate-500">Date</span>
+						<span class="text-slate-500">{ domain.LblDate.Get(data.Lang) }</span>
 						<span class="text-slate-900 font-medium" id="success-date">-</span>
 					</div>
 				</div>
 			</div>
-			<p class="text-slate-500 fade-in-up delay-400">Thank you for your purchase!</p>
+			<p class="text-slate-500 fade-in-up delay-400">{ domain.LblThankYou.Get(data.Lang) }</p>
 			<div class="text-center mt-8">
-				<p class="text-slate-400 text-sm">Powered by Saftaja</p>
+				<p class="text-slate-400 text-sm">{ domain.LblPoweredBy.Get(data.Lang) }</p>
 			</div>
 		</div>
 	</div>
@@ -519,6 +554,7 @@ templ CheckoutForm(data CheckoutPageData) {
 		const INVOICE_ID = {{ data.Invoice.ID }};
 		const INVOICE_AMOUNT = {{ data.Invoice.Amount }};
 		const INVOICE_CURRENCY = {{ data.Invoice.Currency }};
+		const LANG = {{ langCode(data.Lang) }};
 		let CURRENT_PAYMENT_SESSION_ID = null;
 		let CURRENT_PAYMENT_TYPE = null;
 
@@ -547,16 +583,16 @@ templ CheckoutForm(data CheckoutPageData) {
 		async function selectMethod(btnElement) {
 			const accountId = btnElement.dataset.accountId;
 			const type = btnElement.dataset.type;
-			
+
 			document.querySelectorAll('.option-btn').forEach(b => {
 				b.classList.remove('border-slate-900', 'bg-slate-50');
 			});
 			btnElement.classList.add('border-slate-900', 'bg-slate-50');
-			
+
 			document.getElementById('error-banner').classList.add('hidden');
 			document.getElementById('method-selection').classList.add('hidden');
 			document.getElementById('loading-state').classList.remove('hidden');
-			
+
 			CURRENT_PAYMENT_TYPE = type;
 
 			try {
@@ -568,23 +604,23 @@ templ CheckoutForm(data CheckoutPageData) {
 						payment_method: type
 					})
 				});
-				
+
 				const data = await resp.json();
-				
+
 				if (data.action === 'render_embedded') {
 					CURRENT_PAYMENT_SESSION_ID = data.payment_session_id;
 					initializeMPGS(data.mpgs_session_id);
 				}
 			} catch (e) {
 				console.error("Init failed", e);
-				showError("Failed to initialize payment. Please try again.");
+				showError({{ domain.LblPaymentFailedInit.Get(data.Lang) }});
 				goBack();
 			}
 		}
 
 		function initializeMPGS(mpgsSessionId) {
 			if (typeof PaymentSession === 'undefined') {
-				showError("Payment gateway failed to load. Please refresh.");
+				showError({{ domain.LblGatewayLoadFailed.Get(data.Lang) }});
 				goBack();
 				return;
 			}
@@ -642,11 +678,11 @@ templ CheckoutForm(data CheckoutPageData) {
 			const btn = document.getElementById('payButton');
 			const text = document.getElementById('payButtonText');
 			const spinner = document.getElementById('payButtonSpinner');
-			
+
 			btn.disabled = true;
-			text.textContent = 'Processing...';
+			text.textContent = {{ domain.LblProcessingPayment.Get(data.Lang) }};
 			spinner.classList.remove('hidden');
-			
+
 			PaymentSession.updateSessionFromForm('card');
 		}
 
@@ -654,9 +690,9 @@ templ CheckoutForm(data CheckoutPageData) {
 			const btn = document.getElementById('payButton');
 			const text = document.getElementById('payButtonText');
 			const spinner = document.getElementById('payButtonSpinner');
-			
+
 			btn.disabled = false;
-			text.textContent = `Pay ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;
+			text.textContent = `{{ domain.LblPay.Get(data.Lang) }} ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;
 			spinner.classList.add('hidden');
 		}
 
@@ -673,7 +709,7 @@ templ CheckoutForm(data CheckoutPageData) {
 			const container = document.getElementById('challenge-iframe-container');
 			container.innerHTML = html;
 			document.getElementById('challenge-overlay').classList.remove('hidden');
-			
+
 			const script = document.getElementById('authenticate-payer-script');
 			if (script) {
 				eval(script.text);
@@ -687,16 +723,17 @@ templ CheckoutForm(data CheckoutPageData) {
 		function showSuccess() {
 			hideProcessing();
 			hideChallenge();
-			
+
 			const now = new Date();
-			document.getElementById('success-date').textContent = now.toLocaleDateString('en-US', {
+			const locale = LANG === 'ar' ? 'ar-SA' : 'en-US';
+			document.getElementById('success-date').textContent = now.toLocaleDateString(locale, {
 				year: 'numeric',
 				month: 'short',
 				day: 'numeric',
 				hour: '2-digit',
 				minute: '2-digit'
 			});
-			
+
 			document.getElementById('success-overlay').classList.remove('hidden');
 		}
 
@@ -704,10 +741,10 @@ templ CheckoutForm(data CheckoutPageData) {
 			hideProcessing();
 			hideChallenge();
 			resetPayButton();
-			
+
 			document.getElementById('error-banner-message').textContent = message;
 			document.getElementById('error-banner').classList.remove('hidden');
-			
+
 			// Show card form again so user can retry
 			document.getElementById('method-selection').classList.add('hidden');
 			document.getElementById('loading-state').classList.add('hidden');
@@ -716,28 +753,28 @@ templ CheckoutForm(data CheckoutPageData) {
 
 		async function start3DSFlow() {
 			showProcessing();
-			
+
 			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/initiate-auth`;
-			
+
 			try {
 				const initRes = await fetch(url, { method: "POST" }).then(r => r.json());
 
 				if (initRes.next_step === "authenticate") {
 					doAuthenticatePayer(initRes.tx_id);
 				} else if (initRes.next_step === "cant_continue") {
-					showError("Payment was rejected. Please try a different card.");
+					showError({{ domain.MsgPaymentDeclined.Get(data.Lang) }});
 				} else {
-					showError("An unexpected error occurred.");
+					showError({{ domain.MsgInternalError.Get(data.Lang) }});
 				}
 			} catch (e) {
 				console.error(e);
-				showError("Network error. Please try again.");
+				showError({{ domain.MsgGatewayError.Get(data.Lang) }});
 			}
 		}
 
 		async function doAuthenticatePayer(txId) {
 			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/process-auth`;
-			
+
 			const browserDetails = {
 				"3DSecureChallengeWindowSize": "FULL_SCREEN",
 				"acceptHeaders": "*/*",
@@ -764,27 +801,27 @@ templ CheckoutForm(data CheckoutPageData) {
 				}
 			} catch (e) {
 				console.error(e);
-				showError("Authentication failed. Please try again.");
+				showError({{ domain.MsgAuthenticationFailed.Get(data.Lang) }});
 			}
 		}
 
 		async function doFinalizePayment() {
 			showProcessing();
-			
+
 			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;
-			
+
 			try {
 				// For frictionless, we still call finalize but it returns HTML
 				// We need to handle this differently - just check if invoice is paid
 				const resp = await fetch(url, { method: "POST" });
 				const text = await resp.text();
-				
+
 				// Since finalize returns HTML now, we just show success
 				// The HTML will also try postMessage which we'll catch
 				showSuccess();
 			} catch (e) {
 				console.error(e);
-				showError("Payment failed. Please try again.");
+				showError({{ domain.MsgGatewayError.Get(data.Lang) }});
 			}
 		}
 
@@ -795,7 +832,7 @@ templ CheckoutForm(data CheckoutPageData) {
 				if (event.data.status === 'success') {
 					showSuccess();
 				} else {
-					showError(event.data.message || 'Payment declined by your bank.');
+					showError(event.data.message || {{ domain.MsgPaymentDeclined.Get(data.Lang) }});
 				}
 			}
 		});
@@ -803,6 +840,13 @@ templ CheckoutForm(data CheckoutPageData) {
 }
 
 func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
+}
+
+func pluralizeLocalized(count int, singular, plural string) string {
 	if count == 1 {
 		return singular
 	}

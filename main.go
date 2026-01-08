@@ -20,6 +20,7 @@ import (
 
 	"github.com/rbconsult-bh/saftaja/internal/config"
 	_ "github.com/rbconsult-bh/saftaja/internal/connectors/mpgs"
+	"github.com/rbconsult-bh/saftaja/internal/payment"
 	"github.com/rbconsult-bh/saftaja/internal/store"
 	"github.com/rbconsult-bh/saftaja/internal/web"
 	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
@@ -84,6 +85,7 @@ func main() {
 	defer dbPool.Close()
 
 	queries := store.New(dbPool)
+	paymentSvc := payment.NewService(dbPool, queries)
 
 	r := chi.NewRouter()
 	r.Use(corsMiddleware)
@@ -92,7 +94,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.ZeroLogger)
 
-	h := web.New(queries)
+	h := web.New(paymentSvc)
 
 	// =========================================================================
 	// ROUTING

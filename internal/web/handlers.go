@@ -4,29 +4,25 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"net"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog/log"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/internal/domain"
-	"github.com/rbconsult-bh/saftaja/internal/store"
-	"github.com/rbconsult-bh/saftaja/internal/utils"
+	"github.com/rbconsult-bh/saftaja/internal/payment"
 	"github.com/rbconsult-bh/saftaja/internal/web/templfiles"
 )
 
 type handlers struct {
-	queries *store.Queries
+	paymentService payment.Service
 }
 
-func New(queries *store.Queries) Handlers {
+func New(paymentService payment.Service) Handlers {
 	return &handlers{
-		queries: queries,
+		paymentService: paymentService,
 	}
 }
 
@@ -41,27 +37,28 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	invoice, err := h.queries.GetInvoiceByID(ctx, invoiceID)
+	checkoutData, err := h.paymentService.GetCheckoutData(ctx, invoiceID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("invoice not found")
 			http.Error(w, "invoice not found", http.StatusNotFound)
 			return
 		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get checkout data")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	if invoice.Status == domain.InvoiceStatusPaid {
+	if checkoutData.IsPaid {
 		data := templfiles.CheckoutPageData{
 			Invoice: templfiles.CheckoutInvoice{
-				ID:       invoice.ID.String(),
-				Amount:   invoice.Amount.String(),
-				Currency: invoice.Currency,
+				ID:            checkoutData.Invoice.ID.String(),
+				Amount:        checkoutData.Invoice.Amount,
+				Currency:      checkoutData.Invoice.Currency,
+				CustomerEmail: checkoutData.Invoice.CustomerEmail,
 			},
 			IsPaid: true,
+			Lang:   domain.DetectLanguage(r),
 		}
 		if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
 			log.Error().Err(err).Msg("failed to render checkout page")
@@ -69,82 +66,30 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := h.queries.GetInvoiceItems(ctx, invoiceID)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch invoice items")
-		items = []store.InvoiceItem{}
-	}
-
-	accounts, err := h.queries.ListActiveGatewayAccounts(ctx, invoice.ProjectID)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
-		http.Error(w, "configuration error", http.StatusInternalServerError)
-		return
-	}
-
-	mpgsBaseURL := ""
-	mpgsMerchantID := ""
-	var options []templfiles.PaymentOption
-	for _, acc := range accounts {
-		if acc.ConnectorType == domain.ConnectorTypeMPGS {
-			type mpgsCreds struct {
-				MerchantID string `json:"merchant_id"`
-				BaseURL    string `json:"base_url"`
-			}
-			var creds mpgsCreds
-			if err := json.Unmarshal(acc.Credentials, &creds); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
-				http.Error(w, "configuration error", http.StatusInternalServerError)
-				return
-			}
-
-			mpgsBaseURL = creds.BaseURL
-			mpgsMerchantID = creds.MerchantID
-		}
-
-		var methods []string
-		_ = json.Unmarshal(acc.PaymentMethods, &methods)
-
-		for _, m := range methods {
-			var label string
-			switch m {
-			case "card":
-				label = "Credit / Debit Card"
-			case "apple_pay":
-				label = "Apple Pay"
-			default:
-				label = m
-			}
-
-			options = append(options, templfiles.PaymentOption{
-				ID:    acc.ID.String(),
-				Label: label,
-				Type:  m,
-			})
-		}
-	}
-
-	checkoutItems := make([]templfiles.CheckoutItem, 0, len(items))
-	for _, item := range items {
-		checkoutItems = append(checkoutItems, templfiles.CheckoutItem{
+	// Map service data to template data
+	checkoutItems := make([]templfiles.CheckoutItem, len(checkoutData.Items))
+	for i, item := range checkoutData.Items {
+		checkoutItems[i] = templfiles.CheckoutItem{
 			Name:      item.Name,
 			Quantity:  item.Quantity,
-			UnitPrice: item.UnitPrice.String(),
-			Amount:    item.Amount.String(),
-		})
+			UnitPrice: item.UnitPrice,
+			Amount:    item.Amount,
+		}
 	}
 
-	description := ""
-	if invoice.Description.Valid {
-		description = invoice.Description.String
+	options := make([]templfiles.PaymentOption, len(checkoutData.PaymentOptions))
+	for i, opt := range checkoutData.PaymentOptions {
+		options[i] = templfiles.PaymentOption{
+			ID:    opt.GatewayAccountID.String(),
+			Label: opt.Label,
+			Type:  string(opt.Method),
+		}
 	}
-	customerEmail := ""
-	if invoice.CustomerEmail.Valid {
-		customerEmail = invoice.CustomerEmail.String
-	}
-	customerName := ""
-	if invoice.CustomerName.Valid {
-		customerName = invoice.CustomerName.String
+
+	var mpgsBaseURL, mpgsMerchantID string
+	if checkoutData.MPGSConfig != nil {
+		mpgsBaseURL = checkoutData.MPGSConfig.BaseURL
+		mpgsMerchantID = checkoutData.MPGSConfig.MerchantID
 	}
 
 	data := templfiles.CheckoutPageData{
@@ -152,16 +97,17 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		MPGSAPIVersion: mpgsclient.APIVersion,
 		MPGSMerchantID: mpgsMerchantID,
 		Invoice: templfiles.CheckoutInvoice{
-			ID:            invoice.ID.String(),
-			Amount:        invoice.Amount.String(),
-			Currency:      invoice.Currency,
-			Description:   description,
-			CustomerEmail: customerEmail,
-			CustomerName:  customerName,
+			ID:            checkoutData.Invoice.ID.String(),
+			Amount:        checkoutData.Invoice.Amount,
+			Currency:      checkoutData.Invoice.Currency,
+			Description:   checkoutData.Invoice.Description,
+			CustomerEmail: checkoutData.Invoice.CustomerEmail,
+			CustomerName:  checkoutData.Invoice.CustomerName,
 		},
 		Items:   checkoutItems,
 		Options: options,
 		IsPaid:  false,
+		Lang:    domain.DetectLanguage(r),
 	}
 
 	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
@@ -171,632 +117,167 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	invoiceID, _ := uuid.Parse(chi.URLParam(r, "invoice_id"))
+
+	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
+	if err != nil {
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		return
+	}
 
 	var req struct {
-		GatewayAccountID uuid.UUID                         `json:"gateway_account_id"`
+		GatewayAccountID uuid.UUID            `json:"gateway_account_id"`
 		PaymentMethod    domain.PaymentMethod `json:"payment_method"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	invoice, _ := h.queries.GetInvoiceByID(ctx, invoiceID)
-	account, err := h.queries.GetGatewayAccount(ctx, req.GatewayAccountID)
+	payerIP, err := ExtractPayerIP(r)
 	if err != nil {
-		http.Error(w, "invalid gateway account", http.StatusBadRequest)
+		log.Ctx(ctx).Error().Err(err).Msg("invalid ip address")
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	ip := r.RemoteAddr
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		ip = host
-	}
-	if ip == "::1" {
-		ip = "0000:0000:0000:0000:0000:0000:0000:0001"
-	}
-
-	if net.ParseIP(ip) == nil {
-		log.Ctx(ctx).Error().Str("ip", ip).Msg("invalid ip address")
-		http.Error(w, "invalid ip address", http.StatusBadRequest)
+	result, err := h.paymentService.InitiateSession(ctx, &payment.InitiateSessionRequest{
+		InvoiceID:        invoiceID,
+		GatewayAccountID: req.GatewayAccountID,
+		PaymentMethod:    req.PaymentMethod,
+		PayerIP:          payerIP,
+		PayerUserAgent:   r.Header.Get("User-Agent"),
+	})
+	if err != nil {
+		handlePaymentError(w, r, err)
 		return
 	}
 
-	if req.PaymentMethod == domain.PaymentMethodCard || req.PaymentMethod == domain.PaymentMethodApplePay {
-		type mpgsCreds struct {
-			MerchantID  string `json:"merchant_id"`
-			BaseURL     string `json:"base_url"`
-			APIPassword string `json:"api_password"`
-		}
-		var creds mpgsCreds
-		if err := json.Unmarshal(account.Credentials, &creds); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
-			http.Error(w, "configuration error", http.StatusInternalServerError)
-			return
-		}
-		mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
-
-		resp, err := mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
-			Session: &mpgsclient.CreateSessionRequestSession{
-				AuthenticationLimit: utils.Ptr[int32](25),
-			},
-		})
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("mpgs create session failed")
-			http.Error(w, "gateway error", http.StatusBadGateway)
-			return
-		}
-
-		dbSession, err := h.queries.CreatePaymentSession(ctx, store.CreatePaymentSessionParams{
-			InvoiceID:        invoice.ID,
-			ProjectID:        invoice.ProjectID,
-			GatewayAccountID: account.ID,
-			GatewaySessionID: resp.Data.Session.ID,
-			PaymentMethod:    req.PaymentMethod,
-			PayerIp:          pgtype.Text{String: ip, Valid: true},
-		})
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("db session creation failed")
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-
-		_, err = mpgsCli.UpdateSession(ctx, resp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
-			Order: mpgsclient.UpdateSessionOrder{
-				Amount:   invoice.Amount.String(),
-				Currency: invoice.Currency,
-				ID:       invoice.ID.String(),
-			},
-		})
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to update session at mpgs")
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-
-		json.NewEncoder(w).Encode(map[string]any{
-			"action":             "render_embedded",
-			"payment_session_id": dbSession.ID.String(),
-			"mpgs_session_id":    resp.Data.Session.ID,
-		})
-		return
-	}
+	respondJSON(w, map[string]any{
+		"action":             "render_embedded",
+		"payment_session_id": result.PaymentSessionID.String(),
+		"mpgs_session_id":    result.GatewaySessionID,
+	})
 }
 
 func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse invoice_id")
-		http.Error(w, "invalid invoice_id", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
+
 	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse payment_session_id")
-		http.Error(w, "invalid payment_session_id", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	session, err := h.queries.GetPaymentSessionByID(ctx, sessionID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get payment session by id")
-			http.Error(w, "payment session doesn't exist", http.StatusNotFound)
-			return
-		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment session by id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	if session.InvoiceID != invoiceID {
-		log.Ctx(ctx).Error().Err(err).Msg("provided invoice id is not for provided session id")
-		http.Error(w, "invalid session", http.StatusForbidden)
-		return
-	}
-
-	invoice, err := h.queries.GetInvoiceByID(ctx, invoiceID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
-			http.Error(w, "invoice doesn't exist", http.StatusNotFound)
-			return
-		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	gatewayTxID := uuid.New()
-	dbTx, err := h.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
-		InvoiceID:            invoice.ID,
-		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypeInitiateAuth,
-		GatewayTransactionID: gatewayTxID.String(),
-		Amount:               invoice.Amount,
-		Currency:             invoice.Currency,
+	result, err := h.paymentService.InitiateAuth(ctx, &payment.InitiateAuthRequest{
+		InvoiceID:        invoiceID,
+		PaymentSessionID: sessionID,
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to create transaction in db")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		handlePaymentError(w, r, err)
 		return
 	}
 
-	account, err := h.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway account by payment session id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	type mpgsCreds struct {
-		MerchantID  string `json:"merchant_id"`
-		BaseURL     string `json:"base_url"`
-		APIPassword string `json:"api_password"`
-	}
-	var creds mpgsCreds
-	if err := json.Unmarshal(account.Credentials, &creds); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
-		http.Error(w, "configuration error", http.StatusInternalServerError)
-		return
-	}
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
-
-	resp, err := mpgsCli.InitiateAuthentication(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.InitiateAuthenticationRequest{
-		APIOperation: mpgsclient.OperationInitiateAuthentication,
-		Authentication: mpgsclient.InitiateAuthenticationReqAuthentication{
-			Channel: mpgsclient.ChannelPayerBrowser,
-		},
-		Order:   mpgsclient.InitiateAuthenticationOrder{Currency: invoice.Currency},
-		Session: mpgsclient.InitiateAuthenticationSession{ID: session.GatewaySessionID},
+	respondJSON(w, map[string]any{
+		"next_step": result.NextStep,
+		"tx_id":     result.TransactionID,
 	})
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("mpgs init auth failed")
-		http.Error(w, "gateway error", http.StatusInternalServerError)
-		return
-	}
-	status := domain.TransactionStatusFailed
-	if resp.Data.Result == mpgsclient.ResultSuccess {
-		status = domain.TransactionStatusSuccess
-	}
-
-	if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-		ID: dbTx.ID, Status: status, RawResponse: resp.RawBody,
-	}); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	var nextStep string
-	switch resp.Data.Response.GatewayRecommendation {
-	case mpgsclient.GatewayRecommendationProceed:
-		nextStep = "authenticate"
-	case mpgsclient.GatewayRecommendationDoNotProceed:
-		nextStep = "cant_continue"
-	default:
-		nextStep = "error"
-	}
-
-	if err := json.NewEncoder(w).Encode(map[string]any{
-		"next_step": nextStep,
-		"tx_id":     gatewayTxID.String(),
-	}); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to encode the response")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
 }
 
 func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse invoice_id")
-		http.Error(w, "invalid invoice_id", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
+
 	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse payment_session_id")
-		http.Error(w, "invalid payment_session_id", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	session, err := h.queries.GetPaymentSessionByID(ctx, sessionID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get payment session by id")
-			http.Error(w, "payment session doesn't exist", http.StatusNotFound)
-			return
-		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment session by id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	if session.InvoiceID != invoiceID {
-		log.Ctx(ctx).Error().Err(err).Msg("provided invoice id is not for provided session id")
-		http.Error(w, "invalid session", http.StatusForbidden)
-		return
-	}
-
-	invoice, err := h.queries.GetInvoiceByID(ctx, invoiceID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
-			http.Error(w, "invoice doesn't exist", http.StatusNotFound)
-			return
-		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	lastTx, err := h.queries.GetLatestTransaction(ctx, session.ID)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get latest transaction")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	if lastTx.TransactionType != domain.TransactionTypeInitiateAuth {
-		log.Ctx(ctx).Warn().
-			Str("expected", "initiate_authentication").
-			Str("got", string(lastTx.TransactionType)).
-			Msg("invalid transaction state")
-		http.Error(w, "invalid state: expected initiate_authentication to be completed first", http.StatusConflict)
-		return
-	}
-
-	if lastTx.Status != domain.TransactionStatusSuccess {
-		log.Ctx(ctx).Warn().
-			Str("status", string(lastTx.Status)).
-			Msg("previous transaction not successful")
-		http.Error(w, "previous step failed", http.StatusPreconditionFailed)
-		return
-	}
-
-	dbTx, err := h.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
-		InvoiceID:            invoice.ID,
-		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypeAuthenticatePayer,
-		GatewayTransactionID: lastTx.GatewayTransactionID,
-		Amount:               invoice.Amount,
-		Currency:             invoice.Currency,
-	})
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to create transaction in db")
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	var browserDetails mpgsclient.AuthenticatePayerReqBrowserDetails
+	var browserDetails payment.BrowserDetails
 	if err := json.NewDecoder(r.Body).Decode(&browserDetails); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to decode body into browser details struct")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	if r.Header.Get("Accept") != "" {
-		browserDetails.AcceptHeaders = r.Header.Get("Accept")
-	}
-
-	ip := r.RemoteAddr
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		ip = host
-	}
-	if ip == "::1" {
-		ip = "0000:0000:0000:0000:0000:0000:0000:0001"
-	}
-
-	if net.ParseIP(ip) == nil {
-		log.Ctx(ctx).Error().Str("ip", ip).Msg("invalid ip address")
-		http.Error(w, "invalid ip address", http.StatusBadRequest)
+		log.Ctx(ctx).Error().Err(err).Msg("failed to decode browser details")
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	account, err := h.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	payerIP, err := ExtractPayerIP(r)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway account by payment session id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		log.Ctx(ctx).Error().Err(err).Msg("invalid ip address")
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	type mpgsCreds struct {
-		MerchantID  string `json:"merchant_id"`
-		BaseURL     string `json:"base_url"`
-		APIPassword string `json:"api_password"`
-	}
-	var creds mpgsCreds
-	if err := json.Unmarshal(account.Credentials, &creds); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
-		http.Error(w, "configuration error", http.StatusInternalServerError)
-		return
-	}
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
-
-	project, err := h.queries.GetProjectByPaymentSessionID(ctx, session.ID)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch project by payment session id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	customDomain := project.CustomDomain.String
-	if !project.CustomDomain.Valid && customDomain == "" {
-		log.Ctx(ctx).Error().Err(err).Msg("custom domain of organization is not valid")
-		http.Error(w, "custom domain of organization is not valid", http.StatusExpectationFailed)
-		return
-	}
-
-	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
-		APIOperation: mpgsclient.OperationAuthenticatePayer,
-		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
-			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", customDomain, invoiceID, session.ID),
-		},
-		Device: mpgsclient.AuthenticatePayerReqDevice{
-			Browser:        r.Header.Get("User-Agent"),
-			BrowserDetails: &browserDetails,
-			IPAddress:      ip,
-		},
-		Order: mpgsclient.AuthenticatePayerReqOrder{
-			Amount:   invoice.Amount.String(),
-			Currency: invoice.Currency,
-		},
-		Session: mpgsclient.AuthenticatePayerReqSession{ID: session.GatewaySessionID},
+	result, err := h.paymentService.ProcessAuth(ctx, &payment.ProcessAuthRequest{
+		InvoiceID:        invoiceID,
+		PaymentSessionID: sessionID,
+		BrowserDetails:   browserDetails,
+		PayerIP:          payerIP,
+		UserAgent:        r.Header.Get("User-Agent"),
+		AcceptHeaders:    r.Header.Get("Accept"),
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("mpgs auth payer failed")
-		http.Error(w, "gateway error", http.StatusInternalServerError)
+		handlePaymentError(w, r, err)
 		return
 	}
 
-	status := domain.TransactionStatusFailed
-	if resp.Data.Result == mpgsclient.ResultPending || resp.Data.Result == mpgsclient.ResultSuccess {
-		status = domain.TransactionStatusSuccess
-	}
-
-	if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-		ID: dbTx.ID, Status: status, RawResponse: resp.RawBody,
-	}); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	var nextStep, html string
-	if resp.Data.Authentication.Redirect.HTML != "" {
-		nextStep = "3ds_challenge"
-		html = resp.Data.Authentication.Redirect.HTML
-	} else {
-		nextStep = "pay"
-	}
-
-	if err := json.NewEncoder(w).Encode(map[string]any{
-		"next_step":     nextStep,
-		"redirect_html": html,
-	}); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to encode the response")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
+	respondJSON(w, map[string]any{
+		"next_step":     result.NextStep,
+		"redirect_html": result.RedirectHTML,
+	})
 }
 
 func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse invoice_id")
-		http.Error(w, "invalid invoice_id", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
+
 	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse payment_session_id")
-		http.Error(w, "invalid payment_session_id", http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	session, err := h.queries.GetPaymentSessionByID(ctx, sessionID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get payment session by id")
-			http.Error(w, "payment session doesn't exist", http.StatusNotFound)
-			return
-		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment session by id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	if session.InvoiceID != invoiceID {
-		log.Ctx(ctx).Error().Err(err).Msg("provided invoice id is not for provided session id")
-		http.Error(w, "invalid session", http.StatusForbidden)
-		return
-	}
-
-	invoice, err := h.queries.GetInvoiceByID(ctx, invoiceID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
-			http.Error(w, "invoice doesn't exist", http.StatusNotFound)
-			return
-		}
-
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	authTx, err := h.queries.GetSuccessfulAuthTransaction(ctx, session.ID)
-	if err != nil {
-		log.Ctx(ctx).Warn().Msg("no successful auth found for this session")
-		http.Error(w, "authentication missing", http.StatusBadRequest)
-		return
-	}
-
-	gatewayTxID := uuid.New()
-	dbTx, err := h.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
-		InvoiceID:            invoice.ID,
-		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypePay,
-		GatewayTransactionID: gatewayTxID.String(),
-		Amount:               invoice.Amount,
-		Currency:             invoice.Currency,
+	result, err := h.paymentService.FinalizePayment(ctx, &payment.FinalizePaymentRequest{
+		InvoiceID:        invoiceID,
+		PaymentSessionID: sessionID,
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to create transaction in db")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		handlePaymentError(w, r, err)
 		return
 	}
 
-	account, err := h.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway account by payment session id")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	type mpgsCreds struct {
-		MerchantID  string `json:"merchant_id"`
-		BaseURL     string `json:"base_url"`
-		APIPassword string `json:"api_password"`
-	}
-	var creds mpgsCreds
-	if err := json.Unmarshal(account.Credentials, &creds); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to fetch gateway accounts")
-		http.Error(w, "configuration error", http.StatusInternalServerError)
-		return
-	}
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
-
-	resp, err := mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), &mpgsclient.ExecutePayRequest{
-		APIOperation: mpgsclient.OperationPay,
-		Authentication: mpgsclient.ExecutePayReqAuthentication{
-			TransactionID: authTx.GatewayTransactionID,
-		},
-		Order: mpgsclient.ExecutePayReqOrder{
-			Amount:    invoice.Amount.String(),
-			Currency:  invoice.Currency,
-			Reference: invoice.ID.String(),
-		},
-		Session: mpgsclient.ExecutePayReqSession{
-			ID: session.GatewaySessionID,
-		},
-	})
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("mpgs execute pay failed")
-		http.Error(w, "gateway error", http.StatusInternalServerError)
-		return
-	}
-
-	checkoutURL := fmt.Sprintf("/checkout/%s", invoiceID)
 	status := "failed"
-	message := "Your bank declined this transaction."
-
-	log.Ctx(ctx).Info().Str("gateway_code", string(resp.Data.Response.GatewayCode)).Msg("gateway code from execute pay transaction")
-
-	if resp.Data.Response.GatewayCode == mpgsclient.CodeApproved {
+	message := PaymentResultMessages[result.ResultCode].ForRequest(r)
+	if result.Success {
 		status = "success"
-		message = "Payment successful"
-
-		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-			ID: dbTx.ID, Status: domain.TransactionStatusSuccess, RawResponse: resp.RawBody,
-		}); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		if err := h.queries.UpdateInvoiceStatus(ctx, store.UpdateInvoiceStatusParams{
-			ID:     invoiceID,
-			Status: domain.InvoiceStatusPaid,
-		}); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to update invoice in db")
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-			ID:          dbTx.ID,
-			Status:      domain.TransactionStatusFailed,
-			RawResponse: resp.RawBody,
-		}); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// TODO: we need to make this a gotempl template :D
-	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
-<head>
-	<title>Completing Payment...</title>
-	<style>
-		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body {
-			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			min-height: 100vh;
-			background: #0f172a;
-			color: white;
-		}
-		.container { text-align: center; padding: 2rem; }
-		.spinner {
-			width: 48px;
-			height: 48px;
-			border: 4px solid rgba(255,255,255,0.2);
-			border-top-color: white;
-			border-radius: 50%%;
-			animation: spin 0.8s linear infinite;
-			margin: 0 auto 1.5rem;
-		}
-		@keyframes spin { to { transform: rotate(360deg); } }
-		h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
-		p { color: #94a3b8; font-size: 0.875rem; }
-	</style>
-</head>
-<body>
-	<div class="container">
-		<div class="spinner"></div>
-		<h2>Completing Payment</h2>
-		<p>Please wait...</p>
-	</div>
-	<script>
-		(function() {
-			var status = '%s';
-			var message = '%s';
-			var checkoutURL = '%s';
+	lang := domain.DetectLanguage(r)
+	data := templfiles.CompletionPageData{
+		Status:      status,
+		Message:     message,
+		CheckoutURL: result.CheckoutURL,
+		Lang:        lang,
+	}
 
-			// Send message to parent window (for iframe/modal flow)
-			if (window.parent && window.parent !== window) {
-				window.parent.postMessage({
-					type: '3DS_COMPLETE',
-					status: status,
-					message: message
-				}, '*');
-			}
-
-			// Fallback: redirect after 3 seconds (for full page flow or if postMessage fails)
-			setTimeout(function() {
-				window.top.location.href = checkoutURL;
-			}, 3000);
-		})();
-	</script>
-</body>
-</html>`, status, message, checkoutURL)
+	if err := templfiles.CompletionPage(data).Render(ctx, w); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to render completion page")
+	}
 }
 
 func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
