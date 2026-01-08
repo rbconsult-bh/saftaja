@@ -1,4 +1,4 @@
-package store
+package domain
 
 type ProjectEnvironment string
 
@@ -7,10 +7,10 @@ const (
 	ProjectEnvironmentSandbox    ProjectEnvironment = "sandbox"
 )
 
-type GatewayAccountConnectorType string
+type ConnectorType string
 
 const (
-	GatewayAccountConnectorTypeMPGS GatewayAccountConnectorType = "mpgs"
+	ConnectorTypeMPGS ConnectorType = "mpgs"
 )
 
 type InvoiceStatus string
@@ -33,19 +33,19 @@ const (
 	PaymentSessionStatusFailed         PaymentSessionStatus = "failed"
 )
 
-type PaymentSessionPaymentMethod string
+type PaymentMethod string
 
 const (
-	PaymentSessionPaymentMethodCard     PaymentSessionPaymentMethod = "card"
-	PaymentSessionPaymentMethodApplePay PaymentSessionPaymentMethod = "apple_pay"
+	PaymentMethodCard     PaymentMethod = "card"
+	PaymentMethodApplePay PaymentMethod = "apple_pay"
 )
 
-type TransactionTransactionType string
+type TransactionType string
 
 const (
-	TransactionTransactionTypeInitiateAuthentication TransactionTransactionType = "initiate_authentication"
-	TransactionTransactionTypeAuthenticatePayer      TransactionTransactionType = "authenticate_payer"
-	TransactionTransactionTypePay                    TransactionTransactionType = "pay"
+	TransactionTypeInitiateAuth      TransactionType = "initiate_authentication"
+	TransactionTypeAuthenticatePayer TransactionType = "authenticate_payer"
+	TransactionTypePay               TransactionType = "pay"
 )
 
 type TransactionStatus string

@@ -19,6 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/internal/config"
+	_ "github.com/rbconsult-bh/saftaja/internal/connectors/mpgs"
 	"github.com/rbconsult-bh/saftaja/internal/store"
 	"github.com/rbconsult-bh/saftaja/internal/web"
 	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"

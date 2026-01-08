@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/rbconsult-bh/saftaja/internal/domain"
 )
 
 const getInvoiceByID = `-- name: GetInvoiceByID :one
@@ -44,7 +45,7 @@ WHERE id = $1
 
 type UpdateInvoiceStatusParams struct {
 	ID     uuid.UUID
-	Status InvoiceStatus
+	Status domain.InvoiceStatus
 }
 
 func (q *Queries) UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) error {

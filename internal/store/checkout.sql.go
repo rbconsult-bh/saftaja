@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rbconsult-bh/saftaja/internal/domain"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,7 +27,7 @@ type CreateTransactionParams struct {
 	PaymentSessionID     uuid.UUID
 	InvoiceID            uuid.UUID
 	ProjectID            uuid.UUID
-	TransactionType      TransactionTransactionType
+	TransactionType      domain.TransactionType
 	GatewayTransactionID string
 	Amount               decimal.Decimal
 	Currency             string
@@ -95,7 +96,7 @@ WHERE ps.id = $1
 type GetGatewayAccountByPaymentSessionIDRow struct {
 	ID               uuid.UUID
 	ProjectID        uuid.UUID
-	ConnectorType    GatewayAccountConnectorType
+	ConnectorType    domain.ConnectorType
 	AccountName      string
 	Credentials      []byte
 	Settings         []byte
@@ -109,8 +110,8 @@ type GetGatewayAccountByPaymentSessionIDRow struct {
 	ProjectID_2      uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID string
-	Status           PaymentSessionStatus
-	PaymentMethod    PaymentSessionPaymentMethod
+	Status           domain.PaymentSessionStatus
+	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	ExpiresAt        pgtype.Timestamptz
@@ -245,7 +246,7 @@ type GetProjectByPaymentSessionIDRow struct {
 	ID               uuid.UUID
 	OrganizationID   uuid.UUID
 	Name             string
-	Environment      ProjectEnvironment
+	Environment      domain.ProjectEnvironment
 	CustomDomain     pgtype.Text
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
@@ -255,8 +256,8 @@ type GetProjectByPaymentSessionIDRow struct {
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID string
-	Status           PaymentSessionStatus
-	PaymentMethod    PaymentSessionPaymentMethod
+	Status           domain.PaymentSessionStatus
+	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	ExpiresAt        pgtype.Timestamptz
@@ -388,7 +389,7 @@ WHERE id = $1
 
 type UpdatePaymentSessionStatusParams struct {
 	ID     uuid.UUID
-	Status PaymentSessionStatus
+	Status domain.PaymentSessionStatus
 }
 
 func (q *Queries) UpdatePaymentSessionStatus(ctx context.Context, arg UpdatePaymentSessionStatusParams) error {
@@ -404,7 +405,7 @@ WHERE id = $1
 
 type UpdateTransactionStatusParams struct {
 	ID          uuid.UUID
-	Status      TransactionStatus
+	Status      domain.TransactionStatus
 	RawResponse []byte
 }
 

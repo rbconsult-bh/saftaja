@@ -1,4 +1,0 @@
-onlyBuiltDependencies:
-  - cpu-features
-  - protobufjs
-  - ssh2

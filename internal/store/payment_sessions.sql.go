@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rbconsult-bh/saftaja/internal/domain"
 )
 
 const createPaymentSession = `-- name: CreatePaymentSession :one
@@ -23,7 +24,7 @@ type CreatePaymentSessionParams struct {
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID string
-	PaymentMethod    PaymentSessionPaymentMethod
+	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/internal/domain"
 	"github.com/rbconsult-bh/saftaja/internal/store"
 	"github.com/rbconsult-bh/saftaja/internal/utils"
 	"github.com/rbconsult-bh/saftaja/internal/web/templfiles"
@@ -53,7 +54,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if invoice.Status == store.InvoiceStatusPaid {
+	if invoice.Status == domain.InvoiceStatusPaid {
 		data := templfiles.CheckoutPageData{
 			Invoice: templfiles.CheckoutInvoice{
 				ID:       invoice.ID.String(),
@@ -85,7 +86,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	mpgsMerchantID := ""
 	var options []templfiles.PaymentOption
 	for _, acc := range accounts {
-		if acc.ConnectorType == store.GatewayAccountConnectorTypeMPGS {
+		if acc.ConnectorType == domain.ConnectorTypeMPGS {
 			type mpgsCreds struct {
 				MerchantID string `json:"merchant_id"`
 				BaseURL    string `json:"base_url"`
@@ -174,7 +175,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 
 	var req struct {
 		GatewayAccountID uuid.UUID                         `json:"gateway_account_id"`
-		PaymentMethod    store.PaymentSessionPaymentMethod `json:"payment_method"`
+		PaymentMethod    domain.PaymentMethod `json:"payment_method"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -203,7 +204,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if req.PaymentMethod == store.PaymentSessionPaymentMethodCard || req.PaymentMethod == store.PaymentSessionPaymentMethodApplePay {
+	if req.PaymentMethod == domain.PaymentMethodCard || req.PaymentMethod == domain.PaymentMethodApplePay {
 		type mpgsCreds struct {
 			MerchantID  string `json:"merchant_id"`
 			BaseURL     string `json:"base_url"`
@@ -315,7 +316,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		PaymentSessionID:     session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
-		TransactionType:      store.TransactionTransactionTypeInitiateAuthentication,
+		TransactionType:      domain.TransactionTypeInitiateAuth,
 		GatewayTransactionID: gatewayTxID.String(),
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
@@ -359,9 +360,9 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "gateway error", http.StatusInternalServerError)
 		return
 	}
-	status := store.TransactionStatusFailed
+	status := domain.TransactionStatusFailed
 	if resp.Data.Result == mpgsclient.ResultSuccess {
-		status = store.TransactionStatusSuccess
+		status = domain.TransactionStatusSuccess
 	}
 
 	if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
@@ -444,7 +445,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	if lastTx.TransactionType != store.TransactionTransactionTypeInitiateAuthentication {
+	if lastTx.TransactionType != domain.TransactionTypeInitiateAuth {
 		log.Ctx(ctx).Warn().
 			Str("expected", "initiate_authentication").
 			Str("got", string(lastTx.TransactionType)).
@@ -453,7 +454,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if lastTx.Status != store.TransactionStatusSuccess {
+	if lastTx.Status != domain.TransactionStatusSuccess {
 		log.Ctx(ctx).Warn().
 			Str("status", string(lastTx.Status)).
 			Msg("previous transaction not successful")
@@ -465,7 +466,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		PaymentSessionID:     session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
-		TransactionType:      store.TransactionTransactionTypeAuthenticatePayer,
+		TransactionType:      domain.TransactionTypeAuthenticatePayer,
 		GatewayTransactionID: lastTx.GatewayTransactionID,
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
@@ -528,8 +529,8 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	domain := project.CustomDomain.String
-	if !project.CustomDomain.Valid && domain == "" {
+	customDomain := project.CustomDomain.String
+	if !project.CustomDomain.Valid && customDomain == "" {
 		log.Ctx(ctx).Error().Err(err).Msg("custom domain of organization is not valid")
 		http.Error(w, "custom domain of organization is not valid", http.StatusExpectationFailed)
 		return
@@ -538,7 +539,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastTx.GatewayTransactionID, &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
-			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", domain, invoiceID, session.ID),
+			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", customDomain, invoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
 			Browser:        r.Header.Get("User-Agent"),
@@ -557,9 +558,9 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	status := store.TransactionStatusFailed
+	status := domain.TransactionStatusFailed
 	if resp.Data.Result == mpgsclient.ResultPending || resp.Data.Result == mpgsclient.ResultSuccess {
-		status = store.TransactionStatusSuccess
+		status = domain.TransactionStatusSuccess
 	}
 
 	if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
@@ -646,7 +647,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		PaymentSessionID:     session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
-		TransactionType:      store.TransactionTransactionTypePay,
+		TransactionType:      domain.TransactionTypePay,
 		GatewayTransactionID: gatewayTxID.String(),
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
@@ -708,7 +709,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		message = "Payment successful"
 
 		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
-			ID: dbTx.ID, Status: store.TransactionStatusSuccess, RawResponse: resp.RawBody,
+			ID: dbTx.ID, Status: domain.TransactionStatusSuccess, RawResponse: resp.RawBody,
 		}); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")
 			http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -717,7 +718,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err := h.queries.UpdateInvoiceStatus(ctx, store.UpdateInvoiceStatusParams{
 			ID:     invoiceID,
-			Status: store.InvoiceStatusPaid,
+			Status: domain.InvoiceStatusPaid,
 		}); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update invoice in db")
 			http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -726,7 +727,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if err := h.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
-			Status:      store.TransactionStatusFailed,
+			Status:      domain.TransactionStatusFailed,
 			RawResponse: resp.RawBody,
 		}); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update transaction in db")

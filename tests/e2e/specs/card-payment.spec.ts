@@ -19,7 +19,6 @@ test.describe('Card Payment Flow', () => {
 
   test('show success page after paying for pending invoice', async ({ page }) => {
     page.on('console', msg => console.log(`BROWSER: ${msg.text()}`));
-
     await page.goto(`/checkout/${ids.INVOICE_PENDING}`);
 
     await page.locator('button[data-type="card"]').click();
@@ -34,15 +33,13 @@ test.describe('Card Payment Flow', () => {
     await page.getByRole('button', { name: /Pay.*BHD/ }).click();
 
     await page.waitForSelector('#challenge-overlay:not(.hidden)', { timeout: 30000 });
-
-    const challengeFrame = page.frameLocator('#challenge-iframe-container iframe');
+    const challengeFrame = page.frameLocator('#challengeFrame'); // More specific selector
     await challengeFrame.getByText(/ACS Emulator/i).waitFor({ state: 'visible', timeout: 30000 });
 
-    const submitBtn = challengeFrame.getByRole('button', { name: 'Submit' });
+    const submitBtn = challengeFrame.locator('#acssubmit');
     await submitBtn.waitFor({ state: 'visible' });
     await submitBtn.click();
 
     await expect(page.getByRole('heading', { name: 'Payment Successful!' })).toBeVisible({ timeout: 30000 });
   });
 });
-
