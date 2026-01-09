@@ -24,3 +24,26 @@ services:
             - tests
         - path: ./khazina/go.sum
           action: rebuild
+
+  diwan:
+    build:
+      context: ./diwan
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "5173:5173"
+    develop:
+      watch:
+        - path: ./diwan/src
+          target: /app/src
+          action: sync
+        - path: ./diwan/package.json
+          action: rebuild
+
+  bawaba:
+    build:
+      context: ./bawaba
+      dockerfile: Dockerfile
+      target: prod
+    ports:
+      - "3000:80"

@@ -15,12 +15,12 @@ services:
       VERIFY_DOMAIN_SECRET: ${VERIFY_DOMAIN_SECRET}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./bawaba:/srv/bawaba:ro
-      - ./diwan/dist:/srv/diwan:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
       - khazina
+      - diwan
+      - bawaba
     deploy:
       replicas: 1
       placement:
@@ -28,7 +28,7 @@ services:
           - node.role == manager
 
   khazina:
-    image: ${REGISTRY:-ghcr.io/rbconsult-bh}/saftaja:${TAG:-latest}
+    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/khazina:${TAG:-latest}
     deploy:
       replicas: 2
       resources:
@@ -51,6 +51,16 @@ services:
       placement:
         constraints:
           - node.role == manager
+
+  diwan:
+    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-latest}
+    deploy:
+      replicas: 1
+
+  bawaba:
+    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/bawaba:${TAG:-latest}
+    deploy:
+      replicas: 1
 
 volumes:
   caddy_data:

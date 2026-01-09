@@ -8,25 +8,18 @@
 	}
 }
 
-# Landing page
 {$BASE_DOMAIN} {
-	root * /srv/bawaba
-	file_server
+	reverse_proxy bawaba:80
 }
 
-# Dashboard
 app.{$BASE_DOMAIN} {
-	root * /srv/diwan
-	file_server
-	try_files {path} /index.html
+	reverse_proxy diwan:80
 }
 
-# Backend API + checkout
 khazina.{$BASE_DOMAIN} {
 	reverse_proxy khazina:8080
 }
 
-# Custom merchant domains (on-demand TLS)
 :443 {
 	tls {
 		on_demand
@@ -34,7 +27,6 @@ khazina.{$BASE_DOMAIN} {
 	reverse_proxy khazina:8080
 }
 
-# HTTP redirect
 :80 {
 	redir https://{host}{uri} permanent
 }
