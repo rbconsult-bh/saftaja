@@ -8,24 +8,26 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"  # HTTP/3
+      - "443:443/udp"
     environment:
       ACME_EMAIL: ${ACME_EMAIL}
       BASE_DOMAIN: ${BASE_DOMAIN}
       VERIFY_DOMAIN_SECRET: ${VERIFY_DOMAIN_SECRET}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./bawaba:/srv/bawaba:ro
+      - ./diwan/dist:/srv/diwan:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - saftaja
+      - khazina
     deploy:
       replicas: 1
       placement:
         constraints:
           - node.role == manager
 
-  saftaja:
+  khazina:
     image: ${REGISTRY:-ghcr.io/rbconsult-bh}/saftaja:${TAG:-latest}
     deploy:
       replicas: 2

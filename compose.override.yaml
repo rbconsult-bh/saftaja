@@ -6,21 +6,21 @@ services:
     ports:
       - "5432:5432"
 
-  saftaja:
+  khazina:
     build:
-      context: .
+      context: ./khazina
       dockerfile: Dockerfile
       target: dev
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
     develop:
       watch:
-        - path: .
-          target: /pay
+        - path: ./khazina
+          target: /khazina
           action: sync+restart
           ignore:
             - go.sum
             - node_modules
             - tests
-        - path: ./go.sum
+        - path: ./khazina/go.sum
           action: rebuild

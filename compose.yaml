@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
-  saftaja:
+  khazina:
     depends_on:
       db:
         condition: service_healthy
@@ -30,6 +30,7 @@ services:
       PORT: ${PORT:-8080}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       VERIFY_DOMAIN_SECRET: ${VERIFY_DOMAIN_SECRET}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
 
 volumes:
   pgdata:
