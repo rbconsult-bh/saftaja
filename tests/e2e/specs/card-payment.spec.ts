@@ -33,7 +33,7 @@ test.describe('Card Payment Flow', () => {
     await page.getByRole('button', { name: /Pay.*BHD/ }).click();
 
     await page.waitForSelector('#challenge-overlay:not(.hidden)', { timeout: 30000 });
-    const challengeFrame = page.frameLocator('#challengeFrame'); // More specific selector
+    const challengeFrame = page.frameLocator('#challengeFrame');
     await challengeFrame.getByText(/ACS Emulator/i).waitFor({ state: 'visible', timeout: 30000 });
 
     const submitBtn = challengeFrame.locator('#acssubmit');

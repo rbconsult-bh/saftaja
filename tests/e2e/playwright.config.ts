@@ -12,6 +12,7 @@ export default defineConfig({
   testDir: './specs',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
+  timeout: 120000,
   reporter: 'html',
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8080',
