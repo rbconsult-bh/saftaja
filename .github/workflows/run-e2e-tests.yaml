@@ -20,11 +20,11 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Playwright Browsers
-        working-directory: tests/e2e
+        working-directory: khazina/tests/e2e
         run: bun run playwright install --with-deps
 
       - name: Run Playwright tests
-        working-directory: tests/e2e
+        working-directory: khazina/tests/e2e
         run: bun run playwright test -j 1
         env:
           TEST_MPGS_BASE_URL: ${{ secrets.TEST_MPGS_BASE_URL }}
@@ -36,5 +36,5 @@ jobs:
         if: always()
         with:
           name: e2e-debug-bundle
-          path: tests/e2e/playwright-report/
+          path: khazina/tests/e2e/playwright-report/
           retention-days: 30
