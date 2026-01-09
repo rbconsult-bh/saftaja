@@ -1,7 +1,5 @@
 import { Client } from 'pg';
-import { randomUUID } from 'crypto';
-import { encryptJSON } from './crypto';
-import { TEST_ENCRYPTION_KEY } from './config';
+import { TEST_ADMIN_API_KEY } from './config';
 
 export interface SeedIds {
   ORGANIZATION: string;
@@ -11,22 +9,35 @@ export interface SeedIds {
   INVOICE_PAID: string;
 }
 
+async function adminFetch(path: string, body: object): Promise<any> {
+  const baseUrl = process.env.BASE_URL;
+  if (!baseUrl) throw new Error('BASE_URL not set');
+
+  const resp = await fetch(`${baseUrl}/admin${path}`, {
+    method: 'POST',
+    headers: {
+      'X-Admin-Key': TEST_ADMIN_API_KEY,
+      'Content-Type': 'application/json',
+      'bypass-tunnel-reminder': 'yes'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Admin API ${path} failed: ${resp.status} ${text}`);
+  }
+
+  return resp.json();
+}
+
 export async function seedDb(): Promise<SeedIds> {
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('DATABASE_URL not set');
-  }
+  if (!connectionString) throw new Error('DATABASE_URL not set');
+
   const publicUrl = process.env.BASE_URL;
   if (!publicUrl) throw new Error('BASE_URL not set');
   const domain = new URL(publicUrl).hostname;
-
-  const ids: SeedIds = {
-    ORGANIZATION: randomUUID(),
-    PROJECT: randomUUID(),
-    GATEWAY_ACCOUNT: randomUUID(),
-    INVOICE_PENDING: randomUUID(),
-    INVOICE_PAID: randomUUID(),
-  };
 
   const client = new Client({ connectionString });
   await client.connect();
@@ -36,55 +47,57 @@ export async function seedDb(): Promise<SeedIds> {
       TRUNCATE gateway_accounts, invoices, invoice_items, transactions, payment_sessions, organizations, projects CASCADE
     `);
 
-    await client.query(`
-INSERT INTO organizations (id, name)
-VALUES ($1, 'Default');`,
-      [
-        ids.ORGANIZATION
-      ]);
+    const org = await adminFetch('/organizations', { name: 'Test Org' });
 
-    await client.query(`
-INSERT INTO projects (id, organization_id, name, environment, custom_domain)
-VALUES (
-    $1,
-    $2,
-    'Sandbox',
-    'sandbox',
-    $3
-);`, [ids.PROJECT, ids.ORGANIZATION, domain]);
+    const project = await adminFetch('/projects', {
+      organization_id: org.id,
+      name: 'Sandbox',
+      environment: 'sandbox',
+      custom_domain: domain
+    });
 
-    const encryptedCredentials = encryptJSON(
-      {
+    const gateway = await adminFetch('/gateway-accounts', {
+      project_id: project.id,
+      connector_type: 'mpgs',
+      account_name: 'Test MPGS',
+      credentials: {
         merchant_id: process.env.TEST_MPGS_MERCHANT_ID,
         api_password: process.env.TEST_MPGS_API_PASSWORD,
-        base_url: process.env.TEST_MPGS_BASE_URL,
+        base_url: process.env.TEST_MPGS_BASE_URL
       },
-      TEST_ENCRYPTION_KEY
-    );
+      payment_methods: ['card']
+    });
 
-    await client.query(
-      `INSERT INTO gateway_accounts (
-        id, project_id, connector_type, account_name, credentials, settings, payment_methods, is_active
-      ) VALUES ($1, $2, 'mpgs', 'Test MPGS Account', $3, '{"display_name": "Credit Card"}', '["card"]', true)`,
-      [ids.GATEWAY_ACCOUNT, ids.PROJECT, encryptedCredentials]
-    );
+    const pendingInvoice = await adminFetch('/invoices', {
+      project_id: project.id,
+      amount: '15.000',
+      currency: 'BHD',
+      customer_email: 'test@example.com',
+      customer_name: 'Test User',
+      description: 'Test Invoice'
+    });
 
-    await client.query(
-      `INSERT INTO invoices (id, project_id, amount, currency, status, customer_name, customer_email, description)
-       VALUES ($1, $2, 15.000, 'BHD', 'pending', 'Test User', 'test@example.com', 'Test Invoice')`,
-      [ids.INVOICE_PENDING, ids.PROJECT]
-    );
+    const paidInvoice = await adminFetch('/invoices', {
+      project_id: project.id,
+      amount: '25.000',
+      currency: 'BHD',
+      customer_email: 'test@example.com',
+      customer_name: 'Test User',
+      description: 'Paid Invoice'
+    });
 
-    await client.query(
-      `INSERT INTO invoices (id, project_id, amount, currency, status, customer_name, customer_email, description)
-       VALUES ($1, $2, 25.000, 'BHD', 'paid', 'Test User', 'test@example.com', 'Paid Invoice')`,
-      [ids.INVOICE_PAID, ids.PROJECT]
-    );
+    await client.query(`UPDATE invoices SET status = 'paid' WHERE id = $1`, [paidInvoice.id]);
+
+    return {
+      ORGANIZATION: org.id,
+      PROJECT: project.id,
+      GATEWAY_ACCOUNT: gateway.id,
+      INVOICE_PENDING: pendingInvoice.id,
+      INVOICE_PAID: paidInvoice.id,
+    };
   } finally {
     await client.end();
   }
-
-  return ids;
 }
 
 export async function resetDb(): Promise<SeedIds> {
