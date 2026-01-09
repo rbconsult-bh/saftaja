@@ -16,7 +16,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        working-directory: tests/e2e
+        working-directory: khazina/tests/e2e
         run: bun install --frozen-lockfile
 
       - name: Install Playwright Browsers
