@@ -14,9 +14,9 @@ import (
 )
 
 const createPaymentSession = `-- name: CreatePaymentSession :one
-INSERT INTO payment_sessions (invoice_id, project_id, gateway_account_id, gateway_session_id, payment_method, payer_ip, payer_user_agent)
-  VALUES ($1, $2, $3, $4, $5, $6, $7)
-  RETURNING id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at
+INSERT INTO payment_sessions (invoice_id, project_id, gateway_account_id, gateway_session_id, payment_method, payer_ip, payer_user_agent, idempotency_key)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  RETURNING id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key
 `
 
 type CreatePaymentSessionParams struct {
@@ -27,6 +27,7 @@ type CreatePaymentSessionParams struct {
 	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
+	IdempotencyKey   pgtype.Text
 }
 
 func (q *Queries) CreatePaymentSession(ctx context.Context, arg CreatePaymentSessionParams) (PaymentSession, error) {
@@ -38,6 +39,7 @@ func (q *Queries) CreatePaymentSession(ctx context.Context, arg CreatePaymentSes
 		arg.PaymentMethod,
 		arg.PayerIp,
 		arg.PayerUserAgent,
+		arg.IdempotencyKey,
 	)
 	var i PaymentSession
 	err := row.Scan(
@@ -54,6 +56,41 @@ func (q *Queries) CreatePaymentSession(ctx context.Context, arg CreatePaymentSes
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getPaymentSessionByIdempotencyKey = `-- name: GetPaymentSessionByIdempotencyKey :one
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
+WHERE invoice_id = $1
+AND idempotency_key = $2
+LIMIT 1
+`
+
+type GetPaymentSessionByIdempotencyKeyParams struct {
+	InvoiceID      uuid.UUID
+	IdempotencyKey pgtype.Text
+}
+
+func (q *Queries) GetPaymentSessionByIdempotencyKey(ctx context.Context, arg GetPaymentSessionByIdempotencyKeyParams) (PaymentSession, error) {
+	row := q.db.QueryRow(ctx, getPaymentSessionByIdempotencyKey, arg.InvoiceID, arg.IdempotencyKey)
+	var i PaymentSession
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }

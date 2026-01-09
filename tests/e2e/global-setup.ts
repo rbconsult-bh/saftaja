@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Network, Wait } from 'testcontainers';
-import { DB_CONFIG } from './fixtures/config';
+import { DB_CONFIG, TEST_ENCRYPTION_KEY_BASE64, TEST_VERIFY_DOMAIN_SECRET, TEST_ADMIN_API_KEY } from './fixtures/config';
 import { startTunnel } from './fixtures/tunnel';
 import { waitForHealthCheck } from './fixtures/health';
 
@@ -38,6 +38,9 @@ async function globalSetup() {
       DB_USER: DB_CONFIG.user,
       DB_PASSWORD: DB_CONFIG.password,
       PORT: payPort.toString(),
+      ENCRYPTION_KEY: TEST_ENCRYPTION_KEY_BASE64,
+      VERIFY_DOMAIN_SECRET: TEST_VERIFY_DOMAIN_SECRET,
+      ADMIN_API_KEY: TEST_ADMIN_API_KEY,
     })
     .withExposedPorts(payPort)
     .withWaitStrategy(Wait.forHttp('/health', payPort))

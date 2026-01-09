@@ -37,6 +37,36 @@ func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, er
 	return i, err
 }
 
+const getInvoiceByIDAndProject = `-- name: GetInvoiceByIDAndProject :one
+SELECT id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at FROM invoices WHERE id = $1 AND project_id = $2
+`
+
+type GetInvoiceByIDAndProjectParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceByIDAndProjectParams) (Invoice, error) {
+	row := q.db.QueryRow(ctx, getInvoiceByIDAndProject, arg.ID, arg.ProjectID)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.ExternalID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.Description,
+		&i.PaidAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const updateInvoiceStatus = `-- name: UpdateInvoiceStatus :exec
 UPDATE invoices
 SET status = $2

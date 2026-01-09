@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/rbconsult-bh/saftaja/internal/crypto"
 )
 
 type Credentials struct {
@@ -27,4 +29,12 @@ func ParseCredentials(data []byte) (*Credentials, error) {
 		return nil, errors.New("missing api_password in MPGS credentials")
 	}
 	return &c, nil
+}
+
+func ParseEncryptedCredentials(encryptedData []byte, key []byte) (*Credentials, error) {
+	decrypted, err := crypto.Decrypt(encryptedData, key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt credentials: %w", err)
+	}
+	return ParseCredentials(decrypted)
 }

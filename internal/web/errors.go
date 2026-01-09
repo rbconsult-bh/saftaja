@@ -56,8 +56,11 @@ func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 	var alreadyPaid *payment.InvoiceAlreadyPaidError
 	var mismatch *payment.SessionInvoiceMismatchError
 	var gatewayErr *payment.GatewayError
+	var notFound *payment.InvoiceNotFoundError
 
 	switch {
+	case errors.As(err, &notFound):
+		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
 	case errors.As(err, &sessionExpired):
 		respondError(w, r, ErrCodeSessionExpired, domain.MsgSessionExpired, http.StatusGone)
 	case errors.As(err, &invalidTransition):

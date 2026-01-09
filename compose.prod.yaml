@@ -1,0 +1,55 @@
+# Production overrides with Caddy for SSL
+# Usage: docker compose -f compose.yaml -f compose.prod.yaml up -d
+# For Docker Swarm: docker stack deploy -c compose.yaml -c compose.prod.yaml saftaja
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      VERIFY_DOMAIN_SECRET: ${VERIFY_DOMAIN_SECRET}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - saftaja
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  saftaja:
+    image: ${REGISTRY:-ghcr.io/rbconsult-bh}/saftaja:${TAG:-latest}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  db:
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  caddy_data:
+  caddy_config:

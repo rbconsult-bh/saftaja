@@ -15,6 +15,7 @@ type CheckoutData struct {
 
 type InvoiceInfo struct {
 	ID            uuid.UUID
+	ProjectID     uuid.UUID
 	Amount        string
 	Currency      string
 	Description   string
@@ -42,11 +43,13 @@ type MPGSConfig struct {
 }
 
 type InitiateSessionRequest struct {
+	ProjectID        uuid.UUID
 	InvoiceID        uuid.UUID
 	GatewayAccountID uuid.UUID
 	PaymentMethod    domain.PaymentMethod
 	PayerIP          string
 	PayerUserAgent   string
+	IdempotencyKey   string
 }
 
 type InitiateSessionResult struct {
@@ -55,6 +58,7 @@ type InitiateSessionResult struct {
 }
 
 type InitiateAuthRequest struct {
+	ProjectID        uuid.UUID
 	InvoiceID        uuid.UUID
 	PaymentSessionID uuid.UUID
 }
@@ -76,6 +80,7 @@ type BrowserDetails struct {
 }
 
 type ProcessAuthRequest struct {
+	ProjectID        uuid.UUID
 	InvoiceID        uuid.UUID
 	PaymentSessionID uuid.UUID
 	BrowserDetails   BrowserDetails
@@ -90,6 +95,7 @@ type ProcessAuthResult struct {
 }
 
 type FinalizePaymentRequest struct {
+	ProjectID        uuid.UUID
 	InvoiceID        uuid.UUID
 	PaymentSessionID uuid.UUID
 }

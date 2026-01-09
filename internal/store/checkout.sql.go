@@ -66,7 +66,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 }
 
 const getGatewayAccount = `-- name: GetGatewayAccount :one
-SELECT id, project_id, connector_type, account_name, credentials, settings, payment_methods, is_active, created_at, updated_at, deleted_at FROM gateway_accounts
+SELECT id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials FROM gateway_accounts
 WHERE id = $1 LIMIT 1
 `
 
@@ -78,19 +78,48 @@ func (q *Queries) GetGatewayAccount(ctx context.Context, id uuid.UUID) (GatewayA
 		&i.ProjectID,
 		&i.ConnectorType,
 		&i.AccountName,
-		&i.Credentials,
 		&i.Settings,
 		&i.PaymentMethods,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Credentials,
+	)
+	return i, err
+}
+
+const getGatewayAccountByIDAndProject = `-- name: GetGatewayAccountByIDAndProject :one
+SELECT id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials FROM gateway_accounts
+WHERE id = $1 AND project_id = $2 LIMIT 1
+`
+
+type GetGatewayAccountByIDAndProjectParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func (q *Queries) GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGatewayAccountByIDAndProjectParams) (GatewayAccount, error) {
+	row := q.db.QueryRow(ctx, getGatewayAccountByIDAndProject, arg.ID, arg.ProjectID)
+	var i GatewayAccount
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.ConnectorType,
+		&i.AccountName,
+		&i.Settings,
+		&i.PaymentMethods,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Credentials,
 	)
 	return i, err
 }
 
 const getGatewayAccountByPaymentSessionID = `-- name: GetGatewayAccountByPaymentSessionID :one
-SELECT ga.id, ga.project_id, connector_type, account_name, credentials, settings, payment_methods, is_active, ga.created_at, ga.updated_at, ga.deleted_at, ps.id, invoice_id, ps.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at FROM gateway_accounts ga
+SELECT ga.id, ga.project_id, connector_type, account_name, settings, payment_methods, is_active, ga.created_at, ga.updated_at, ga.deleted_at, credentials, ps.id, invoice_id, ps.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM gateway_accounts ga
 JOIN payment_sessions ps ON ga.id = ps.gateway_account_id
 WHERE ps.id = $1
 `
@@ -100,13 +129,13 @@ type GetGatewayAccountByPaymentSessionIDRow struct {
 	ProjectID        uuid.UUID
 	ConnectorType    domain.ConnectorType
 	AccountName      string
-	Credentials      []byte
 	Settings         []byte
 	PaymentMethods   []byte
 	IsActive         bool
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
 	DeletedAt        pgtype.Timestamptz
+	Credentials      []byte
 	ID_2             uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID_2      uuid.UUID
@@ -120,6 +149,7 @@ type GetGatewayAccountByPaymentSessionIDRow struct {
 	CreatedAt_2      pgtype.Timestamptz
 	UpdatedAt_2      pgtype.Timestamptz
 	DeletedAt_2      pgtype.Timestamptz
+	IdempotencyKey   pgtype.Text
 }
 
 func (q *Queries) GetGatewayAccountByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentSessionIDRow, error) {
@@ -130,13 +160,13 @@ func (q *Queries) GetGatewayAccountByPaymentSessionID(ctx context.Context, id uu
 		&i.ProjectID,
 		&i.ConnectorType,
 		&i.AccountName,
-		&i.Credentials,
 		&i.Settings,
 		&i.PaymentMethods,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Credentials,
 		&i.ID_2,
 		&i.InvoiceID,
 		&i.ProjectID_2,
@@ -150,12 +180,13 @@ func (q *Queries) GetGatewayAccountByPaymentSessionID(ctx context.Context, id uu
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
 		&i.DeletedAt_2,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
 
 const getLatestPaymentSession = `-- name: GetLatestPaymentSession :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at FROM payment_sessions
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
 WHERE invoice_id = $1
 AND status IN ('created', 'authenticating', 'authenticated')
 ORDER BY created_at DESC
@@ -179,6 +210,7 @@ func (q *Queries) GetLatestPaymentSession(ctx context.Context, invoiceID uuid.UU
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
@@ -243,7 +275,7 @@ func (q *Queries) GetPayTransactionBySessionID(ctx context.Context, paymentSessi
 }
 
 const getPaymentSessionByID = `-- name: GetPaymentSessionByID :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at FROM payment_sessions
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
 WHERE id = $1 LIMIT 1
 `
 
@@ -264,12 +296,68 @@ func (q *Queries) GetPaymentSessionByID(ctx context.Context, id uuid.UUID) (Paym
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getPaymentSessionByIDAndProject = `-- name: GetPaymentSessionByIDAndProject :one
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
+WHERE id = $1 AND project_id = $2 LIMIT 1
+`
+
+type GetPaymentSessionByIDAndProjectParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func (q *Queries) GetPaymentSessionByIDAndProject(ctx context.Context, arg GetPaymentSessionByIDAndProjectParams) (PaymentSession, error) {
+	row := q.db.QueryRow(ctx, getPaymentSessionByIDAndProject, arg.ID, arg.ProjectID)
+	var i PaymentSession
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getProjectByCustomDomain = `-- name: GetProjectByCustomDomain :one
+SELECT id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at FROM projects
+WHERE custom_domain = $1
+AND deleted_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain pgtype.Text) (Project, error) {
+	row := q.db.QueryRow(ctx, getProjectByCustomDomain, customDomain)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Environment,
+		&i.CustomDomain,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getProjectByPaymentSessionID = `-- name: GetProjectByPaymentSessionID :one
-SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at FROM projects p
+SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM projects p
 JOIN payment_sessions ps ON p.id = ps.project_id
 WHERE ps.id = $1
 `
@@ -296,6 +384,7 @@ type GetProjectByPaymentSessionIDRow struct {
 	CreatedAt_2      pgtype.Timestamptz
 	UpdatedAt_2      pgtype.Timestamptz
 	DeletedAt_2      pgtype.Timestamptz
+	IdempotencyKey   pgtype.Text
 }
 
 func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentSessionIDRow, error) {
@@ -323,6 +412,7 @@ func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
 		&i.DeletedAt_2,
+		&i.IdempotencyKey,
 	)
 	return i, err
 }
@@ -359,7 +449,7 @@ func (q *Queries) GetSuccessfulAuthTransaction(ctx context.Context, paymentSessi
 }
 
 const listActiveGatewayAccounts = `-- name: ListActiveGatewayAccounts :many
-SELECT id, project_id, connector_type, account_name, credentials, settings, payment_methods, is_active, created_at, updated_at, deleted_at FROM gateway_accounts
+SELECT id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials FROM gateway_accounts
 WHERE project_id = $1
 AND is_active = true
 AND deleted_at IS NULL
@@ -379,13 +469,13 @@ func (q *Queries) ListActiveGatewayAccounts(ctx context.Context, projectID uuid.
 			&i.ProjectID,
 			&i.ConnectorType,
 			&i.AccountName,
-			&i.Credentials,
 			&i.Settings,
 			&i.PaymentMethods,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Credentials,
 		); err != nil {
 			return nil, err
 		}

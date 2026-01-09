@@ -8,6 +8,10 @@ AND deleted_at IS NULL;
 SELECT * FROM gateway_accounts
 WHERE id = $1 LIMIT 1;
 
+-- name: GetGatewayAccountByIDAndProject :one
+SELECT * FROM gateway_accounts
+WHERE id = $1 AND project_id = $2 LIMIT 1;
+
 -- name: GetGatewayAccountByPaymentSessionID :one
 SELECT * FROM gateway_accounts ga
 JOIN payment_sessions ps ON ga.id = ps.gateway_account_id
@@ -28,6 +32,10 @@ LIMIT 1;
 -- name: GetPaymentSessionByID :one
 SELECT * FROM payment_sessions
 WHERE id = $1 LIMIT 1;
+
+-- name: GetPaymentSessionByIDAndProject :one
+SELECT * FROM payment_sessions
+WHERE id = $1 AND project_id = $2 LIMIT 1;
 
 -- name: UpdatePaymentSessionGatewayID :exec
 UPDATE payment_sessions
@@ -71,4 +79,10 @@ LIMIT 1;
 SELECT * FROM transactions
 WHERE payment_session_id = $1
 ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: GetProjectByCustomDomain :one
+SELECT * FROM projects
+WHERE custom_domain = $1
+AND deleted_at IS NULL
 LIMIT 1;

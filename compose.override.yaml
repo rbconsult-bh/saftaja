@@ -1,0 +1,26 @@
+# Dev overrides - auto-loaded by docker compose up
+# Hot reload enabled, ports exposed, no SSL
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  saftaja:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    develop:
+      watch:
+        - path: .
+          target: /pay
+          action: sync+restart
+          ignore:
+            - go.sum
+            - node_modules
+            - tests
+        - path: ./go.sum
+          action: rebuild

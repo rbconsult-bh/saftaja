@@ -16,13 +16,13 @@ type GatewayAccount struct {
 	ProjectID      uuid.UUID
 	ConnectorType  domain.ConnectorType
 	AccountName    string
-	Credentials    []byte
 	Settings       []byte
 	PaymentMethods []byte
 	IsActive       bool
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
 	DeletedAt      pgtype.Timestamptz
+	Credentials    []byte
 }
 
 type Invoice struct {
@@ -74,6 +74,7 @@ type PaymentSession struct {
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
 	DeletedAt        pgtype.Timestamptz
+	IdempotencyKey   pgtype.Text
 }
 
 type Project struct {

@@ -56,3 +56,13 @@ func (e *GatewayError) Error() string {
 func (e *GatewayError) Unwrap() error {
 	return e.Err
 }
+
+// InvoiceNotFoundError is returned when an invoice doesn't exist
+// or doesn't belong to the requesting project (tenant isolation).
+type InvoiceNotFoundError struct {
+	InvoiceID string
+}
+
+func (e *InvoiceNotFoundError) Error() string {
+	return fmt.Sprintf("invoice %s not found", e.InvoiceID)
+}

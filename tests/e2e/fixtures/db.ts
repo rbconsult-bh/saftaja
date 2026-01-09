@@ -1,5 +1,7 @@
 import { Client } from 'pg';
 import { randomUUID } from 'crypto';
+import { encryptJSON } from './crypto';
+import { TEST_ENCRYPTION_KEY } from './config';
 
 export interface SeedIds {
   ORGANIZATION: string;
@@ -51,19 +53,20 @@ VALUES (
     $3
 );`, [ids.PROJECT, ids.ORGANIZATION, domain]);
 
+    const encryptedCredentials = encryptJSON(
+      {
+        merchant_id: process.env.TEST_MPGS_MERCHANT_ID,
+        api_password: process.env.TEST_MPGS_API_PASSWORD,
+        base_url: process.env.TEST_MPGS_BASE_URL,
+      },
+      TEST_ENCRYPTION_KEY
+    );
+
     await client.query(
       `INSERT INTO gateway_accounts (
         id, project_id, connector_type, account_name, credentials, settings, payment_methods, is_active
       ) VALUES ($1, $2, 'mpgs', 'Test MPGS Account', $3, '{"display_name": "Credit Card"}', '["card"]', true)`,
-      [
-        ids.GATEWAY_ACCOUNT,
-        ids.PROJECT,
-        JSON.stringify({
-          merchant_id: process.env.TEST_MPGS_MERCHANT_ID,
-          api_password: process.env.TEST_MPGS_API_PASSWORD,
-          base_url: process.env.TEST_MPGS_BASE_URL,
-        }),
-      ]
+      [ids.GATEWAY_ACCOUNT, ids.PROJECT, encryptedCredentials]
     );
 
     await client.query(

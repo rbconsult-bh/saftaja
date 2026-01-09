@@ -13,23 +13,33 @@ import (
 	mpgsclient "github.com/rbconsult-bh/saftaja/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/internal/domain"
 	"github.com/rbconsult-bh/saftaja/internal/payment"
+	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
 	"github.com/rbconsult-bh/saftaja/internal/web/templfiles"
 )
 
 type handlers struct {
-	paymentService payment.Service
+	paymentService     payment.Service
+	verifyDomainSecret string
 }
 
-func New(paymentService payment.Service) Handlers {
+func New(paymentService payment.Service, verifyDomainSecret string) Handlers {
 	return &handlers{
-		paymentService: paymentService,
+		paymentService:     paymentService,
+		verifyDomainSecret: verifyDomainSecret,
 	}
 }
 
 func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	rawInvoiceID := chi.URLParam(r, "invoice_id")
 
+	project := middlewares.GetProjectFromContext(ctx)
+	if project == nil {
+		log.Ctx(ctx).Info().Str("host", r.Host).Msg("checkout accessed via unregistered domain")
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	rawInvoiceID := chi.URLParam(r, "invoice_id")
 	invoiceID, err := uuid.Parse(rawInvoiceID)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to parse invoice_id")
@@ -37,7 +47,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutData, err := h.paymentService.GetCheckoutData(ctx, invoiceID)
+	checkoutData, err := h.paymentService.GetCheckoutData(ctx, invoiceID, project.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("invoice not found")
@@ -118,6 +128,12 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	project := middlewares.GetProjectFromContext(ctx)
+	if project == nil {
+		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		return
+	}
+
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
@@ -141,11 +157,13 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	result, err := h.paymentService.InitiateSession(ctx, &payment.InitiateSessionRequest{
+		ProjectID:        project.ID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: req.GatewayAccountID,
 		PaymentMethod:    req.PaymentMethod,
 		PayerIP:          payerIP,
 		PayerUserAgent:   r.Header.Get("User-Agent"),
+		IdempotencyKey:   r.Header.Get("Idempotency-Key"),
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
@@ -162,6 +180,12 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	project := middlewares.GetProjectFromContext(ctx)
+	if project == nil {
+		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		return
+	}
+
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
@@ -175,6 +199,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	result, err := h.paymentService.InitiateAuth(ctx, &payment.InitiateAuthRequest{
+		ProjectID:        project.ID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
 	})
@@ -191,6 +216,12 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 
 func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	project := middlewares.GetProjectFromContext(ctx)
+	if project == nil {
+		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		return
+	}
 
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
@@ -219,6 +250,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	result, err := h.paymentService.ProcessAuth(ctx, &payment.ProcessAuthRequest{
+		ProjectID:        project.ID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
 		BrowserDetails:   browserDetails,
@@ -240,6 +272,12 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	project := middlewares.GetProjectFromContext(ctx)
+	if project == nil {
+		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		return
+	}
+
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
@@ -253,6 +291,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.paymentService.FinalizePayment(ctx, &payment.FinalizePaymentRequest{
+		ProjectID:        project.ID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
 	})
@@ -282,4 +321,31 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: Apple Pay implementation
+}
+
+func (h *handlers) VerifyDomainHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("secret") != h.verifyDomainSecret {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	domain := r.URL.Query().Get("domain")
+	if domain == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	valid, err := h.paymentService.VerifyDomain(r.Context(), domain)
+	if err != nil {
+		log.Ctx(r.Context()).Error().Err(err).Str("domain", domain).Msg("failed to verify domain")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !valid {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

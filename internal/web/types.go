@@ -9,4 +9,5 @@ type Handlers interface {
 	CardProcessAuthHandler(w http.ResponseWriter, r *http.Request)
 	CardFinalizeHandler(w http.ResponseWriter, r *http.Request)
 	WalletPayHandler(w http.ResponseWriter, r *http.Request)
+	VerifyDomainHandler(w http.ResponseWriter, r *http.Request)
 }

@@ -20,27 +20,33 @@ import (
 )
 
 type Service interface {
-	GetCheckoutData(ctx context.Context, invoiceID uuid.UUID) (*CheckoutData, error)
+	GetCheckoutData(ctx context.Context, invoiceID, projectID uuid.UUID) (*CheckoutData, error)
 	InitiateSession(ctx context.Context, req *InitiateSessionRequest) (*InitiateSessionResult, error)
 	InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*InitiateAuthResult, error)
 	ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*ProcessAuthResult, error)
 	FinalizePayment(ctx context.Context, req *FinalizePaymentRequest) (*FinalizePaymentResult, error)
+	VerifyDomain(ctx context.Context, domain string) (bool, error)
 }
 
 type service struct {
-	pool    *pgxpool.Pool
-	queries *store.Queries
+	pool          *pgxpool.Pool
+	queries       *store.Queries
+	encryptionKey []byte
 }
 
-func NewService(pool *pgxpool.Pool, queries *store.Queries) Service {
+func NewService(pool *pgxpool.Pool, queries *store.Queries, encryptionKey []byte) Service {
 	return &service{
-		pool:    pool,
-		queries: queries,
+		pool:          pool,
+		queries:       queries,
+		encryptionKey: encryptionKey,
 	}
 }
 
-func (s *service) GetCheckoutData(ctx context.Context, invoiceID uuid.UUID) (*CheckoutData, error) {
-	invoice, err := s.queries.GetInvoiceByID(ctx, invoiceID)
+func (s *service) GetCheckoutData(ctx context.Context, invoiceID, projectID uuid.UUID) (*CheckoutData, error) {
+	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        invoiceID,
+		ProjectID: projectID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +54,10 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID uuid.UUID) (*Ch
 	if invoice.Status == domain.InvoiceStatusPaid {
 		return &CheckoutData{
 			Invoice: InvoiceInfo{
-				ID:       invoice.ID,
-				Amount:   invoice.Amount.String(),
-				Currency: invoice.Currency,
+				ID:        invoice.ID,
+				ProjectID: invoice.ProjectID,
+				Amount:    invoice.Amount.String(),
+				Currency:  invoice.Currency,
 			},
 			IsPaid: true,
 		}, nil
@@ -77,7 +84,7 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID uuid.UUID) (*Ch
 
 	for _, acc := range accounts {
 		if acc.ConnectorType == domain.ConnectorTypeMPGS {
-			creds, err := mpgs.ParseCredentials(acc.Credentials)
+			creds, err := mpgs.ParseEncryptedCredentials(acc.Credentials, s.encryptionKey)
 			if err != nil {
 				return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 			}
@@ -104,6 +111,7 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID uuid.UUID) (*Ch
 	return &CheckoutData{
 		Invoice: InvoiceInfo{
 			ID:            invoice.ID,
+			ProjectID:     invoice.ProjectID,
 			Amount:        invoice.Amount.String(),
 			Currency:      invoice.Currency,
 			Description:   invoice.Description.String,
@@ -118,8 +126,14 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID uuid.UUID) (*Ch
 }
 
 func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionRequest) (*InitiateSessionResult, error) {
-	invoice, err := s.queries.GetInvoiceByID(ctx, req.InvoiceID)
+	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        req.InvoiceID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, &InvoiceNotFoundError{InvoiceID: req.InvoiceID.String()}
+		}
 		return nil, err
 	}
 
@@ -127,12 +141,33 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		return nil, &InvoiceAlreadyPaidError{InvoiceID: req.InvoiceID.String()}
 	}
 
-	account, err := s.queries.GetGatewayAccount(ctx, req.GatewayAccountID)
+	// Check for existing session with same idempotency key
+	if req.IdempotencyKey != "" {
+		existingSession, err := s.queries.GetPaymentSessionByIdempotencyKey(ctx, store.GetPaymentSessionByIdempotencyKeyParams{
+			InvoiceID:      req.InvoiceID,
+			IdempotencyKey: pgtype.Text{String: req.IdempotencyKey, Valid: true},
+		})
+		if err == nil {
+			// Session already exists, return it
+			return &InitiateSessionResult{
+				PaymentSessionID: existingSession.ID,
+				GatewaySessionID: existingSession.GatewaySessionID,
+			}, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("failed to check idempotency: %w", err)
+		}
+	}
+
+	account, err := s.queries.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
+		ID:        req.GatewayAccountID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway account: %w", err)
 	}
 
-	creds, err := mpgs.ParseCredentials(account.Credentials)
+	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
@@ -148,6 +183,11 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
 
+	var idempotencyKey pgtype.Text
+	if req.IdempotencyKey != "" {
+		idempotencyKey = pgtype.Text{String: req.IdempotencyKey, Valid: true}
+	}
+
 	dbSession, err := s.queries.CreatePaymentSession(ctx, store.CreatePaymentSessionParams{
 		InvoiceID:        invoice.ID,
 		ProjectID:        invoice.ProjectID,
@@ -156,6 +196,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		PaymentMethod:    req.PaymentMethod,
 		PayerIp:          pgtype.Text{String: req.PayerIP, Valid: true},
 		PayerUserAgent:   pgtype.Text{String: req.PayerUserAgent, Valid: req.PayerUserAgent != ""},
+		IdempotencyKey:   idempotencyKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create payment session: %w", err)
@@ -179,7 +220,10 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 }
 
 func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*InitiateAuthResult, error) {
-	session, err := s.queries.GetPaymentSessionByID(ctx, req.PaymentSessionID)
+	session, err := s.queries.GetPaymentSessionByIDAndProject(ctx, store.GetPaymentSessionByIDAndProjectParams{
+		ID:        req.PaymentSessionID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("payment session not found")
@@ -194,7 +238,10 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		}
 	}
 
-	invoice, err := s.queries.GetInvoiceByID(ctx, req.InvoiceID)
+	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        req.InvoiceID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +251,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, err
 	}
 
-	creds, err := mpgs.ParseCredentials(account.Credentials)
+	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
@@ -273,7 +320,10 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 }
 
 func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*ProcessAuthResult, error) {
-	session, err := s.queries.GetPaymentSessionByID(ctx, req.PaymentSessionID)
+	session, err := s.queries.GetPaymentSessionByIDAndProject(ctx, store.GetPaymentSessionByIDAndProjectParams{
+		ID:        req.PaymentSessionID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("payment session not found")
@@ -288,7 +338,10 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		}
 	}
 
-	invoice, err := s.queries.GetInvoiceByID(ctx, req.InvoiceID)
+	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        req.InvoiceID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +370,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("custom domain not configured")
 	}
 
-	creds, err := mpgs.ParseCredentials(account.Credentials)
+	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
@@ -404,7 +457,10 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 }
 
 func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentRequest) (*FinalizePaymentResult, error) {
-	session, err := s.queries.GetPaymentSessionByID(ctx, req.PaymentSessionID)
+	session, err := s.queries.GetPaymentSessionByIDAndProject(ctx, store.GetPaymentSessionByIDAndProjectParams{
+		ID:        req.PaymentSessionID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("payment session not found")
@@ -423,10 +479,13 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, &SessionExpiredError{SessionID: session.ID.String()}
 	}
 
-	invoice, err := s.queries.GetInvoiceByID(ctx, req.InvoiceID)
+	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        req.InvoiceID,
+		ProjectID: req.ProjectID,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("invoice not found")
+			return nil, &InvoiceNotFoundError{InvoiceID: req.InvoiceID.String()}
 		}
 		return nil, err
 	}
@@ -454,7 +513,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, err
 	}
 
-	creds, err := mpgs.ParseCredentials(account.Credentials)
+	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
@@ -549,4 +608,15 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 	}
 
 	return result, nil
+}
+
+func (s *service) VerifyDomain(ctx context.Context, domain string) (bool, error) {
+	_, err := s.queries.GetProjectByCustomDomain(ctx, pgtype.Text{String: domain, Valid: true})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

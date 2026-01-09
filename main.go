@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -18,37 +20,15 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/rbconsult-bh/saftaja/internal/admin"
 	"github.com/rbconsult-bh/saftaja/internal/config"
 	_ "github.com/rbconsult-bh/saftaja/internal/connectors/mpgs"
 	"github.com/rbconsult-bh/saftaja/internal/payment"
 	"github.com/rbconsult-bh/saftaja/internal/store"
+	"github.com/rbconsult-bh/saftaja/internal/tenant"
 	"github.com/rbconsult-bh/saftaja/internal/web"
 	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
 )
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-
-		if origin != "" {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-		}
-
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 func main() {
 	ctx := context.Background()
@@ -85,23 +65,40 @@ func main() {
 	defer dbPool.Close()
 
 	queries := store.New(dbPool)
-	paymentSvc := payment.NewService(dbPool, queries)
+
+	encryptionKey, err := cfg.GetEncryptionKey()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to get encryption key")
+	}
+
+	tenantSvc := tenant.NewService(queries)
+	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
 
 	r := chi.NewRouter()
-	r.Use(corsMiddleware)
+
+	r.Use(middlewares.DynamicCORS(tenantSvc))
+	r.Use(middlewares.TenantResolver(tenantSvc))
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.ZeroLogger)
 
-	h := web.New(paymentSvc)
+	h := web.New(paymentSvc, cfg.VerifyDomainSecret)
 
 	// =========================================================================
 	// ROUTING
 	// =========================================================================
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		if err := dbPool.Ping(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 	})
+
+	// Domain verification for Caddy/Traefik on-demand TLS
+	r.Get("/verify-domain", h.VerifyDomainHandler)
 
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
 	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
@@ -116,10 +113,46 @@ func main() {
 	// 	r.Post("/finalize", h.WalletPayHandler)
 	// })
 
-	log.Info().Msgf("starting listener on port: %d", cfg.Port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r); err != nil {
-		log.Fatal().Err(err).Msgf("failed to listen on port: %d", cfg.Port)
+	adminSvc := admin.NewService(queries, encryptionKey)
+	adminHandlers := admin.NewHandlers(adminSvc)
+	r.Route("/admin", func(r chi.Router) {
+		r.Use(admin.APIKeyAuth(cfg.AdminAPIKey))
+		adminHandlers.RegisterRoutes(r)
+	})
+
+	// Server with graceful shutdown
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	// Start server in goroutine
+	go func() {
+		log.Info().Msgf("starting listener on port: %d", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msgf("failed to listen on port: %d", cfg.Port)
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info().Msg("shutting down server...")
+
+	// Give outstanding requests 30 seconds to complete
+	shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Error().Err(err).Msg("server forced to shutdown")
+	}
+
+	log.Info().Msg("server stopped")
 }
 
 func runMigrations(dsn string) error {
