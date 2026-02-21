@@ -68,5 +68,6 @@
     - name: Add SSH key to deploy user
       ansible.posix.authorized_key:
         user: "{{ deploy_user }}"
-        key: "{{ deploy_keypair.public_key }}"
+        key: "{{ deploy_keypair.public_key }} saftaja-deploy"
         state: present
+        exclusive: true
