@@ -15,3 +15,6 @@ collections:
   - name: https://github.com/ansible-collections/community.crypto.git
     type: git
     version: 9f7aba4d20a58d9030e018b7b9f08a1d2ba7fdbe # 3.1.1
+  - name: https://github.com/ansible-collections/community.general.git
+    type: git
+    version: e9064bbf9740fccd6e201c200076bfed73242bfc # 12.3.0
