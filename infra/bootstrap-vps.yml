@@ -27,3 +27,11 @@
           - ca-certificates
           - gnupg
         state: present
+
+    - name: Create maintenance user
+      user:
+        name: "{{ maintenance_user }}"
+        shell: /bin/bash
+        groups: sudo
+        append: true
+        state: present
