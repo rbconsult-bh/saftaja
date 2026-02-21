@@ -35,3 +35,9 @@
         groups: sudo
         append: true
         state: present
+
+    - name: Add SSH key to maintenance user
+      authorized_key:
+        user: "{{ maintenance_user }}"
+        key: "{{ my_public_key }}"
+        state: present
