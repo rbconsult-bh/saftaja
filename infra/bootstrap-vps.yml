@@ -1,0 +1,15 @@
+- name: Boostrap VPS
+  hosts: all
+  become: true
+  vars:
+    ssh_port: 2222
+    maintenance_user: maintenance
+    deploy_user: deploy
+    my_public_key: "{{ lookup('env', 'MY_PUBLIC_KEY') }}"
+
+  tasks:
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 3600

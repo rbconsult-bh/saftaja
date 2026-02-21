@@ -1,0 +1,4 @@
+all:
+  hosts:
+    saftaja-vps:
+      ansible_host: YOUR_VPS_IP_HERE
