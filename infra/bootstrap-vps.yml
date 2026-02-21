@@ -90,3 +90,13 @@
         content: |
           APT::Periodic::Update-Package-Lists "1";
           APT::Periodic::Unattended-Upgrade "1";
+
+    - name: Install rootless Docker
+      ansible.builtin.import_role:
+        name: konstruktoid.docker_rootless
+      vars:
+        docker_user: "{{ deploy_user }}"
+        docker_compose: true
+        docker_rootful: false
+        create_docker_user: false
+        docker_allow_privileged_ports: true
