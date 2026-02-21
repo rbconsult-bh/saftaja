@@ -41,3 +41,15 @@
         user: "{{ maintenance_user }}"
         key: "{{ my_public_key }}"
         state: present
+
+    - name: Create deploy user
+      user:
+        name: "{{ deploy_user }}"
+        shell: /bin/bash
+        state: present
+
+    - name: Add SSH key to deploy user
+      authorized_key:
+        user: "{{ deploy_user }}"
+        key: "{{ my_public_key }}"
+        state: present
