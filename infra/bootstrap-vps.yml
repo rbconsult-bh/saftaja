@@ -35,9 +35,17 @@
         groups: sudo
         append: true
         state: present
+        password: "!"
+
+    - name: Allow maintenance user to sudo without password
+      lineinfile:
+        path: /etc/sudoers.d/maintenance
+        line: "{{ maintenance_user }} ALL=(ALL) NOPASSWD:ALL"
+        create: true
+        validate: "visudo -cf %s"
 
     - name: Add SSH key to maintenance user
-      authorized_key:
+      ansible.posix.authorized_key:
         user: "{{ maintenance_user }}"
         key: "{{ my_public_key }}"
         state: present
@@ -48,8 +56,17 @@
         shell: /bin/bash
         state: present
 
+    - name: Generate deploy SSH key on server
+      community.crypto.openssh_keypair:
+        path: /home/{{ deploy_user }}/.ssh/id_ed25519
+        type: ed25519
+        comment: "saftaja-deploy"
+        owner: "{{ deploy_user }}"
+        force: false
+      register: deploy_keypair
+
     - name: Add SSH key to deploy user
-      authorized_key:
+      ansible.posix.authorized_key:
         user: "{{ deploy_user }}"
-        key: "{{ my_public_key }}"
+        key: "{{ deploy_keypair.public_key }}"
         state: present
