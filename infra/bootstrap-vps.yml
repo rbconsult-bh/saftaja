@@ -13,3 +13,17 @@
         update_cache: true
         upgrade: dist
         cache_valid_time: 3600
+
+    - name: Install base packages
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - htop
+          - ufw
+          - fail2ban
+          - unattended-upgrades
+          - ca-certificates
+          - gnupg
+        state: present
