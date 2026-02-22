@@ -7,14 +7,14 @@
     my_public_key: "{{ lookup('env', 'MY_PUBLIC_KEY') }}"
 
   handlers:
-    - name: Restart SSH
-      service:
-        name: ssh
-        state: restarted
-
     - name: Restart fail2ban
       service:
         name: fail2ban
+        state: restarted
+
+    - name: Restart SSH
+      service:
+        name: ssh
         state: restarted
 
   tasks:
