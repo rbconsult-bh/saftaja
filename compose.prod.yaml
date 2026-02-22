@@ -19,8 +19,8 @@ services:
       - caddy_config:/config
     depends_on:
       - khazina
-      - diwan
-      - bawaba
+      # - diwan
+      # - bawaba
     deploy:
       replicas: 1
       placement:
