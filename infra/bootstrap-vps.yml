@@ -1,4 +1,4 @@
-- name: Boostrap VPS
+- name: Bootstrap VPS
   hosts: all
   become: true
   vars:
@@ -6,7 +6,19 @@
     deploy_user: deploy
     my_public_key: "{{ lookup('env', 'MY_PUBLIC_KEY') }}"
 
+  handlers:
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
+
+    - name: Restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted
+
   tasks:
+    # ── System updates ──────────────────────────────────────────────
     - name: Update apt cache and upgrade all packages
       apt:
         update_cache: true
@@ -27,6 +39,7 @@
           - gnupg
         state: present
 
+    # ── Users ───────────────────────────────────────────────────────
     - name: Create maintenance user
       user:
         name: "{{ maintenance_user }}"
@@ -41,6 +54,7 @@
         path: /etc/sudoers.d/maintenance
         line: "{{ maintenance_user }} ALL=(ALL) NOPASSWD:ALL"
         create: true
+        mode: "0440"
         validate: "visudo -cf %s"
 
     - name: Add SSH key to maintenance user
@@ -61,7 +75,7 @@
         state: directory
         owner: "{{ deploy_user }}"
         group: "{{ deploy_user }}"
-        mode: '0700'
+        mode: "0700"
 
     - name: Generate deploy SSH key on server
       community.crypto.openssh_keypair:
@@ -77,8 +91,21 @@
         user: "{{ deploy_user }}"
         key: "{{ deploy_keypair.public_key }} saftaja-deploy"
         state: present
-        exclusive: true
 
+    - name: Create deploy user SSH config
+      copy:
+        dest: /home/{{ deploy_user }}/.ssh/config
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"
+        content: |
+          Host github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+
+    # ── Unattended upgrades ─────────────────────────────────────────
     - name: Configure unattended upgrades
       copy:
         dest: /etc/apt/apt.conf.d/50unattended-upgrades
@@ -98,6 +125,7 @@
           APT::Periodic::Update-Package-Lists "1";
           APT::Periodic::Unattended-Upgrade "1";
 
+    # ── Rootless Docker ─────────────────────────────────────────────
     - name: Get deploy user UID
       getent:
         database: passwd
@@ -113,7 +141,7 @@
       changed_when: false
 
     - name: Install rootless Docker
-      ansible.builtin.import_role:
+      ansible.builtin.include_role:
         name: konstruktoid.docker_rootless
       vars:
         docker_user: "{{ deploy_user }}"
@@ -122,6 +150,10 @@
         create_docker_user: false
         docker_allow_privileged_ports: true
 
+    - name: Flush handlers
+      meta: flush_handlers
+
+    # ── Firewall ────────────────────────────────────────────────────
     - name: Allow SSH
       community.general.ufw:
         rule: allow
@@ -146,6 +178,27 @@
         policy: deny
         direction: incoming
 
+    # ── Fail2ban ────────────────────────────────────────────────────
+    - name: Configure fail2ban SSH jail
+      copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [sshd]
+          enabled = true
+          port = 22
+          filter = sshd
+          maxretry = 3
+          bantime = 3600
+          findtime = 600
+      notify: Restart fail2ban
+
+    # ── SSH hardening (LAST — uses handler, not immediate restart) ──
+    - name: Verify maintenance user can SSH
+      ansible.builtin.assert:
+        that:
+          - my_public_key | length > 0
+        fail_msg: "MY_PUBLIC_KEY is empty — refusing to harden SSH (you'd be locked out)"
+
     - name: Harden SSH config
       lineinfile:
         path: /etc/ssh/sshd_config
@@ -158,8 +211,5 @@
         - { regexp: '^#?LoginGraceTime', line: 'LoginGraceTime 30' }
         - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
         - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
-
-    - name: Restart SSH
-      service:
-        name: ssh
-        state: restarted
+        - { regexp: '^#?AllowUsers', line: 'AllowUsers {{ maintenance_user }} {{ deploy_user }}' }
+      notify: Restart SSH
