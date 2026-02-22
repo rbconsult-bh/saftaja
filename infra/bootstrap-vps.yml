@@ -146,6 +146,20 @@
         policy: deny
         direction: incoming
 
-    - name: Harden SSH
-      ansible.builtin.include_role:
-        name: devsec.hardening.ssh_hardening
+    - name: Harden SSH config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+        - { regexp: '^#?LoginGraceTime', line: 'LoginGraceTime 30' }
+        - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+        - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
