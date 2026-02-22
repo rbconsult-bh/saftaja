@@ -153,6 +153,25 @@
     - name: Flush handlers
       meta: flush_handlers
 
+    - name: Configure rootless Docker environment for deploy user
+      blockinfile:
+        path: /home/{{ deploy_user }}/.profile
+        marker: "# {mark} ROOTLESS DOCKER"
+        block: |
+          export XDG_RUNTIME_DIR=/run/user/{{ deploy_uid }}
+          export DOCKER_HOST=unix:///run/user/{{ deploy_uid }}/docker.sock
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+
+    - name: Verify rootless Docker works
+      command: docker ps
+      become: true
+      become_user: "{{ deploy_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ deploy_uid }}"
+        DOCKER_HOST: "unix:///run/user/{{ deploy_uid }}/docker.sock"
+      changed_when: false
+
     # ── Firewall ────────────────────────────────────────────────────
     - name: Allow SSH
       community.general.ufw:
