@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"crypto/subtle"
 	"net/http"
 )
 
@@ -12,7 +13,7 @@ func APIKeyAuth(apiKey string) func(http.Handler) http.Handler {
 				respondError(w, "missing X-Admin-Key header", http.StatusUnauthorized)
 				return
 			}
-			if key != apiKey {
+			if subtle.ConstantTimeCompare([]byte(apiKey), []byte(key)) == 0 {
 				respondError(w, "invalid API key", http.StatusUnauthorized)
 				return
 			}

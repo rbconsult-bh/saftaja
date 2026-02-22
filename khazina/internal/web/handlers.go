@@ -1,6 +1,7 @@
 package web
 
 import (
+	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -324,7 +325,7 @@ func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) VerifyDomainHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Query().Get("secret") != h.verifyDomainSecret {
+	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(h.verifyDomainSecret)) == 0 {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
