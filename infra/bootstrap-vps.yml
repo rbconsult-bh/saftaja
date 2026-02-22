@@ -91,6 +91,20 @@
           APT::Periodic::Update-Package-Lists "1";
           APT::Periodic::Unattended-Upgrade "1";
 
+    - name: Get deploy user UID
+      getent:
+        database: passwd
+        key: "{{ deploy_user }}"
+      register: deploy_user_info
+
+    - name: Set deploy UID fact
+      set_fact:
+        deploy_uid: "{{ deploy_user_info.ansible_facts.getent_passwd[deploy_user][1] }}"
+
+    - name: Enable linger for deploy user
+      command: loginctl enable-linger {{ deploy_user }}
+      changed_when: false
+
     - name: Install rootless Docker
       ansible.builtin.import_role:
         name: konstruktoid.docker_rootless
