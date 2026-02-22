@@ -1,0 +1,20 @@
+name: Build Khazina
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'khazina/**'
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+    secrets: inherit
+    with:
+      image_name: khazina
+      context_path: ./khazina
+
+  deploy:
+    needs: build
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

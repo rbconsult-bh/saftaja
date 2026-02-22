@@ -1,0 +1,75 @@
+name: Reusable Build
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      context_path:
+        required: true
+        type: string
+      dockerfile_name:
+        required: false
+        type: string
+        default: Dockerfile
+    outputs:
+      image_digest:
+        description: "Image digest"
+        value: ${{ jobs.build-and-push-image.outputs.digest }}
+      image_tag:
+        description: "Full image tag"
+        value: ${{ jobs.build-and-push-image.outputs.tag }}
+
+concurrency:
+  group: build-${{ inputs.image_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push-image:
+    runs-on: blacksmith-4vcpu-ubuntu-2204
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tag: ${{ steps.meta.outputs.tags }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Build
+        uses: useblacksmith/setup-docker-builder@78f41686563c732ccc097f7baac2f092f67538f0 # v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ inputs.image_name }}
+
+      - name: Build and push
+        id: push
+        uses: useblacksmith/build-push-action@30c71162f16ea2c27c3e21523255d209b8b538c1 # v2
+        with:
+          context: ${{ inputs.context_path }}
+          file: ${{ inputs.context_path }}/${{ inputs.dockerfile_name }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Print Digest
+        run: echo ${{ steps.push.outputs.digest }}

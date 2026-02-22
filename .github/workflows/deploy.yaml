@@ -1,0 +1,37 @@
+name: Deploy to Production
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh deploy@${{ secrets.VPS_IP }} \
+            -i ~/.ssh/deploy_key \
+            "source ~/.profile && \
+             echo ${{ secrets.GITHUB_TOKEN }} | \
+             docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
+             cd ~/saftaja && \
+             git pull && \
+             docker compose -f compose.yaml -f compose.prod.yaml pull && \
+             docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans && \
+             docker logout ghcr.io"
