@@ -8,13 +8,13 @@
 	}
 }
 
-{$BASE_DOMAIN} {
-	reverse_proxy bawaba:80
-}
+#{$BASE_DOMAIN} {
+#	reverse_proxy bawaba:80
+#}
 
-app.{$BASE_DOMAIN} {
-	reverse_proxy diwan:80
-}
+#app.{$BASE_DOMAIN} {
+#	reverse_proxy diwan:80
+#}
 
 khazina.{$BASE_DOMAIN} {
 	reverse_proxy khazina:8080
