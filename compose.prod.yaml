@@ -26,6 +26,9 @@ services:
       placement:
         constraints:
           - node.role == manager
+    networks:
+      saftaja_net:
+        ipv4_address: 172.26.0.10
 
   khazina:
     image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/khazina:${TAG:-main}
@@ -44,6 +47,9 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 3
+    networks:
+      saftaja_net:
+        ipv4_address: 172.26.0.11
 
   db:
     deploy:
@@ -51,6 +57,9 @@ services:
       placement:
         constraints:
           - node.role == manager
+    networks:
+      saftaja_net:
+        ipv4_address: 172.26.0.12
 
   # diwan:
   #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-main}
@@ -65,3 +74,9 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+
+networks:
+  saftaja_net:
+    ipam:
+      config:
+        - subnet: 172.26.0.0/16
