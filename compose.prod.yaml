@@ -66,7 +66,7 @@ services:
     restart: always
     hostname: saftaja
     networks:
-      crispy_net:
+      saftaja_net:
         ipv4_address: 172.26.0.15
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
