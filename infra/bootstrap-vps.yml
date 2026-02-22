@@ -2,7 +2,6 @@
   hosts: all
   become: true
   vars:
-    ssh_port: 2222
     maintenance_user: maintenance
     deploy_user: deploy
     my_public_key: "{{ lookup('env', 'MY_PUBLIC_KEY') }}"
@@ -55,6 +54,14 @@
         name: "{{ deploy_user }}"
         shell: /bin/bash
         state: present
+
+    - name: Create deploy user .ssh directory
+      file:
+        path: /home/{{ deploy_user }}/.ssh
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0700'
 
     - name: Generate deploy SSH key on server
       community.crypto.openssh_keypair:
@@ -114,3 +121,31 @@
         docker_rootful: false
         create_docker_user: false
         docker_allow_privileged_ports: true
+
+    - name: Allow SSH
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Allow HTTP
+      community.general.ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+
+    - name: Allow HTTPS
+      community.general.ufw:
+        rule: allow
+        port: "443"
+        proto: tcp
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+    - name: Harden SSH
+      ansible.builtin.include_role:
+        name: devsec.hardening.ssh_hardening

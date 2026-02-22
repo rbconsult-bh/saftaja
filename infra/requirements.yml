@@ -1,8 +1,4 @@
 roles:
-  - name: dev-sec.ssh-hardening
-    src: https://github.com/dev-sec/ansible-collection-hardening.git
-    scm: git
-    version: 83167cdd4c219e544aa33403ccaea97dcdcb7cf8 # 10.5.0
   - name: konstruktoid.docker_rootless
     src: https://github.com/konstruktoid/ansible-role-docker-rootless.git
     version: e8d6018d01b5ac241fd823ed7ccd6f540eece3db # v1.14.0
@@ -18,3 +14,6 @@ collections:
   - name: https://github.com/ansible-collections/community.general.git
     type: git
     version: e9064bbf9740fccd6e201c200076bfed73242bfc # 12.3.0
+  - name: https://github.com/dev-sec/ansible-collection-hardening.git
+    type: git
+    version: 83167cdd4c219e544aa33403ccaea97dcdcb7cf8 # 10.5.0
