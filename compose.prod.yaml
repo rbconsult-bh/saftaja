@@ -52,15 +52,15 @@ services:
         constraints:
           - node.role == manager
 
-  diwan:
-    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-latest}
-    deploy:
-      replicas: 1
-
-  bawaba:
-    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/bawaba:${TAG:-latest}
-    deploy:
-      replicas: 1
+  # diwan:
+  #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-latest}
+  #   deploy:
+  #     replicas: 1
+  #
+  # bawaba:
+  #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/bawaba:${TAG:-latest}
+  #   deploy:
+  #     replicas: 1
 
 volumes:
   caddy_data:
