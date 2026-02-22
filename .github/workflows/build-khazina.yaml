@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'khazina/**'
+  workflow_dispatch:
 
 jobs:
   build:
