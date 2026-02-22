@@ -28,7 +28,7 @@ services:
           - node.role == manager
 
   khazina:
-    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/khazina:${TAG:-latest}
+    image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/khazina:${TAG:-main}
     deploy:
       replicas: 2
       resources:
@@ -53,12 +53,12 @@ services:
           - node.role == manager
 
   # diwan:
-  #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-latest}
+  #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-main}
   #   deploy:
   #     replicas: 1
   #
   # bawaba:
-  #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/bawaba:${TAG:-latest}
+  #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/bawaba:${TAG:-main}
   #   deploy:
   #     replicas: 1
 
