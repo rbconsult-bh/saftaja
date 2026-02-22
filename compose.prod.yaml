@@ -61,6 +61,24 @@ services:
       saftaja_net:
         ipv4_address: 172.26.0.12
 
+  tailscale:
+    image: tailscale/tailscale:latest
+    restart: always
+    hostname: saftaja
+    networks:
+      crispy_net:
+        ipv4_address: 172.26.0.15
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_ROUTES=172.26.0.0/16
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+
   # diwan:
   #   image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/diwan:${TAG:-main}
   #   deploy:
