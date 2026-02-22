@@ -15,6 +15,27 @@ import (
 	"golang.org/x/text/language"
 )
 
+type CheckoutTheme struct {
+	PrimaryColor string // e.g. "#1e293b"
+	BorderRadius string // e.g. "12px"
+	CompanyName  string // displayed in the checkout sidebar
+	LogoURL      string // optional logo image
+}
+
+func (t CheckoutTheme) primaryColor() string {
+	if t.PrimaryColor != "" {
+		return t.PrimaryColor
+	}
+	return "#0f172a"
+}
+
+func (t CheckoutTheme) borderRadius() string {
+	if t.BorderRadius != "" {
+		return t.BorderRadius
+	}
+	return "12px"
+}
+
 type CheckoutPageData struct {
 	MPGSBaseURL    string
 	MPGSAPIVersion string
@@ -24,6 +45,7 @@ type CheckoutPageData struct {
 	Options        []PaymentOption
 	IsPaid         bool
 	Lang           language.Tag
+	Theme          CheckoutTheme
 }
 
 type CheckoutInvoice struct {
@@ -95,7 +117,7 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(langCode(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 64, Col: 33}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 86, Col: 33}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -108,7 +130,7 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(langDir(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 64, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 86, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -121,13 +143,13 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblSecureCheckout.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 66, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 88, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script><style>\n\t\t\t\t#antiClickjack { display: none !important; }\n\n\t\t\t\t@keyframes shimmer {\n\t\t\t\t\t0% { background-position: -200% 0; }\n\t\t\t\t\t100% { background-position: 200% 0; }\n\t\t\t\t}\n\t\t\t\t.skeleton {\n\t\t\t\t\tbackground: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);\n\t\t\t\t\tbackground-size: 200% 100%;\n\t\t\t\t\tanimation: shimmer 1.5s infinite;\n\t\t\t\t}\n\n\t\t\t\t@keyframes fadeIn {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(10px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.fade-in { animation: fadeIn 0.3s ease-out forwards; }\n\n\t\t\t\t@keyframes fadeInUp {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(30px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }\n\n\t\t\t\t.delay-100 { animation-delay: 100ms; opacity: 0; }\n\t\t\t\t.delay-200 { animation-delay: 200ms; opacity: 0; }\n\t\t\t\t.delay-300 { animation-delay: 300ms; opacity: 0; }\n\t\t\t\t.delay-400 { animation-delay: 400ms; opacity: 0; }\n\n\t\t\t\t@keyframes checkmark {\n\t\t\t\t\t0% { stroke-dashoffset: 100; }\n\t\t\t\t\t100% { stroke-dashoffset: 0; }\n\t\t\t\t}\n\t\t\t\t.checkmark-circle {\n\t\t\t\t\tstroke-dasharray: 166;\n\t\t\t\t\tstroke-dashoffset: 166;\n\t\t\t\t\tanimation: checkmark 0.6s ease-in-out forwards;\n\t\t\t\t}\n\t\t\t\t.checkmark-check {\n\t\t\t\t\tstroke-dasharray: 48;\n\t\t\t\t\tstroke-dashoffset: 48;\n\t\t\t\t\tanimation: checkmark 0.3s ease-in-out 0.4s forwards;\n\t\t\t\t}\n\n\t\t\t\t@keyframes spin {\n\t\t\t\t\tto { transform: rotate(360deg); }\n\t\t\t\t}\n\t\t\t\t.spinner {\n\t\t\t\t\twidth: 24px;\n\t\t\t\t\theight: 24px;\n\t\t\t\t\tborder: 3px solid transparent;\n\t\t\t\t\tborder-top-color: currentColor;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tanimation: spin 0.8s linear infinite;\n\t\t\t\t}\n\t\t\t\t.spinner-large {\n\t\t\t\t\twidth: 48px;\n\t\t\t\t\theight: 48px;\n\t\t\t\t\tborder-width: 4px;\n\t\t\t\t}\n\n\t\t\t\t@keyframes pulse {\n\t\t\t\t\t0%, 100% { opacity: 1; }\n\t\t\t\t\t50% { opacity: 0.5; }\n\t\t\t\t}\n\t\t\t\t.pulse { animation: pulse 2s ease-in-out infinite; }\n\n\t\t\t\t.backdrop-blur {\n\t\t\t\t\tbackdrop-filter: blur(8px);\n\t\t\t\t\t-webkit-backdrop-filter: blur(8px);\n\t\t\t\t}\n\n\t\t\t\t/* RTL support */\n\t\t\t\t[dir=\"rtl\"] .rtl\\:rotate-180 {\n\t\t\t\t\ttransform: rotate(180deg);\n\t\t\t\t}\n\n\t\t\t\t/* Keep numbers/amounts LTR in RTL mode */\n\t\t\t\t.ltr-nums {\n\t\t\t\t\tdirection: ltr;\n\t\t\t\t\tunicode-bidi: isolate;\n\t\t\t\t}\n\t\t\t</style>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script><style>\n\t\t\t\t:root {\n\t\t\t\t\t--color-primary: { data.Theme.primaryColor() };\n\t\t\t\t\t--border-radius: { data.Theme.borderRadius() };\n\t\t\t\t}\n\t\t\t\t.theme-bg { background-color: var(--color-primary) !important; }\n\t\t\t\t.theme-border { border-color: var(--color-primary) !important; }\n\t\t\t\t.theme-ring:focus { outline: none; box-shadow: 0 0 0 2px var(--color-primary); }\n\t\t\t\t#antiClickjack { display: none !important; }\n\n\t\t\t\t@keyframes shimmer {\n\t\t\t\t\t0% { background-position: -200% 0; }\n\t\t\t\t\t100% { background-position: 200% 0; }\n\t\t\t\t}\n\t\t\t\t.skeleton {\n\t\t\t\t\tbackground: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);\n\t\t\t\t\tbackground-size: 200% 100%;\n\t\t\t\t\tanimation: shimmer 1.5s infinite;\n\t\t\t\t}\n\n\t\t\t\t@keyframes fadeIn {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(10px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.fade-in { animation: fadeIn 0.3s ease-out forwards; }\n\n\t\t\t\t@keyframes fadeInUp {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(30px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }\n\n\t\t\t\t.delay-100 { animation-delay: 100ms; opacity: 0; }\n\t\t\t\t.delay-200 { animation-delay: 200ms; opacity: 0; }\n\t\t\t\t.delay-300 { animation-delay: 300ms; opacity: 0; }\n\t\t\t\t.delay-400 { animation-delay: 400ms; opacity: 0; }\n\n\t\t\t\t@keyframes checkmark {\n\t\t\t\t\t0% { stroke-dashoffset: 100; }\n\t\t\t\t\t100% { stroke-dashoffset: 0; }\n\t\t\t\t}\n\t\t\t\t.checkmark-circle {\n\t\t\t\t\tstroke-dasharray: 166;\n\t\t\t\t\tstroke-dashoffset: 166;\n\t\t\t\t\tanimation: checkmark 0.6s ease-in-out forwards;\n\t\t\t\t}\n\t\t\t\t.checkmark-check {\n\t\t\t\t\tstroke-dasharray: 48;\n\t\t\t\t\tstroke-dashoffset: 48;\n\t\t\t\t\tanimation: checkmark 0.3s ease-in-out 0.4s forwards;\n\t\t\t\t}\n\n\t\t\t\t@keyframes spin {\n\t\t\t\t\tto { transform: rotate(360deg); }\n\t\t\t\t}\n\t\t\t\t.spinner {\n\t\t\t\t\twidth: 24px;\n\t\t\t\t\theight: 24px;\n\t\t\t\t\tborder: 3px solid transparent;\n\t\t\t\t\tborder-top-color: currentColor;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tanimation: spin 0.8s linear infinite;\n\t\t\t\t}\n\t\t\t\t.spinner-large {\n\t\t\t\t\twidth: 48px;\n\t\t\t\t\theight: 48px;\n\t\t\t\t\tborder-width: 4px;\n\t\t\t\t}\n\n\t\t\t\t@keyframes pulse {\n\t\t\t\t\t0%, 100% { opacity: 1; }\n\t\t\t\t\t50% { opacity: 0.5; }\n\t\t\t\t}\n\t\t\t\t.pulse { animation: pulse 2s ease-in-out infinite; }\n\n\t\t\t\t.backdrop-blur {\n\t\t\t\t\tbackdrop-filter: blur(8px);\n\t\t\t\t\t-webkit-backdrop-filter: blur(8px);\n\t\t\t\t}\n\n\t\t\t\t/* RTL support */\n\t\t\t\t[dir=\"rtl\"] .rtl\\:rotate-180 {\n\t\t\t\t\ttransform: rotate(180deg);\n\t\t\t\t}\n\n\t\t\t\t/* Keep numbers/amounts LTR in RTL mode */\n\t\t\t\t.ltr-nums {\n\t\t\t\t\tdirection: ltr;\n\t\t\t\t\tunicode-bidi: isolate;\n\t\t\t\t}\n\t\t\t</style>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -139,7 +161,7 @@ func CheckoutPage(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.MPGSBaseURL + "/form/version/" + data.MPGSAPIVersion + "/merchant/" + data.MPGSMerchantID + "/session.js")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 155, Col: 128}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 184, Col: 128}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -209,7 +231,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPaymentSuccessful.Get(lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 181, Col: 114}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 210, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -222,7 +244,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 184, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 213, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -235,7 +257,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 185, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 214, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -248,7 +270,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblInvoice.Get(lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 191, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 220, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -261,7 +283,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(truncateID(invoice.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 192, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 221, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -279,7 +301,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCustomer.Get(lang))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 196, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 225, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -292,7 +314,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(invoice.CustomerEmail)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 197, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 226, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -310,7 +332,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblThankYou.Get(lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 202, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 231, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -323,7 +345,7 @@ func SuccessPage(invoice CheckoutInvoice, lang language.Tag) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPoweredBy.Get(lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 204, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 233, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
@@ -358,14 +380,14 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			templ_7745c5c3_Var16 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<!-- Main Checkout Container --><div id=\"checkout-main\" class=\"min-h-screen flex items-center justify-center p-4 md:p-8\"><div class=\"w-full max-w-4xl\"><div class=\"bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2\"><!-- LEFT: Invoice Summary --><div class=\"bg-slate-900 text-white p-6 md:p-8\"><div class=\"h-full flex flex-col\"><div class=\"mb-6\"><div class=\"w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4\"><svg class=\"w-5 h-5 text-white\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg></div><p class=\"text-slate-400 text-sm uppercase tracking-wider\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<!-- Main Checkout Container --><div id=\"checkout-main\" class=\"min-h-screen flex items-center justify-center p-4 md:p-8\"><div class=\"w-full max-w-4xl\"><div class=\"bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2\"><!-- LEFT: Invoice Summary --><div class=\"theme-bg text-white p-6 md:p-8\"><div class=\"h-full flex flex-col\"><div class=\"mb-6\"><div class=\"w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4\"><svg class=\"w-5 h-5 text-white\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg></div><p class=\"text-slate-400 text-sm uppercase tracking-wider\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblAmountDue.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 224, Col: 102}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 253, Col: 102}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
@@ -378,7 +400,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 228, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 257, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -391,7 +413,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 229, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 258, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -409,7 +431,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblDescription.Get(data.Lang))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 235, Col: 111}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 264, Col: 111}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -422,7 +444,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 236, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 265, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -441,7 +463,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCustomer.Get(data.Lang))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 241, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 270, Col: 108}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -454,7 +476,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.CustomerEmail)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 242, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 271, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -472,7 +494,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.CustomerName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 244, Col: 71}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 273, Col: 71}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -496,7 +518,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(data.Items)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 256, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 285, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -509,7 +531,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(pluralizeLocalized(len(data.Items), domain.LblItem.Get(data.Lang), domain.LblItems.Get(data.Lang)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 256, Col: 150}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 285, Col: 150}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -527,7 +549,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(item.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 266, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 295, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -540,7 +562,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var28 string
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", item.Quantity))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 267, Col: 90}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 296, Col: 90}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -553,7 +575,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(item.UnitPrice)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 267, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 296, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -566,7 +588,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var30 string
 				templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 267, Col: 138}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 296, Col: 138}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 				if templ_7745c5c3_Err != nil {
@@ -579,7 +601,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var31 string
 				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(item.Amount)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 269, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 298, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {
@@ -602,7 +624,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(domain.Lbl256BitEncryption.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 281, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 310, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -615,7 +637,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var33 string
 		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPaymentFailed.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 297, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 326, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {
@@ -628,7 +650,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPleaseTryAgain.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 298, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 327, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {
@@ -641,7 +663,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPaymentMethod.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 304, Col: 100}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 333, Col: 100}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -659,7 +681,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblNoPaymentMethods.Get(data.Lang))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 307, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 336, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -678,7 +700,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(opt.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 313, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 342, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -691,7 +713,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Type)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 314, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 343, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -719,7 +741,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 331, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 360, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {
@@ -737,7 +759,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var40 string
 				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblVisaMastercardAmex.Get(data.Lang))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 333, Col: 90}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 362, Col: 90}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
@@ -755,7 +777,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 				var templ_7745c5c3_Var41 string
 				templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblQuickAndSecure.Get(data.Lang))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 335, Col: 86}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 364, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 				if templ_7745c5c3_Err != nil {
@@ -778,7 +800,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var42 string
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblBack.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 355, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 384, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -791,7 +813,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var43 string
 		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCardDetails.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 357, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 386, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 		if templ_7745c5c3_Err != nil {
@@ -804,7 +826,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var44 string
 		templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblSecuringConnection.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 383, Col: 108}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 412, Col: 108}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 		if templ_7745c5c3_Err != nil {
@@ -817,7 +839,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var45 string
 		templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblBack.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 395, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 424, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 		if templ_7745c5c3_Err != nil {
@@ -830,7 +852,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var46 string
 		templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCardDetails.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 397, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 426, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 		if templ_7745c5c3_Err != nil {
@@ -843,7 +865,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var47 string
 		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCardNumber.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 400, Col: 124}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 429, Col: 124}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
@@ -856,7 +878,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var48 string
 		templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblMonth.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 411, Col: 121}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 440, Col: 121}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 		if templ_7745c5c3_Err != nil {
@@ -869,7 +891,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblYear.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 421, Col: 119}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 450, Col: 119}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -882,7 +904,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var50 string
 		templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCVC.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 431, Col: 120}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 460, Col: 120}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 		if templ_7745c5c3_Err != nil {
@@ -895,20 +917,20 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var51 string
 		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblCardholderName.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 442, Col: 132}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 471, Col: 132}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "</label> <input type=\"text\" id=\"cardholder-name\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors\" placeholder=\"MOHAMMAD\" readonly></div><button id=\"payButton\" type=\"button\" onclick=\"pay()\" class=\"w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:bg-slate-400 disabled:cursor-not-allowed\"><span id=\"payButtonText\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "</label> <input type=\"text\" id=\"cardholder-name\" class=\"w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors\" placeholder=\"MOHAMMAD\" readonly></div><button id=\"payButton\" type=\"button\" onclick=\"pay()\" class=\"w-full h-14 theme-bg text-white font-semibold rounded-xl opacity-100 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed\"><span id=\"payButtonText\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPay.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 457, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 486, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -921,7 +943,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var53 string
 		templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 457, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 486, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 		if templ_7745c5c3_Err != nil {
@@ -934,7 +956,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 457, Col: 136}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 486, Col: 136}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 		if templ_7745c5c3_Err != nil {
@@ -947,7 +969,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var55 string
 		templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPoweredBy.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 470, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 499, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 		if templ_7745c5c3_Err != nil {
@@ -960,7 +982,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var56 string
 		templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblProcessingPayment.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 478, Col: 101}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 507, Col: 101}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 		if templ_7745c5c3_Err != nil {
@@ -973,7 +995,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var57 string
 		templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPleaseWait.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 479, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 508, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 		if templ_7745c5c3_Err != nil {
@@ -986,7 +1008,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblBankVerification.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 493, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 522, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 		if templ_7745c5c3_Err != nil {
@@ -999,7 +1021,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var59 string
 		templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblConfirmIdentity.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 494, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 523, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 		if templ_7745c5c3_Err != nil {
@@ -1012,7 +1034,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var60 string
 		templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblBankRequired.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 506, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 535, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 		if templ_7745c5c3_Err != nil {
@@ -1025,7 +1047,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var61 string
 		templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPaymentSuccessful.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 520, Col: 119}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 549, Col: 119}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 		if templ_7745c5c3_Err != nil {
@@ -1038,7 +1060,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var62 string
 		templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 523, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 552, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 		if templ_7745c5c3_Err != nil {
@@ -1051,7 +1073,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var63 string
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(data.Invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 524, Col: 65}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 553, Col: 65}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 		if templ_7745c5c3_Err != nil {
@@ -1064,7 +1086,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var64 string
 		templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblInvoice.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 530, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 559, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 		if templ_7745c5c3_Err != nil {
@@ -1077,7 +1099,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var65 string
 		templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(truncateID(data.Invoice.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 531, Col: 103}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 560, Col: 103}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 		if templ_7745c5c3_Err != nil {
@@ -1090,7 +1112,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblDate.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 534, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 563, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {
@@ -1103,7 +1125,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var67 string
 		templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblThankYou.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 539, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 568, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 		if templ_7745c5c3_Err != nil {
@@ -1116,7 +1138,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		var templ_7745c5c3_Var68 string
 		templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(domain.LblPoweredBy.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 541, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 570, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 		if templ_7745c5c3_Err != nil {
@@ -1128,7 +1150,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var69, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 554, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 583, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var69)
 		if templ_7745c5c3_Err != nil {
@@ -1140,7 +1162,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var70, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 555, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 584, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var70)
 		if templ_7745c5c3_Err != nil {
@@ -1152,7 +1174,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var71, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Invoice.Currency)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 556, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 585, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var71)
 		if templ_7745c5c3_Err != nil {
@@ -1164,7 +1186,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var72, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(langCode(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 557, Col: 37}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 586, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 		if templ_7745c5c3_Err != nil {
@@ -1176,7 +1198,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var73, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.LblPaymentFailedInit.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 616, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 645, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var73)
 		if templ_7745c5c3_Err != nil {
@@ -1188,7 +1210,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var74, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.LblGatewayLoadFailed.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 623, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 652, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 		if templ_7745c5c3_Err != nil {
@@ -1200,7 +1222,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var75, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.LblProcessingPayment.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 683, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 712, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var75)
 		if templ_7745c5c3_Err != nil {
@@ -1212,7 +1234,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var76, templ_7745c5c3_Err := templruntime.ScriptContentInsideStringLiteral(domain.LblPay.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 695, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 724, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var76)
 		if templ_7745c5c3_Err != nil {
@@ -1224,7 +1246,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var77, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.MsgPaymentDeclined.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 765, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 794, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 		if templ_7745c5c3_Err != nil {
@@ -1236,7 +1258,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var78, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.MsgInternalError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 767, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 796, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var78)
 		if templ_7745c5c3_Err != nil {
@@ -1248,7 +1270,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var79, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.MsgGatewayError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 771, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 800, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var79)
 		if templ_7745c5c3_Err != nil {
@@ -1260,7 +1282,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var80, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.MsgAuthenticationFailed.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 804, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 833, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var80)
 		if templ_7745c5c3_Err != nil {
@@ -1272,7 +1294,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var81, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.MsgGatewayError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 824, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 853, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var81)
 		if templ_7745c5c3_Err != nil {
@@ -1284,7 +1306,7 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		}
 		templ_7745c5c3_Var82, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(domain.MsgPaymentDeclined.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 835, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templfiles/checkout.templ`, Line: 864, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var82)
 		if templ_7745c5c3_Err != nil {

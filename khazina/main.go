@@ -21,11 +21,13 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/internal/admin"
+	"github.com/rbconsult-bh/saftaja/internal/auth"
 	"github.com/rbconsult-bh/saftaja/internal/config"
 	_ "github.com/rbconsult-bh/saftaja/internal/connectors/mpgs"
 	"github.com/rbconsult-bh/saftaja/internal/payment"
 	"github.com/rbconsult-bh/saftaja/internal/store"
 	"github.com/rbconsult-bh/saftaja/internal/tenant"
+	v1 "github.com/rbconsult-bh/saftaja/internal/v1"
 	"github.com/rbconsult-bh/saftaja/internal/web"
 	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
 )
@@ -71,8 +73,14 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to get encryption key")
 	}
 
-	tenantSvc := tenant.NewService(queries)
+	tenantSvc := tenant.NewService(queries, cfg.BaseDomain)
 	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
+
+	authSvc := auth.NewService(queries, []byte(cfg.JWTSecret))
+	authHandlers := auth.NewHandlers(authSvc)
+
+	v1Svc := v1.NewService(queries, encryptionKey, cfg.BaseDomain)
+	v1Handlers := v1.NewHandlers(v1Svc)
 
 	r := chi.NewRouter()
 
@@ -99,6 +107,22 @@ func main() {
 
 	// Domain verification for Caddy/Traefik on-demand TLS
 	r.Get("/verify-domain", h.VerifyDomainHandler)
+
+	// =========================================================================
+	// AUTH ROUTES
+	// =========================================================================
+	r.Post("/auth/register", authHandlers.Register)
+	r.Post("/auth/login", authHandlers.Login)
+	r.Post("/auth/logout", authHandlers.Logout)
+	r.With(auth.RequireAuth(authSvc)).Get("/auth/me", authHandlers.Me)
+
+	// =========================================================================
+	// V1 API ROUTES (user-scoped, JWT or API key auth)
+	// =========================================================================
+	r.Route("/v1", func(r chi.Router) {
+		r.Use(auth.RequireAuth(authSvc))
+		v1Handlers.RegisterRoutes(r)
+	})
 
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
 	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)

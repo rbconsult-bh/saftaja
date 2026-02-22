@@ -7,6 +7,27 @@ import (
 	"golang.org/x/text/language"
 )
 
+type CheckoutTheme struct {
+	PrimaryColor string // e.g. "#1e293b"
+	BorderRadius string // e.g. "12px"
+	CompanyName  string // displayed in the checkout sidebar
+	LogoURL      string // optional logo image
+}
+
+func (t CheckoutTheme) primaryColor() string {
+	if t.PrimaryColor != "" {
+		return t.PrimaryColor
+	}
+	return "#0f172a"
+}
+
+func (t CheckoutTheme) borderRadius() string {
+	if t.BorderRadius != "" {
+		return t.BorderRadius
+	}
+	return "12px"
+}
+
 type CheckoutPageData struct {
 	MPGSBaseURL    string
 	MPGSAPIVersion string
@@ -16,6 +37,7 @@ type CheckoutPageData struct {
 	Options        []PaymentOption
 	IsPaid         bool
 	Lang           language.Tag
+	Theme          CheckoutTheme
 }
 
 type CheckoutInvoice struct {
@@ -68,6 +90,13 @@ templ CheckoutPage(data CheckoutPageData) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<style>
+				:root {
+					--color-primary: { data.Theme.primaryColor() };
+					--border-radius: { data.Theme.borderRadius() };
+				}
+				.theme-bg { background-color: var(--color-primary) !important; }
+				.theme-border { border-color: var(--color-primary) !important; }
+				.theme-ring:focus { outline: none; box-shadow: 0 0 0 2px var(--color-primary); }
 				#antiClickjack { display: none !important; }
 
 				@keyframes shimmer {
@@ -213,7 +242,7 @@ templ CheckoutForm(data CheckoutPageData) {
 		<div class="w-full max-w-4xl">
 			<div class="bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2">
 				<!-- LEFT: Invoice Summary -->
-				<div class="bg-slate-900 text-white p-6 md:p-8">
+				<div class="theme-bg text-white p-6 md:p-8">
 					<div class="h-full flex flex-col">
 						<div class="mb-6">
 							<div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4">
@@ -452,7 +481,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								id="payButton"
 								type="button"
 								onclick="pay()"
-								class="w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:bg-slate-400 disabled:cursor-not-allowed"
+								class="w-full h-14 theme-bg text-white font-semibold rounded-xl opacity-100 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
 							>
 								<span id="payButtonText">{ domain.LblPay.Get(data.Lang) } <span class="ltr-nums">{ data.Invoice.Amount } { data.Invoice.Currency }</span></span>
 								<div id="payButtonSpinner" class="spinner hidden"></div>

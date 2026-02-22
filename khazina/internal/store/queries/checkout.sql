@@ -86,3 +86,9 @@ SELECT * FROM projects
 WHERE custom_domain = $1
 AND deleted_at IS NULL
 LIMIT 1;
+
+-- name: GetProjectBySlug :one
+SELECT * FROM projects
+WHERE slug = $1
+AND deleted_at IS NULL
+LIMIT 1;

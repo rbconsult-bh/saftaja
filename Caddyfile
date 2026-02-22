@@ -14,6 +14,15 @@
 #	reverse_proxy diwan:80
 #}
 
+# Uncomment when ready: wildcard for slug subdomains (*.saftaja.xyz)
+# Requires DNS challenge (ACME_DNS_PROVIDER + credentials)
+#*.{$BASE_DOMAIN} {
+#	tls {
+#		dns {$ACME_DNS_PROVIDER}
+#	}
+#	reverse_proxy khazina:8080
+#}
+
 khazina.{$BASE_DOMAIN} {
 	reverse_proxy khazina:8080
 }

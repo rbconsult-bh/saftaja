@@ -334,7 +334,7 @@ func (q *Queries) GetPaymentSessionByIDAndProject(ctx context.Context, arg GetPa
 }
 
 const getProjectByCustomDomain = `-- name: GetProjectByCustomDomain :one
-SELECT id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at FROM projects
+SELECT id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at, slug, theme FROM projects
 WHERE custom_domain = $1
 AND deleted_at IS NULL
 LIMIT 1
@@ -352,12 +352,14 @@ func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain pgt
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Slug,
+		&i.Theme,
 	)
 	return i, err
 }
 
 const getProjectByPaymentSessionID = `-- name: GetProjectByPaymentSessionID :one
-SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM projects p
+SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, slug, theme, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM projects p
 JOIN payment_sessions ps ON p.id = ps.project_id
 WHERE ps.id = $1
 `
@@ -371,6 +373,8 @@ type GetProjectByPaymentSessionIDRow struct {
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
 	DeletedAt        pgtype.Timestamptz
+	Slug             pgtype.Text
+	Theme            []byte
 	ID_2             uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
@@ -399,6 +403,8 @@ func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Slug,
+		&i.Theme,
 		&i.ID_2,
 		&i.InvoiceID,
 		&i.ProjectID,
@@ -413,6 +419,31 @@ func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID
 		&i.UpdatedAt_2,
 		&i.DeletedAt_2,
 		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getProjectBySlug = `-- name: GetProjectBySlug :one
+SELECT id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at, slug, theme FROM projects
+WHERE slug = $1
+AND deleted_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetProjectBySlug(ctx context.Context, slug pgtype.Text) (Project, error) {
+	row := q.db.QueryRow(ctx, getProjectBySlug, slug)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Environment,
+		&i.CustomDomain,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Slug,
+		&i.Theme,
 	)
 	return i, err
 }

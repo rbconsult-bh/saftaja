@@ -115,7 +115,7 @@ func (q *Queries) CreateOrganization(ctx context.Context, name string) (Organiza
 
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (organization_id, name, environment, custom_domain)
-VALUES ($1, $2, $3, $4) RETURNING id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at
+VALUES ($1, $2, $3, $4) RETURNING id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at, slug, theme
 `
 
 type CreateProjectParams struct {
@@ -142,6 +142,8 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Slug,
+		&i.Theme,
 	)
 	return i, err
 }

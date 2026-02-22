@@ -11,6 +11,20 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type ApiKey struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	ProjectID      uuid.UUID
+	UserID         uuid.UUID
+	Name           string
+	KeyHash        string
+	KeyPrefix      string
+	LastUsedAt     pgtype.Timestamptz
+	ExpiresAt      pgtype.Timestamptz
+	RevokedAt      pgtype.Timestamptz
+	CreatedAt      pgtype.Timestamptz
+}
+
 type GatewayAccount struct {
 	ID             uuid.UUID
 	ProjectID      uuid.UUID
@@ -23,6 +37,18 @@ type GatewayAccount struct {
 	UpdatedAt      pgtype.Timestamptz
 	DeletedAt      pgtype.Timestamptz
 	Credentials    []byte
+}
+
+type Invitation struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	Email          string
+	Role           string
+	InvitedBy      uuid.UUID
+	Token          string
+	AcceptedAt     pgtype.Timestamptz
+	ExpiresAt      pgtype.Timestamptz
+	CreatedAt      pgtype.Timestamptz
 }
 
 type Invoice struct {
@@ -60,6 +86,14 @@ type Organization struct {
 	DeletedAt pgtype.Timestamptz
 }
 
+type OrganizationMember struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	UserID         uuid.UUID
+	Role           string
+	CreatedAt      pgtype.Timestamptz
+}
+
 type PaymentSession struct {
 	ID               uuid.UUID
 	InvoiceID        uuid.UUID
@@ -86,6 +120,8 @@ type Project struct {
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
 	DeletedAt      pgtype.Timestamptz
+	Slug           pgtype.Text
+	Theme          []byte
 }
 
 type Transaction struct {
@@ -103,4 +139,13 @@ type Transaction struct {
 	CreatedAt            pgtype.Timestamptz
 	UpdatedAt            pgtype.Timestamptz
 	DeletedAt            pgtype.Timestamptz
+}
+
+type User struct {
+	ID           uuid.UUID
+	Email        string
+	PasswordHash string
+	Name         string
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 }

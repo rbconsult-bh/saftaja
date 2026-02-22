@@ -103,6 +103,8 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		mpgsMerchantID = checkoutData.MPGSConfig.MerchantID
 	}
 
+	theme := parseProjectTheme(project.Theme)
+
 	data := templfiles.CheckoutPageData{
 		MPGSBaseURL:    mpgsBaseURL,
 		MPGSAPIVersion: mpgsclient.APIVersion,
@@ -119,6 +121,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		Options: options,
 		IsPaid:  false,
 		Lang:    domain.DetectLanguage(r),
+		Theme:   theme,
 	}
 
 	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
@@ -321,7 +324,27 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Apple Pay implementation
+}
+
+func parseProjectTheme(raw []byte) templfiles.CheckoutTheme {
+	if len(raw) == 0 {
+		return templfiles.CheckoutTheme{}
+	}
+	var t struct {
+		PrimaryColor string `json:"primary_color"`
+		BorderRadius string `json:"border_radius"`
+		CompanyName  string `json:"company_name"`
+		LogoURL      string `json:"logo_url"`
+	}
+	if err := json.Unmarshal(raw, &t); err != nil {
+		return templfiles.CheckoutTheme{}
+	}
+	return templfiles.CheckoutTheme{
+		PrimaryColor: t.PrimaryColor,
+		BorderRadius: t.BorderRadius,
+		CompanyName:  t.CompanyName,
+		LogoURL:      t.LogoURL,
+	}
 }
 
 func (h *handlers) VerifyDomainHandler(w http.ResponseWriter, r *http.Request) {

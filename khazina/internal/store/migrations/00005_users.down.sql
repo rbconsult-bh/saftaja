@@ -1,0 +1,7 @@
+ALTER TABLE projects DROP COLUMN IF EXISTS theme;
+ALTER TABLE projects DROP COLUMN IF EXISTS slug;
+
+DROP TABLE IF EXISTS invitations;
+DROP TABLE IF EXISTS api_keys;
+DROP TABLE IF EXISTS organization_members;
+DROP TABLE IF EXISTS users;
