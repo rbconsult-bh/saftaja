@@ -92,6 +92,7 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  tailscale_state:
 
 networks:
   saftaja_net:
