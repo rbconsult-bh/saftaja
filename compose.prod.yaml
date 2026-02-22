@@ -28,7 +28,7 @@ services:
           - node.role == manager
     networks:
       saftaja_net:
-        ipv4_address: 172.26.0.10
+        ipv4_address: 172.27.0.10
 
   khazina:
     image: ${REGISTRY:-ghcr.io/rbconsult-bh/saftaja}/khazina:${TAG:-main}
@@ -49,7 +49,7 @@ services:
         max_attempts: 3
     networks:
       saftaja_net:
-        ipv4_address: 172.26.0.11
+        ipv4_address: 172.27.0.11
 
   db:
     deploy:
@@ -59,7 +59,7 @@ services:
           - node.role == manager
     networks:
       saftaja_net:
-        ipv4_address: 172.26.0.12
+        ipv4_address: 172.27.0.12
 
   tailscale:
     image: tailscale/tailscale:latest
@@ -67,12 +67,12 @@ services:
     hostname: saftaja
     networks:
       saftaja_net:
-        ipv4_address: 172.26.0.15
+        ipv4_address: 172.27.0.15
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
-      - TS_ROUTES=172.26.0.0/16
+      - TS_ROUTES=172.27.0.0/16
     volumes:
       - tailscale_state:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
@@ -98,4 +98,4 @@ networks:
   saftaja_net:
     ipam:
       config:
-        - subnet: 172.26.0.0/16
+        - subnet: 172.27.0.0/16
