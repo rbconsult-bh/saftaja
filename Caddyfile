@@ -3,8 +3,6 @@
 
 	on_demand_tls {
 		ask http://khazina:8080/verify-domain?secret={$VERIFY_DOMAIN_SECRET}
-		interval 5m
-		burst 5
 	}
 }
 
