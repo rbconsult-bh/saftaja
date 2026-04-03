@@ -30,6 +30,7 @@ docker compose up
 - Go 1.24+
 - Docker & Docker Compose
 - Bun (for e2e tests)
+- buf cli: go install github.com/bufbuild/buf/cmd/buf@v1.67.0
 
 ### Project Structure
 
