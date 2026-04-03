@@ -1,4 +1,4 @@
-CREATE TABLE customers (
+CREATE TABLE customer (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   name VARCHAR(100) NOT NULL,
@@ -9,10 +9,10 @@ CREATE TABLE customers (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE customers_sessions (
+CREATE TABLE customer_session (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
+  customer_id UUID REFERENCES customer(id) ON DELETE CASCADE NOT NULL,
   current_jti_hash BYTEA NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
 
@@ -21,9 +21,9 @@ CREATE TABLE customers_sessions (
 
 CREATE TYPE magic_token_type AS ENUM ('auth');
 
-CREATE TABLE magic_tokens (
+CREATE TABLE magic_token (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
+  customer_id UUID REFERENCES customer(id) ON DELETE CASCADE NOT NULL,
   token_type magic_token_type NOT NULL,
   token_hash BYTEA UNIQUE NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
