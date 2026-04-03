@@ -47,3 +47,13 @@ services:
       target: prod
     ports:
       - "3000:80"
+
+  migrate:
+    image: migrate/migrate:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./khazina/internal/store/migrations:/migrations
+    profiles:
+      - tools

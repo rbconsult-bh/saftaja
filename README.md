@@ -78,14 +78,14 @@ bun playwright test -j 1 --headed
 Migrations run automatically on startup. For manual operations:
 
 ```bash
-# Apply migrations
-docker compose run --rm migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_DATABASE}?sslmode=disable" up
-
-# Create new migration
-docker compose run --rm migrate create -ext sql -dir /migrations -seq <name>
+# Apply all pending migrations
+make migrate-up
 
 # Rollback one migration
-docker compose run --rm migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_DATABASE}?sslmode=disable" down 1
+make migrate-down
+
+# Create new migration
+make migrate-create name=add_user_session
 ```
 
 ## Payment Flow
