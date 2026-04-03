@@ -64,6 +64,14 @@ type Customer struct {
 	DeletedAt pgtype.Timestamptz
 }
 
+type CustomerSession struct {
+	ID             uuid.UUID
+	CustomerID     uuid.UUID
+	CurrentJtiHash []byte
+	ExpiresAt      pgtype.Timestamptz
+	CreatedAt      pgtype.Timestamptz
+}
+
 type GatewayAccount struct {
 	ID             uuid.UUID
 	ProjectID      uuid.UUID
@@ -166,12 +174,4 @@ type Transaction struct {
 	CreatedAt            pgtype.Timestamptz
 	UpdatedAt            pgtype.Timestamptz
 	DeletedAt            pgtype.Timestamptz
-}
-
-type UserSession struct {
-	ID             uuid.UUID
-	CustomerID     uuid.UUID
-	CurrentJtiHash []byte
-	ExpiresAt      pgtype.Timestamptz
-	CreatedAt      pgtype.Timestamptz
 }
