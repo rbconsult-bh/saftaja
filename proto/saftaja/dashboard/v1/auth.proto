@@ -1,0 +1,43 @@
+edition = "2024";
+
+package saftaja.dashboard.v1;
+
+option go_package = "dashboardv1";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc InitiateLogin(InitiateLoginRequest) returns (InitiateLoginResponse);
+  rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string name = 2;
+}
+message RegisterResponse {}
+
+message InitiateLoginRequest {
+  string email = 1;
+}
+message InitiateLoginResponse {}
+
+message CompleteLoginRequest {
+  string token = 2;
+}
+message CompleteLoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message LogoutRequest {}
+message LogoutResponse {}
