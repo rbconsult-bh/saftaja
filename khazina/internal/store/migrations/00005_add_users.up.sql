@@ -9,7 +9,7 @@ CREATE TABLE customers (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE user_sessions (
+CREATE TABLE customers_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
