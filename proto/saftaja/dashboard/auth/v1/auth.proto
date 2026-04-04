@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package saftaja.dashboard.v1;
+package saftaja.dashboard.auth.v1;
 
-option go_package = "dashboardv1";
+option go_package = "github.com/rbconsult-bh/saftaja/internal/proto/saftaja/dashboard/auth/v1;authpbv1";
 
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);

@@ -9,6 +9,7 @@ tool (
 )
 
 require (
+	connectrpc.com/connect v1.19.1
 	github.com/a-h/templ v0.3.943
 	github.com/go-chi/chi v1.5.5
 	github.com/golang-migrate/migrate/v4 v4.19.1
