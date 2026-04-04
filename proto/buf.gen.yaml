@@ -1,0 +1,14 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/rbconsult-bh/saftaja/internal/proto
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: ../khazina/internal/proto
+    opt: paths=source_relative
+  - remote: buf.build/connectrpc/gosimple
+    out: ../khazina/internal/proto
+    opt: paths=source_relative
