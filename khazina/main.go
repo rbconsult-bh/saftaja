@@ -20,14 +20,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/internal/admin"
-	"github.com/rbconsult-bh/saftaja/internal/config"
-	_ "github.com/rbconsult-bh/saftaja/internal/connectors/mpgs"
-	"github.com/rbconsult-bh/saftaja/internal/payment"
-	"github.com/rbconsult-bh/saftaja/internal/store"
-	"github.com/rbconsult-bh/saftaja/internal/tenant"
-	"github.com/rbconsult-bh/saftaja/internal/web"
-	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/admin"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
+	_ "github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/tenant"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/web"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/web/middlewares"
 )
 
 func main() {

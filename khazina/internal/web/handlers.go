@@ -11,11 +11,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	mpgsclient "github.com/rbconsult-bh/saftaja/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
-	"github.com/rbconsult-bh/saftaja/internal/payment"
-	"github.com/rbconsult-bh/saftaja/internal/web/middlewares"
-	"github.com/rbconsult-bh/saftaja/internal/web/templfiles"
+	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/web/templfiles"
 )
 
 type handlers struct {

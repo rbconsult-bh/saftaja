@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/shopspring/decimal"
 )
 

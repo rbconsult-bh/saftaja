@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/rbconsult-bh/saftaja/internal/store"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
 // Service handles tenant/project resolution from custom domains.

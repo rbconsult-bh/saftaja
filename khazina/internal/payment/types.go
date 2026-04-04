@@ -2,7 +2,7 @@ package payment
 
 import (
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 type CheckoutData struct {

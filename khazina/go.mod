@@ -1,4 +1,4 @@
-module github.com/rbconsult-bh/saftaja
+module github.com/rbconsult-bh/saftaja/khazina
 
 go 1.24.3
 

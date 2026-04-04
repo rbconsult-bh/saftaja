@@ -3,8 +3,8 @@ package payment_test
 import (
 	"testing"
 
-	"github.com/rbconsult-bh/saftaja/internal/domain"
-	"github.com/rbconsult-bh/saftaja/internal/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/payment"
 )
 
 func TestValidateSessionTransition_Valid(t *testing.T) {

@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	payment "github.com/rbconsult-bh/saftaja/internal/payment"
+	payment "github.com/rbconsult-bh/saftaja/khazina/internal/payment"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"

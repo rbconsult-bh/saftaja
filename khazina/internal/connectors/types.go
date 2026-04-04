@@ -1,6 +1,6 @@
 package connectors
 
-import "github.com/rbconsult-bh/saftaja/internal/domain"
+import "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 
 type FieldType string
 

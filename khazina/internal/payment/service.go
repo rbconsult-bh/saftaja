@@ -12,11 +12,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	mpgsclient "github.com/rbconsult-bh/saftaja/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/internal/connectors/mpgs"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
-	"github.com/rbconsult-bh/saftaja/internal/store"
-	"github.com/rbconsult-bh/saftaja/internal/utils"
+	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/utils"
 )
 
 type Service interface {

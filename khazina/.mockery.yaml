@@ -1,11 +1,11 @@
 packages:
-  github.com/rbconsult-bh/saftaja/internal/payment:
+  github.com/rbconsult-bh/saftaja/khazina/internal/payment:
     interfaces:
       Service:
         config:
           dir: "internal/payment/mocks"
           outpkg: "mocks"
-  github.com/rbconsult-bh/saftaja/internal/tenant:
+  github.com/rbconsult-bh/saftaja/khazina/internal/tenant:
     interfaces:
       Service:
         config:

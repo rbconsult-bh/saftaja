@@ -3,7 +3,7 @@ package connectors
 import (
 	"fmt"
 
-	"github.com/rbconsult-bh/saftaja/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 var Registry = make(map[domain.ConnectorType]ConnectorMeta)

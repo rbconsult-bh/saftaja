@@ -3,8 +3,8 @@ package mpgs
 import (
 	"golang.org/x/text/language"
 
-	"github.com/rbconsult-bh/saftaja/internal/connectors"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/connectors"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 func init() {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rbconsult-bh/saftaja/internal/tenant"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/tenant"
 )
 
 // DynamicCORS validates CORS origins against project custom_domains via tenant service.

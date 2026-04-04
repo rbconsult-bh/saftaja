@@ -1,6 +1,6 @@
 package payment
 
-import "github.com/rbconsult-bh/saftaja/internal/domain"
+import "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 
 var validSessionTransitions = map[domain.PaymentSessionStatus][]domain.PaymentSessionStatus{
 	domain.PaymentSessionStatusCreated:        {domain.PaymentSessionStatusAuthenticating},

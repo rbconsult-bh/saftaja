@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	store "github.com/rbconsult-bh/saftaja/internal/store"
+	store "github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	mock "github.com/stretchr/testify/mock"
 )
 
