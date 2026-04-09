@@ -5,54 +5,18 @@
 package store
 
 import (
-	"database/sql/driver"
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 	"github.com/shopspring/decimal"
 )
 
-type MagicTokenType string
-
-const (
-	MagicTokenTypeAuth MagicTokenType = "auth"
-)
-
-func (e *MagicTokenType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = MagicTokenType(s)
-	case string:
-		*e = MagicTokenType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for MagicTokenType: %T", src)
-	}
-	return nil
-}
-
-type NullMagicTokenType struct {
-	MagicTokenType MagicTokenType
-	Valid          bool // Valid is true if MagicTokenType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullMagicTokenType) Scan(value interface{}) error {
-	if value == nil {
-		ns.MagicTokenType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.MagicTokenType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullMagicTokenType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.MagicTokenType), nil
+type AuthIntent struct {
+	ID        uuid.UUID
+	Email     string
+	TokenHash []byte
+	ExpiresAt pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
 }
 
 type Customer struct {
@@ -111,16 +75,6 @@ type InvoiceItem struct {
 	UnitPrice   decimal.Decimal
 	Amount      decimal.Decimal
 	CreatedAt   pgtype.Timestamptz
-}
-
-type MagicToken struct {
-	ID         uuid.UUID
-	CustomerID uuid.UUID
-	TokenType  MagicTokenType
-	TokenHash  []byte
-	ExpiresAt  pgtype.Timestamptz
-	UsedAt     pgtype.Timestamptz
-	CreatedAt  pgtype.Timestamptz
 }
 
 type Organization struct {

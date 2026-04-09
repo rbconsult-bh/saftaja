@@ -19,14 +19,10 @@ CREATE TABLE customer_session (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TYPE magic_token_type AS ENUM ('auth');
-
-CREATE TABLE magic_token (
+CREATE TABLE auth_intent (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID REFERENCES customer(id) ON DELETE CASCADE NOT NULL,
-  token_type magic_token_type NOT NULL,
+  email VARCHAR(320) UNIQUE NOT NULL,
   token_hash BYTEA UNIQUE NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
-  used_at TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
