@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -22,6 +23,18 @@ func New(queries store.Querier) AuthService {
 }
 
 func (s *service) InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*InitiateAuthResponse, error) {
+	// TODO: generate a random uuid, and save it as bytes
+
+	err := s.queries.CreateAuthIntent(ctx, store.CreateAuthIntentParams{
+		Email:     r.Email,
+		TokenHash: []byte{},
+	})
+	if err != nil {
+		return nil, errors.New("failed to create auth intent")
+	}
+
+	// TODO: send it via email :D
+
 	return &InitiateAuthResponse{}, nil
 }
 

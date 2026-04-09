@@ -12,6 +12,7 @@ import (
 )
 
 type Querier interface {
+	CreateAuthIntent(ctx context.Context, arg CreateAuthIntentParams) error
 	CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
 	CreateOrganization(ctx context.Context, name string) (Organization, error)
