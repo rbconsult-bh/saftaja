@@ -10,6 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/connect"
+	"connectrpc.com/grpcreflect"
+	"connectrpc.com/validate"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/golang-migrate/migrate/v4"
@@ -20,12 +23,15 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
 	_ "github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/authv1"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
 )
@@ -76,13 +82,13 @@ func main() {
 
 	r := chi.NewRouter()
 
-	r.Use(middlewares.DynamicCORS(tenantSvc))
-	r.Use(middlewares.TenantResolver(tenantSvc))
-
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.ZeroLogger)
+
+	r.Use(middlewares.DynamicCORS(tenantSvc))
+	r.Use(middlewares.TenantResolver(tenantSvc))
 
 	h := web.New(paymentSvc, cfg.VerifyDomainSecret)
 
@@ -120,10 +126,37 @@ func main() {
 		adminHandlers.RegisterRoutes(r)
 	})
 
+	authSvc := auth.New(queries)
+
+	dashboardAuthSvc := authv1.New(authSvc)
+	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(
+		dashboardAuthSvc,
+		connect.WithInterceptors(validate.NewInterceptor()),
+	)
+
+	r.Mount(dashboardAuthPath, dashboardAuthHandler)
+
+	reflector := grpcreflect.NewStaticReflector(
+		authpbv1connect.AuthServiceName,
+	)
+
+	v1Path, v1Handler := grpcreflect.NewHandlerV1(reflector)
+	r.Mount(v1Path, v1Handler)
+
+	v1AlphaPath, v1AlphaHandler := grpcreflect.NewHandlerV1Alpha(reflector)
+	r.Mount(v1AlphaPath, v1AlphaHandler)
+
+	log.Debug().Msg("reflection mounted on " + v1Path + " and " + v1AlphaPath)
+
+	p := new(http.Protocols)
+	p.SetHTTP1(true)
+	p.SetUnencryptedHTTP2(true)
+
 	// Server with graceful shutdown
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      r,
+		Protocols:    p,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,

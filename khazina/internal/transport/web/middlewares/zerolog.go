@@ -8,31 +8,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type responseWriter struct {
-	http.ResponseWriter
-	status int
-	bytes  int
-}
-
-func (w *responseWriter) WriteHeader(code int) {
-	w.status = code
-	w.ResponseWriter.WriteHeader(code)
-}
-
-func (w *responseWriter) Write(b []byte) (int, error) {
-	if w.status == 0 {
-		w.status = http.StatusOK
-	}
-	n, err := w.ResponseWriter.Write(b)
-	w.bytes += n
-	return n, err
-}
-
 func ZeroLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		rw := &responseWriter{ResponseWriter: w}
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+
 		reqID := middleware.GetReqID(r.Context())
 
 		logger := log.With().
@@ -44,17 +25,21 @@ func ZeroLogger(next http.Handler) http.Handler {
 			Logger()
 
 		ctx := logger.WithContext(r.Context())
-		next.ServeHTTP(rw, r.WithContext(ctx))
 
+		next.ServeHTTP(ww, r.WithContext(ctx))
+
+		status := ww.Status()
 		event := logger.Info()
-		if rw.status >= 500 {
+
+		if status >= 500 {
 			event = logger.Error()
-		} else if rw.status >= 400 {
+		} else if status >= 400 {
 			event = logger.Warn()
 		}
+
 		event.
-			Int("status", rw.status).
-			Int("bytes", rw.bytes).
+			Int("status", status).
+			Int("bytes", ww.BytesWritten()).
 			Dur("duration", time.Since(start)).
 			Msg("http_request")
 	})
