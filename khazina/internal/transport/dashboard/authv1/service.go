@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	authpbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/proto/saftaja/dashboard/auth/v1"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/proto/saftaja/dashboard/auth/v1/authpbv1connect"
+	authpbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 )
 
 type service struct{}

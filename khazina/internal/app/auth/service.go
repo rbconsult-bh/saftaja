@@ -12,11 +12,13 @@ type AuthService interface {
 }
 
 type service struct {
-	queries store.Queries
+	queries store.Querier
 }
 
-func New() AuthService {
-	return &service{}
+func New(queries store.Querier) AuthService {
+	return &service{
+		queries: queries,
+	}
 }
 
 func (s *service) InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*InitiateAuthResponse, error) {

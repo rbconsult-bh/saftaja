@@ -482,7 +482,7 @@ const file_saftaja_dashboard_auth_v1_auth_proto_rawDesc = "" +
 	"\rInitiateLogin\x12/.saftaja.dashboard.auth.v1.InitiateLoginRequest\x1a0.saftaja.dashboard.auth.v1.InitiateLoginResponse\x12r\n" +
 	"\rCompleteLogin\x12/.saftaja.dashboard.auth.v1.CompleteLoginRequest\x1a0.saftaja.dashboard.auth.v1.CompleteLoginResponse\x12o\n" +
 	"\fRefreshToken\x12..saftaja.dashboard.auth.v1.RefreshTokenRequest\x1a/.saftaja.dashboard.auth.v1.RefreshTokenResponse\x12]\n" +
-	"\x06Logout\x12(.saftaja.dashboard.auth.v1.LogoutRequest\x1a).saftaja.dashboard.auth.v1.LogoutResponseB[ZYgithub.com/rbconsult-bh/saftaja/khazina/internal/proto/saftaja/dashboard/auth/v1;authpbv1b\x06proto3"
+	"\x06Logout\x12(.saftaja.dashboard.auth.v1.LogoutRequest\x1a).saftaja.dashboard.auth.v1.LogoutResponseBeZcgithub.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1;authpbv1b\x06proto3"
 
 var (
 	file_saftaja_dashboard_auth_v1_auth_proto_rawDescOnce sync.Once
