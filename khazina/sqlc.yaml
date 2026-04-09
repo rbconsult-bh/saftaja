@@ -8,6 +8,7 @@ sql:
         package: "store"
         out: "internal/store"
         sql_package: "pgx/v5"
+        emit_interface: true
         overrides:
           - db_type: "uuid"
             nullable: true

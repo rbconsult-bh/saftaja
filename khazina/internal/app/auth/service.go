@@ -1,13 +1,19 @@
 package auth
 
-import "context"
+import (
+	"context"
+
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+)
 
 type AuthService interface {
 	InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*InitiateAuthResponse, error)
 	CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*CompleteAuthResponse, error)
 }
 
-type service struct{}
+type service struct {
+	queries store.Queries
+}
 
 func New() AuthService {
 	return &service{}
