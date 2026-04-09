@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 )
 
 const getInvoiceByID = `-- name: GetInvoiceByID :one

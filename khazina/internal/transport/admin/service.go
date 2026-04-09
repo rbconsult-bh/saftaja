@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/crypto"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 

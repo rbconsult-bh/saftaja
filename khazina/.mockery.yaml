@@ -1,13 +1,13 @@
 packages:
-  github.com/rbconsult-bh/saftaja/khazina/internal/payment:
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/payment:
     interfaces:
       Service:
         config:
-          dir: "internal/payment/mocks"
+          dir: "internal/app/payment/mocks"
           outpkg: "mocks"
-  github.com/rbconsult-bh/saftaja/khazina/internal/tenant:
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant:
     interfaces:
       Service:
         config:
-          dir: "internal/tenant/mocks"
+          dir: "internal/app/tenant/mocks"
           outpkg: "mocks"

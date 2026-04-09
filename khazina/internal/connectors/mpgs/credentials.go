@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/crypto"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 )
 
 type Credentials struct {

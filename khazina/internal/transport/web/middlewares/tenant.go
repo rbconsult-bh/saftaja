@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/tenant"
 )
 
 type contextKey string

@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/tenant/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
 )
 
 func TestTenantResolver_ValidDomain(t *testing.T) {

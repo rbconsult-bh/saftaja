@@ -14,12 +14,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/payment"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/payment/mocks"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/web"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
 )
 
 // testProject is a helper to create a test project for tenant context

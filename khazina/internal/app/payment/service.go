@@ -12,11 +12,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/utils"
 )
 
 type Service interface {
@@ -176,7 +176,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 
 	resp, err := mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
-			AuthenticationLimit: utils.Ptr[int32](25),
+			AuthenticationLimit: ptr.Ptr[int32](25),
 		},
 	})
 	if err != nil {
