@@ -33,14 +33,12 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AuthServiceRegisterProcedure is the fully-qualified name of the AuthService's Register RPC.
-	AuthServiceRegisterProcedure = "/saftaja.dashboard.auth.v1.AuthService/Register"
-	// AuthServiceInitiateLoginProcedure is the fully-qualified name of the AuthService's InitiateLogin
+	// AuthServiceInitiateAuthProcedure is the fully-qualified name of the AuthService's InitiateAuth
 	// RPC.
-	AuthServiceInitiateLoginProcedure = "/saftaja.dashboard.auth.v1.AuthService/InitiateLogin"
-	// AuthServiceCompleteLoginProcedure is the fully-qualified name of the AuthService's CompleteLogin
+	AuthServiceInitiateAuthProcedure = "/saftaja.dashboard.auth.v1.AuthService/InitiateAuth"
+	// AuthServiceCompleteAuthProcedure is the fully-qualified name of the AuthService's CompleteAuth
 	// RPC.
-	AuthServiceCompleteLoginProcedure = "/saftaja.dashboard.auth.v1.AuthService/CompleteLogin"
+	AuthServiceCompleteAuthProcedure = "/saftaja.dashboard.auth.v1.AuthService/CompleteAuth"
 	// AuthServiceRefreshTokenProcedure is the fully-qualified name of the AuthService's RefreshToken
 	// RPC.
 	AuthServiceRefreshTokenProcedure = "/saftaja.dashboard.auth.v1.AuthService/RefreshToken"
@@ -50,9 +48,8 @@ const (
 
 // AuthServiceClient is a client for the saftaja.dashboard.auth.v1.AuthService service.
 type AuthServiceClient interface {
-	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
-	InitiateLogin(context.Context, *connect.Request[v1.InitiateLoginRequest]) (*connect.Response[v1.InitiateLoginResponse], error)
-	CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error)
+	InitiateAuth(context.Context, *connect.Request[v1.InitiateAuthRequest]) (*connect.Response[v1.InitiateAuthResponse], error)
+	CompleteAuth(context.Context, *connect.Request[v1.CompleteAuthRequest]) (*connect.Response[v1.CompleteAuthResponse], error)
 	RefreshToken(context.Context, *connect.Request[v1.RefreshTokenRequest]) (*connect.Response[v1.RefreshTokenResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 }
@@ -68,22 +65,16 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	authServiceMethods := v1.File_saftaja_dashboard_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
 	return &authServiceClient{
-		register: connect.NewClient[v1.RegisterRequest, v1.RegisterResponse](
+		initiateAuth: connect.NewClient[v1.InitiateAuthRequest, v1.InitiateAuthResponse](
 			httpClient,
-			baseURL+AuthServiceRegisterProcedure,
-			connect.WithSchema(authServiceMethods.ByName("Register")),
+			baseURL+AuthServiceInitiateAuthProcedure,
+			connect.WithSchema(authServiceMethods.ByName("InitiateAuth")),
 			connect.WithClientOptions(opts...),
 		),
-		initiateLogin: connect.NewClient[v1.InitiateLoginRequest, v1.InitiateLoginResponse](
+		completeAuth: connect.NewClient[v1.CompleteAuthRequest, v1.CompleteAuthResponse](
 			httpClient,
-			baseURL+AuthServiceInitiateLoginProcedure,
-			connect.WithSchema(authServiceMethods.ByName("InitiateLogin")),
-			connect.WithClientOptions(opts...),
-		),
-		completeLogin: connect.NewClient[v1.CompleteLoginRequest, v1.CompleteLoginResponse](
-			httpClient,
-			baseURL+AuthServiceCompleteLoginProcedure,
-			connect.WithSchema(authServiceMethods.ByName("CompleteLogin")),
+			baseURL+AuthServiceCompleteAuthProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CompleteAuth")),
 			connect.WithClientOptions(opts...),
 		),
 		refreshToken: connect.NewClient[v1.RefreshTokenRequest, v1.RefreshTokenResponse](
@@ -103,26 +94,20 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	register      *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
-	initiateLogin *connect.Client[v1.InitiateLoginRequest, v1.InitiateLoginResponse]
-	completeLogin *connect.Client[v1.CompleteLoginRequest, v1.CompleteLoginResponse]
-	refreshToken  *connect.Client[v1.RefreshTokenRequest, v1.RefreshTokenResponse]
-	logout        *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	initiateAuth *connect.Client[v1.InitiateAuthRequest, v1.InitiateAuthResponse]
+	completeAuth *connect.Client[v1.CompleteAuthRequest, v1.CompleteAuthResponse]
+	refreshToken *connect.Client[v1.RefreshTokenRequest, v1.RefreshTokenResponse]
+	logout       *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 }
 
-// Register calls saftaja.dashboard.auth.v1.AuthService.Register.
-func (c *authServiceClient) Register(ctx context.Context, req *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
-	return c.register.CallUnary(ctx, req)
+// InitiateAuth calls saftaja.dashboard.auth.v1.AuthService.InitiateAuth.
+func (c *authServiceClient) InitiateAuth(ctx context.Context, req *connect.Request[v1.InitiateAuthRequest]) (*connect.Response[v1.InitiateAuthResponse], error) {
+	return c.initiateAuth.CallUnary(ctx, req)
 }
 
-// InitiateLogin calls saftaja.dashboard.auth.v1.AuthService.InitiateLogin.
-func (c *authServiceClient) InitiateLogin(ctx context.Context, req *connect.Request[v1.InitiateLoginRequest]) (*connect.Response[v1.InitiateLoginResponse], error) {
-	return c.initiateLogin.CallUnary(ctx, req)
-}
-
-// CompleteLogin calls saftaja.dashboard.auth.v1.AuthService.CompleteLogin.
-func (c *authServiceClient) CompleteLogin(ctx context.Context, req *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error) {
-	return c.completeLogin.CallUnary(ctx, req)
+// CompleteAuth calls saftaja.dashboard.auth.v1.AuthService.CompleteAuth.
+func (c *authServiceClient) CompleteAuth(ctx context.Context, req *connect.Request[v1.CompleteAuthRequest]) (*connect.Response[v1.CompleteAuthResponse], error) {
+	return c.completeAuth.CallUnary(ctx, req)
 }
 
 // RefreshToken calls saftaja.dashboard.auth.v1.AuthService.RefreshToken.
@@ -137,9 +122,8 @@ func (c *authServiceClient) Logout(ctx context.Context, req *connect.Request[v1.
 
 // AuthServiceHandler is an implementation of the saftaja.dashboard.auth.v1.AuthService service.
 type AuthServiceHandler interface {
-	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
-	InitiateLogin(context.Context, *connect.Request[v1.InitiateLoginRequest]) (*connect.Response[v1.InitiateLoginResponse], error)
-	CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error)
+	InitiateAuth(context.Context, *connect.Request[v1.InitiateAuthRequest]) (*connect.Response[v1.InitiateAuthResponse], error)
+	CompleteAuth(context.Context, *connect.Request[v1.CompleteAuthRequest]) (*connect.Response[v1.CompleteAuthResponse], error)
 	RefreshToken(context.Context, *connect.Request[v1.RefreshTokenRequest]) (*connect.Response[v1.RefreshTokenResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 }
@@ -151,22 +135,16 @@ type AuthServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	authServiceMethods := v1.File_saftaja_dashboard_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
-	authServiceRegisterHandler := connect.NewUnaryHandler(
-		AuthServiceRegisterProcedure,
-		svc.Register,
-		connect.WithSchema(authServiceMethods.ByName("Register")),
+	authServiceInitiateAuthHandler := connect.NewUnaryHandler(
+		AuthServiceInitiateAuthProcedure,
+		svc.InitiateAuth,
+		connect.WithSchema(authServiceMethods.ByName("InitiateAuth")),
 		connect.WithHandlerOptions(opts...),
 	)
-	authServiceInitiateLoginHandler := connect.NewUnaryHandler(
-		AuthServiceInitiateLoginProcedure,
-		svc.InitiateLogin,
-		connect.WithSchema(authServiceMethods.ByName("InitiateLogin")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceCompleteLoginHandler := connect.NewUnaryHandler(
-		AuthServiceCompleteLoginProcedure,
-		svc.CompleteLogin,
-		connect.WithSchema(authServiceMethods.ByName("CompleteLogin")),
+	authServiceCompleteAuthHandler := connect.NewUnaryHandler(
+		AuthServiceCompleteAuthProcedure,
+		svc.CompleteAuth,
+		connect.WithSchema(authServiceMethods.ByName("CompleteAuth")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceRefreshTokenHandler := connect.NewUnaryHandler(
@@ -183,12 +161,10 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 	)
 	return "/saftaja.dashboard.auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AuthServiceRegisterProcedure:
-			authServiceRegisterHandler.ServeHTTP(w, r)
-		case AuthServiceInitiateLoginProcedure:
-			authServiceInitiateLoginHandler.ServeHTTP(w, r)
-		case AuthServiceCompleteLoginProcedure:
-			authServiceCompleteLoginHandler.ServeHTTP(w, r)
+		case AuthServiceInitiateAuthProcedure:
+			authServiceInitiateAuthHandler.ServeHTTP(w, r)
+		case AuthServiceCompleteAuthProcedure:
+			authServiceCompleteAuthHandler.ServeHTTP(w, r)
 		case AuthServiceRefreshTokenProcedure:
 			authServiceRefreshTokenHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
@@ -202,16 +178,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 // UnimplementedAuthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAuthServiceHandler struct{}
 
-func (UnimplementedAuthServiceHandler) Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.auth.v1.AuthService.Register is not implemented"))
+func (UnimplementedAuthServiceHandler) InitiateAuth(context.Context, *connect.Request[v1.InitiateAuthRequest]) (*connect.Response[v1.InitiateAuthResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.auth.v1.AuthService.InitiateAuth is not implemented"))
 }
 
-func (UnimplementedAuthServiceHandler) InitiateLogin(context.Context, *connect.Request[v1.InitiateLoginRequest]) (*connect.Response[v1.InitiateLoginResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.auth.v1.AuthService.InitiateLogin is not implemented"))
-}
-
-func (UnimplementedAuthServiceHandler) CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.auth.v1.AuthService.CompleteLogin is not implemented"))
+func (UnimplementedAuthServiceHandler) CompleteAuth(context.Context, *connect.Request[v1.CompleteAuthRequest]) (*connect.Response[v1.CompleteAuthResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.auth.v1.AuthService.CompleteAuth is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) RefreshToken(context.Context, *connect.Request[v1.RefreshTokenRequest]) (*connect.Response[v1.RefreshTokenResponse], error) {

@@ -21,28 +21,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type RegisterRequest struct {
+type InitiateAuthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RegisterRequest) Reset() {
-	*x = RegisterRequest{}
+func (x *InitiateAuthRequest) Reset() {
+	*x = InitiateAuthRequest{}
 	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegisterRequest) String() string {
+func (x *InitiateAuthRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterRequest) ProtoMessage() {}
+func (*InitiateAuthRequest) ProtoMessage() {}
 
-func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
+func (x *InitiateAuthRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -54,45 +53,38 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
-func (*RegisterRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use InitiateAuthRequest.ProtoReflect.Descriptor instead.
+func (*InitiateAuthRequest) Descriptor() ([]byte, []int) {
 	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RegisterRequest) GetEmail() string {
+func (x *InitiateAuthRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-type RegisterResponse struct {
+type InitiateAuthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RegisterResponse) Reset() {
-	*x = RegisterResponse{}
+func (x *InitiateAuthResponse) Reset() {
+	*x = InitiateAuthResponse{}
 	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegisterResponse) String() string {
+func (x *InitiateAuthResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterResponse) ProtoMessage() {}
+func (*InitiateAuthResponse) ProtoMessage() {}
 
-func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
+func (x *InitiateAuthResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -104,113 +96,33 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
-func (*RegisterResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use InitiateAuthResponse.ProtoReflect.Descriptor instead.
+func (*InitiateAuthResponse) Descriptor() ([]byte, []int) {
 	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
-type InitiateLoginRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *InitiateLoginRequest) Reset() {
-	*x = InitiateLoginRequest{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *InitiateLoginRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*InitiateLoginRequest) ProtoMessage() {}
-
-func (x *InitiateLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use InitiateLoginRequest.ProtoReflect.Descriptor instead.
-func (*InitiateLoginRequest) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *InitiateLoginRequest) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-type InitiateLoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *InitiateLoginResponse) Reset() {
-	*x = InitiateLoginResponse{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *InitiateLoginResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*InitiateLoginResponse) ProtoMessage() {}
-
-func (x *InitiateLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use InitiateLoginResponse.ProtoReflect.Descriptor instead.
-func (*InitiateLoginResponse) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{3}
-}
-
-type CompleteLoginRequest struct {
+type CompleteAuthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CompleteLoginRequest) Reset() {
-	*x = CompleteLoginRequest{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[4]
+func (x *CompleteAuthRequest) Reset() {
+	*x = CompleteAuthRequest{}
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CompleteLoginRequest) String() string {
+func (x *CompleteAuthRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CompleteLoginRequest) ProtoMessage() {}
+func (*CompleteAuthRequest) ProtoMessage() {}
 
-func (x *CompleteLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[4]
+func (x *CompleteAuthRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,19 +133,19 @@ func (x *CompleteLoginRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompleteLoginRequest.ProtoReflect.Descriptor instead.
-func (*CompleteLoginRequest) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{4}
+// Deprecated: Use CompleteAuthRequest.ProtoReflect.Descriptor instead.
+func (*CompleteAuthRequest) Descriptor() ([]byte, []int) {
+	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CompleteLoginRequest) GetToken() string {
+func (x *CompleteAuthRequest) GetToken() string {
 	if x != nil {
 		return x.Token
 	}
 	return ""
 }
 
-type CompleteLoginResponse struct {
+type CompleteAuthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
@@ -241,21 +153,21 @@ type CompleteLoginResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CompleteLoginResponse) Reset() {
-	*x = CompleteLoginResponse{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[5]
+func (x *CompleteAuthResponse) Reset() {
+	*x = CompleteAuthResponse{}
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CompleteLoginResponse) String() string {
+func (x *CompleteAuthResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CompleteLoginResponse) ProtoMessage() {}
+func (*CompleteAuthResponse) ProtoMessage() {}
 
-func (x *CompleteLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[5]
+func (x *CompleteAuthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -266,19 +178,19 @@ func (x *CompleteLoginResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompleteLoginResponse.ProtoReflect.Descriptor instead.
-func (*CompleteLoginResponse) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use CompleteAuthResponse.ProtoReflect.Descriptor instead.
+func (*CompleteAuthResponse) Descriptor() ([]byte, []int) {
+	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *CompleteLoginResponse) GetAccessToken() string {
+func (x *CompleteAuthResponse) GetAccessToken() string {
 	if x != nil {
 		return x.AccessToken
 	}
 	return ""
 }
 
-func (x *CompleteLoginResponse) GetRefreshToken() string {
+func (x *CompleteAuthResponse) GetRefreshToken() string {
 	if x != nil {
 		return x.RefreshToken
 	}
@@ -294,7 +206,7 @@ type RefreshTokenRequest struct {
 
 func (x *RefreshTokenRequest) Reset() {
 	*x = RefreshTokenRequest{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[6]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -306,7 +218,7 @@ func (x *RefreshTokenRequest) String() string {
 func (*RefreshTokenRequest) ProtoMessage() {}
 
 func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[6]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -319,7 +231,7 @@ func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshTokenRequest.ProtoReflect.Descriptor instead.
 func (*RefreshTokenRequest) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{6}
+	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RefreshTokenRequest) GetRefreshToken() string {
@@ -339,7 +251,7 @@ type RefreshTokenResponse struct {
 
 func (x *RefreshTokenResponse) Reset() {
 	*x = RefreshTokenResponse{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[7]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -351,7 +263,7 @@ func (x *RefreshTokenResponse) String() string {
 func (*RefreshTokenResponse) ProtoMessage() {}
 
 func (x *RefreshTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[7]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -364,7 +276,7 @@ func (x *RefreshTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshTokenResponse.ProtoReflect.Descriptor instead.
 func (*RefreshTokenResponse) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{7}
+	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RefreshTokenResponse) GetAccessToken() string {
@@ -389,7 +301,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[8]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +313,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[8]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +326,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{8}
+	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{6}
 }
 
 type LogoutResponse struct {
@@ -425,7 +337,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[9]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -437,7 +349,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[9]
+	mi := &file_saftaja_dashboard_auth_v1_auth_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -450,24 +362,20 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{9}
+	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP(), []int{7}
 }
 
 var File_saftaja_dashboard_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_saftaja_dashboard_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"$saftaja/dashboard/auth/v1/auth.proto\x12\x19saftaja.dashboard.auth.v1\";\n" +
-	"\x0fRegisterRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\x12\n" +
-	"\x10RegisterResponse\",\n" +
-	"\x14InitiateLoginRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"\x17\n" +
-	"\x15InitiateLoginResponse\",\n" +
-	"\x14CompleteLoginRequest\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\"_\n" +
-	"\x15CompleteLoginResponse\x12!\n" +
+	"$saftaja/dashboard/auth/v1/auth.proto\x12\x19saftaja.dashboard.auth.v1\"+\n" +
+	"\x13InitiateAuthRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"\x16\n" +
+	"\x14InitiateAuthResponse\"+\n" +
+	"\x13CompleteAuthRequest\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"^\n" +
+	"\x14CompleteAuthResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\":\n" +
 	"\x13RefreshTokenRequest\x12#\n" +
@@ -476,11 +384,10 @@ const file_saftaja_dashboard_auth_v1_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse2\xaa\x04\n" +
-	"\vAuthService\x12c\n" +
-	"\bRegister\x12*.saftaja.dashboard.auth.v1.RegisterRequest\x1a+.saftaja.dashboard.auth.v1.RegisterResponse\x12r\n" +
-	"\rInitiateLogin\x12/.saftaja.dashboard.auth.v1.InitiateLoginRequest\x1a0.saftaja.dashboard.auth.v1.InitiateLoginResponse\x12r\n" +
-	"\rCompleteLogin\x12/.saftaja.dashboard.auth.v1.CompleteLoginRequest\x1a0.saftaja.dashboard.auth.v1.CompleteLoginResponse\x12o\n" +
+	"\x0eLogoutResponse2\xbf\x03\n" +
+	"\vAuthService\x12o\n" +
+	"\fInitiateAuth\x12..saftaja.dashboard.auth.v1.InitiateAuthRequest\x1a/.saftaja.dashboard.auth.v1.InitiateAuthResponse\x12o\n" +
+	"\fCompleteAuth\x12..saftaja.dashboard.auth.v1.CompleteAuthRequest\x1a/.saftaja.dashboard.auth.v1.CompleteAuthResponse\x12o\n" +
 	"\fRefreshToken\x12..saftaja.dashboard.auth.v1.RefreshTokenRequest\x1a/.saftaja.dashboard.auth.v1.RefreshTokenResponse\x12]\n" +
 	"\x06Logout\x12(.saftaja.dashboard.auth.v1.LogoutRequest\x1a).saftaja.dashboard.auth.v1.LogoutResponseBeZcgithub.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1;authpbv1b\x06proto3"
 
@@ -496,32 +403,28 @@ func file_saftaja_dashboard_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_saftaja_dashboard_auth_v1_auth_proto_rawDescData
 }
 
-var file_saftaja_dashboard_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_saftaja_dashboard_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_saftaja_dashboard_auth_v1_auth_proto_goTypes = []any{
-	(*RegisterRequest)(nil),       // 0: saftaja.dashboard.auth.v1.RegisterRequest
-	(*RegisterResponse)(nil),      // 1: saftaja.dashboard.auth.v1.RegisterResponse
-	(*InitiateLoginRequest)(nil),  // 2: saftaja.dashboard.auth.v1.InitiateLoginRequest
-	(*InitiateLoginResponse)(nil), // 3: saftaja.dashboard.auth.v1.InitiateLoginResponse
-	(*CompleteLoginRequest)(nil),  // 4: saftaja.dashboard.auth.v1.CompleteLoginRequest
-	(*CompleteLoginResponse)(nil), // 5: saftaja.dashboard.auth.v1.CompleteLoginResponse
-	(*RefreshTokenRequest)(nil),   // 6: saftaja.dashboard.auth.v1.RefreshTokenRequest
-	(*RefreshTokenResponse)(nil),  // 7: saftaja.dashboard.auth.v1.RefreshTokenResponse
-	(*LogoutRequest)(nil),         // 8: saftaja.dashboard.auth.v1.LogoutRequest
-	(*LogoutResponse)(nil),        // 9: saftaja.dashboard.auth.v1.LogoutResponse
+	(*InitiateAuthRequest)(nil),  // 0: saftaja.dashboard.auth.v1.InitiateAuthRequest
+	(*InitiateAuthResponse)(nil), // 1: saftaja.dashboard.auth.v1.InitiateAuthResponse
+	(*CompleteAuthRequest)(nil),  // 2: saftaja.dashboard.auth.v1.CompleteAuthRequest
+	(*CompleteAuthResponse)(nil), // 3: saftaja.dashboard.auth.v1.CompleteAuthResponse
+	(*RefreshTokenRequest)(nil),  // 4: saftaja.dashboard.auth.v1.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil), // 5: saftaja.dashboard.auth.v1.RefreshTokenResponse
+	(*LogoutRequest)(nil),        // 6: saftaja.dashboard.auth.v1.LogoutRequest
+	(*LogoutResponse)(nil),       // 7: saftaja.dashboard.auth.v1.LogoutResponse
 }
 var file_saftaja_dashboard_auth_v1_auth_proto_depIdxs = []int32{
-	0, // 0: saftaja.dashboard.auth.v1.AuthService.Register:input_type -> saftaja.dashboard.auth.v1.RegisterRequest
-	2, // 1: saftaja.dashboard.auth.v1.AuthService.InitiateLogin:input_type -> saftaja.dashboard.auth.v1.InitiateLoginRequest
-	4, // 2: saftaja.dashboard.auth.v1.AuthService.CompleteLogin:input_type -> saftaja.dashboard.auth.v1.CompleteLoginRequest
-	6, // 3: saftaja.dashboard.auth.v1.AuthService.RefreshToken:input_type -> saftaja.dashboard.auth.v1.RefreshTokenRequest
-	8, // 4: saftaja.dashboard.auth.v1.AuthService.Logout:input_type -> saftaja.dashboard.auth.v1.LogoutRequest
-	1, // 5: saftaja.dashboard.auth.v1.AuthService.Register:output_type -> saftaja.dashboard.auth.v1.RegisterResponse
-	3, // 6: saftaja.dashboard.auth.v1.AuthService.InitiateLogin:output_type -> saftaja.dashboard.auth.v1.InitiateLoginResponse
-	5, // 7: saftaja.dashboard.auth.v1.AuthService.CompleteLogin:output_type -> saftaja.dashboard.auth.v1.CompleteLoginResponse
-	7, // 8: saftaja.dashboard.auth.v1.AuthService.RefreshToken:output_type -> saftaja.dashboard.auth.v1.RefreshTokenResponse
-	9, // 9: saftaja.dashboard.auth.v1.AuthService.Logout:output_type -> saftaja.dashboard.auth.v1.LogoutResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	0, // 0: saftaja.dashboard.auth.v1.AuthService.InitiateAuth:input_type -> saftaja.dashboard.auth.v1.InitiateAuthRequest
+	2, // 1: saftaja.dashboard.auth.v1.AuthService.CompleteAuth:input_type -> saftaja.dashboard.auth.v1.CompleteAuthRequest
+	4, // 2: saftaja.dashboard.auth.v1.AuthService.RefreshToken:input_type -> saftaja.dashboard.auth.v1.RefreshTokenRequest
+	6, // 3: saftaja.dashboard.auth.v1.AuthService.Logout:input_type -> saftaja.dashboard.auth.v1.LogoutRequest
+	1, // 4: saftaja.dashboard.auth.v1.AuthService.InitiateAuth:output_type -> saftaja.dashboard.auth.v1.InitiateAuthResponse
+	3, // 5: saftaja.dashboard.auth.v1.AuthService.CompleteAuth:output_type -> saftaja.dashboard.auth.v1.CompleteAuthResponse
+	5, // 6: saftaja.dashboard.auth.v1.AuthService.RefreshToken:output_type -> saftaja.dashboard.auth.v1.RefreshTokenResponse
+	7, // 7: saftaja.dashboard.auth.v1.AuthService.Logout:output_type -> saftaja.dashboard.auth.v1.LogoutResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -538,7 +441,7 @@ func file_saftaja_dashboard_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_saftaja_dashboard_auth_v1_auth_proto_rawDesc), len(file_saftaja_dashboard_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

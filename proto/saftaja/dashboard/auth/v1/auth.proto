@@ -5,28 +5,21 @@ package saftaja.dashboard.auth.v1;
 option go_package = "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1;authpbv1";
 
 service AuthService {
-  rpc Register(RegisterRequest) returns (RegisterResponse);
-  rpc InitiateLogin(InitiateLoginRequest) returns (InitiateLoginResponse);
-  rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
+  rpc InitiateAuth(InitiateAuthRequest) returns (InitiateAuthResponse);
+  rpc CompleteAuth(CompleteAuthRequest) returns (CompleteAuthResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
 }
 
-message RegisterRequest {
-  string email = 1;
-  string name = 2;
-}
-message RegisterResponse {}
-
-message InitiateLoginRequest {
+message InitiateAuthRequest {
   string email = 1;
 }
-message InitiateLoginResponse {}
+message InitiateAuthResponse {}
 
-message CompleteLoginRequest {
+message CompleteAuthRequest {
   string token = 2;
 }
-message CompleteLoginResponse {
+message CompleteAuthResponse {
   string access_token = 1;
   string refresh_token = 2;
 }
