@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package saftaja.dashboard.auth.v1;
 
+import "buf/validate/validate.proto";
+
 option go_package = "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1;authpbv1";
 
 service AuthService {
@@ -12,7 +14,11 @@ service AuthService {
 }
 
 message InitiateAuthRequest {
-  string email = 1;
+  string email = 1 [(buf.validate.field).cel = {
+    id: "init_auth.email"
+    message: "InitAuthRequest email must be valid"
+    expression: "this.isEmail()"
+  }];
 }
 message InitiateAuthResponse {}
 

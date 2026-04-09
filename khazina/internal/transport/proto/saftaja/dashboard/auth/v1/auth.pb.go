@@ -7,6 +7,7 @@
 package authpbv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -369,9 +370,10 @@ var File_saftaja_dashboard_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_saftaja_dashboard_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"$saftaja/dashboard/auth/v1/auth.proto\x12\x19saftaja.dashboard.auth.v1\"+\n" +
-	"\x13InitiateAuthRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"\x16\n" +
+	"$saftaja/dashboard/auth/v1/auth.proto\x12\x19saftaja.dashboard.auth.v1\x1a\x1bbuf/validate/validate.proto\"y\n" +
+	"\x13InitiateAuthRequest\x12b\n" +
+	"\x05email\x18\x01 \x01(\tBL\xbaHI\xba\x01F\n" +
+	"\x0finit_auth.email\x12#InitAuthRequest email must be valid\x1a\x0ethis.isEmail()R\x05email\"\x16\n" +
 	"\x14InitiateAuthResponse\"+\n" +
 	"\x13CompleteAuthRequest\x12\x14\n" +
 	"\x05token\x18\x02 \x01(\tR\x05token\"^\n" +
