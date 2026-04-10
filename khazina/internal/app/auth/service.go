@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -86,7 +87,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 
 	if !createCustomerResp.DidExitBefore {
 		err = s.queries.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
-			Name:       name,
+			Name:       fmt.Sprintf("%s's Organization", name),
 			CustomerID: createCustomerResp.ID,
 		})
 		if err != nil {
