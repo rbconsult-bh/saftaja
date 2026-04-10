@@ -26,3 +26,15 @@ CREATE TABLE auth_intent (
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TYPE organization_role AS ENUM ('owner', 'admin', 'member');
+
+CREATE TABLE organization_customer (
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
+  customer_id UUID REFERENCES customer(id) ON DELETE CASCADE NOT NULL,
+
+  role organization_role NOT NULL,
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (organization_id, customer_id)
+);

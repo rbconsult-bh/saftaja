@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -74,11 +75,35 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 
 	log.Ctx(ctx).Info().Str("email", userEmail).Msg("we are good, the token is right :D")
 
-	// TODO: create a user in the db (new users only)
+	name := strings.Split(userEmail, "@")[0]
+	createCustomerResp, err := s.queries.CreateCustomerIfNotExists(ctx, store.CreateCustomerIfNotExistsParams{
+		Name:  name,
+		Email: userEmail,
+	})
+	if err != nil {
+		return nil, errors.New("failed to create customer if not exists")
+	}
 
-	// TODO: create default user org (new users only)
+	if !createCustomerResp.DidExitBefore {
+		err = s.queries.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
+			Name:       name,
+			CustomerID: createCustomerResp.ID,
+		})
+		if err != nil {
+			return nil, errors.New("failed to create create default organization for customer")
+		}
+	}
 
-	// TODO: create a session in the db
+	currentJti := uuid.New()
+	currentJtiHash := sha256.Sum256([]byte(currentJti.String()))
+
+	err = s.queries.CreateCustomerSession(ctx, store.CreateCustomerSessionParams{
+		CustomerID:     createCustomerResp.ID,
+		CurrentJtiHash: currentJtiHash[:],
+	})
+	if err != nil {
+		return nil, errors.New("failed to create customer session")
+	}
 
 	// TODO: mint a pair of tokens for the user
 

@@ -5,11 +5,57 @@
 package store
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 	"github.com/shopspring/decimal"
 )
+
+type OrganizationRole string
+
+const (
+	OrganizationRoleOwner  OrganizationRole = "owner"
+	OrganizationRoleAdmin  OrganizationRole = "admin"
+	OrganizationRoleMember OrganizationRole = "member"
+)
+
+func (e *OrganizationRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrganizationRole(s)
+	case string:
+		*e = OrganizationRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrganizationRole: %T", src)
+	}
+	return nil
+}
+
+type NullOrganizationRole struct {
+	OrganizationRole OrganizationRole
+	Valid            bool // Valid is true if OrganizationRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrganizationRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrganizationRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrganizationRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrganizationRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrganizationRole), nil
+}
 
 type AuthIntent struct {
 	ID        uuid.UUID
@@ -83,6 +129,13 @@ type Organization struct {
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
 	DeletedAt pgtype.Timestamptz
+}
+
+type OrganizationCustomer struct {
+	OrganizationID uuid.UUID
+	CustomerID     uuid.UUID
+	Role           OrganizationRole
+	CreatedAt      pgtype.Timestamptz
 }
 
 type PaymentSession struct {
