@@ -70,6 +70,8 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		return nil, ErrTokenInvalid
 	}
 
+	// TODO: create a session in the db
+
 	// TODO: mint a pair of tokens for the user
 
 	return &CompleteAuthResponse{
