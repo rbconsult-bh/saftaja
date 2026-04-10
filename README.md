@@ -157,6 +157,10 @@ openssl rand -hex 32
 
 # Generate VERIFY_DOMAIN_SECRET
 openssl rand -hex 16
+
+# Generate JWT_PRIVATE_KEY
+openssl genrsa -out private.pem 2048
+cat private.pem | base64 | tr -d '\n' | pbcopy
 ```
 
 ## Admin API

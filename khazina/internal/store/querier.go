@@ -15,7 +15,7 @@ type Querier interface {
 	ConsumeAuthIntentByTokenHash(ctx context.Context, tokenHash []byte) (string, error)
 	CreateAuthIntent(ctx context.Context, arg CreateAuthIntentParams) error
 	CreateCustomerIfNotExists(ctx context.Context, arg CreateCustomerIfNotExistsParams) (CreateCustomerIfNotExistsRow, error)
-	CreateCustomerSession(ctx context.Context, arg CreateCustomerSessionParams) error
+	CreateCustomerSession(ctx context.Context, arg CreateCustomerSessionParams) (CustomerSession, error)
 	CreateDefaultOrganizationForCustomer(ctx context.Context, arg CreateDefaultOrganizationForCustomerParams) (uuid.UUID, error)
 	CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)

@@ -11,9 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createCustomerSession = `-- name: CreateCustomerSession :exec
+const createCustomerSession = `-- name: CreateCustomerSession :one
 INSERT INTO customer_session (customer_id, current_jti_hash, expires_at)
 VALUES ($1, $2, NOW() + INTERVAL '30 days')
+RETURNING id, customer_id, current_jti_hash, expires_at, created_at
 `
 
 type CreateCustomerSessionParams struct {
@@ -21,7 +22,15 @@ type CreateCustomerSessionParams struct {
 	CurrentJtiHash []byte
 }
 
-func (q *Queries) CreateCustomerSession(ctx context.Context, arg CreateCustomerSessionParams) error {
-	_, err := q.db.Exec(ctx, createCustomerSession, arg.CustomerID, arg.CurrentJtiHash)
-	return err
+func (q *Queries) CreateCustomerSession(ctx context.Context, arg CreateCustomerSessionParams) (CustomerSession, error) {
+	row := q.db.QueryRow(ctx, createCustomerSession, arg.CustomerID, arg.CurrentJtiHash)
+	var i CustomerSession
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.CurrentJtiHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }

@@ -15,6 +15,7 @@ require (
 	connectrpc.com/validate v0.6.0
 	github.com/a-h/templ v0.3.943
 	github.com/go-chi/chi v1.5.5
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cleanhttp v0.5.2

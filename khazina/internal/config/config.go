@@ -22,6 +22,7 @@ type Config struct {
 	Emailer            string `mapstructure:"EMAILER"`
 	ResendAPIKey       string `mapstructure:"RESEND_API_KEY"`
 	Domain             string `mapstructure:"DOMAIN"`
+	JWTPrivateKey      string `mapstructure:"JWT_PRIVATE_KEY"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {

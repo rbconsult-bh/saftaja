@@ -30,6 +30,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
 	_ "github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/authv1"
@@ -138,7 +139,12 @@ func main() {
 
 	emailTemplates := email.NewTemplates(cfg.Domain)
 
-	authSvc := auth.New(dbPool, queries, emailer, emailTemplates)
+	jwtIssuer, _, err := jwt.ParseJWTPrivateKey(cfg.JWTPrivateKey)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to parse jwt private key")
+	}
+
+	authSvc := auth.New(dbPool, queries, emailer, emailTemplates, jwtIssuer)
 
 	dashboardAuthSvc := authv1.New(authSvc)
 	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(

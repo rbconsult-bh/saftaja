@@ -34,6 +34,7 @@ services:
       EMAILER: ${EMAILER}
       RESEND_API_KEY: ${RESEND_API_KEY}
       DOMAIN: ${DOMAIN}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
 
 volumes:
   pgdata:

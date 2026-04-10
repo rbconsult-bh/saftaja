@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rs/zerolog/log"
 )
@@ -27,14 +28,16 @@ type service struct {
 	queries        store.TransactionQuerier
 	emailer        email.Emailer
 	emailTemplates email.Templates
+	jwtIssuer      *jwt.Issuer
 }
 
-func New(dbPool *pgxpool.Pool, queries store.TransactionQuerier, emailer email.Emailer, emailTemplates email.Templates) AuthService {
+func New(dbPool *pgxpool.Pool, queries store.TransactionQuerier, emailer email.Emailer, emailTemplates email.Templates, jwtIssuer *jwt.Issuer) AuthService {
 	return &service{
 		db:             dbPool,
 		queries:        queries,
 		emailer:        emailer,
 		emailTemplates: emailTemplates,
+		jwtIssuer:      jwtIssuer,
 	}
 }
 
@@ -113,7 +116,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 	currentJti := uuid.New()
 	currentJtiHash := sha256.Sum256([]byte(currentJti.String()))
 
-	err = queriesWithTx.CreateCustomerSession(ctx, store.CreateCustomerSessionParams{
+	customerSession, err := queriesWithTx.CreateCustomerSession(ctx, store.CreateCustomerSessionParams{
 		CustomerID:     createCustomerResp.ID,
 		CurrentJtiHash: currentJtiHash[:],
 	})
@@ -127,10 +130,14 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		return nil, errors.New("failed to commit tx")
 	}
 
-	// TODO: mint a pair of tokens for the user
+	tokenPair, err := s.jwtIssuer.IssueTokenPair(customerSession.CustomerID, customerSession.ID, currentJti)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to issue token pair")
+		return nil, errors.New("failed to issue token pair")
+	}
 
 	return &CompleteAuthResponse{
-		AccessToken:  "fake good tokens",
-		RefreshToken: "fake good tokens",
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
 	}, nil
 }
