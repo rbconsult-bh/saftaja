@@ -82,15 +82,18 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		Email: userEmail,
 	})
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create customer if not exists")
 		return nil, errors.New("failed to create customer if not exists")
 	}
 
-	if !createCustomerResp.DidExitBefore {
-		err = s.queries.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
+	if createCustomerResp.IsNewCustomer {
+		log.Ctx(ctx).Info().Msg("user is new, creating default organization")
+		_, err = s.queries.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
 			Name:       fmt.Sprintf("%s's Organization", name),
 			CustomerID: createCustomerResp.ID,
 		})
 		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to create create default organization for customer")
 			return nil, errors.New("failed to create create default organization for customer")
 		}
 	}
@@ -103,6 +106,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		CurrentJtiHash: currentJtiHash[:],
 	})
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create customer session")
 		return nil, errors.New("failed to create customer session")
 	}
 

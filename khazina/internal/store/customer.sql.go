@@ -16,7 +16,7 @@ const createCustomerIfNotExists = `-- name: CreateCustomerIfNotExists :one
 INSERT INTO customer (name, email)
 VALUES ($1, $2)
 ON CONFLICT (email) DO UPDATE SET email = customer.email
-RETURNING id, name, email, created_at, updated_at, deleted_at, (xmax != 0) as did_exit_before
+RETURNING id, name, email, created_at, updated_at, deleted_at, (xmax != 0) as is_new_customer
 `
 
 type CreateCustomerIfNotExistsParams struct {
@@ -31,7 +31,7 @@ type CreateCustomerIfNotExistsRow struct {
 	CreatedAt     pgtype.Timestamptz
 	UpdatedAt     pgtype.Timestamptz
 	DeletedAt     pgtype.Timestamptz
-	DidExitBefore bool
+	IsNewCustomer bool
 }
 
 func (q *Queries) CreateCustomerIfNotExists(ctx context.Context, arg CreateCustomerIfNotExistsParams) (CreateCustomerIfNotExistsRow, error) {
@@ -44,7 +44,7 @@ func (q *Queries) CreateCustomerIfNotExists(ctx context.Context, arg CreateCusto
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.DidExitBefore,
+		&i.IsNewCustomer,
 	)
 	return i, err
 }
