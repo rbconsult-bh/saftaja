@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var ErrTokenInvalid = errors.New("token is invalid")
+
 type AuthService interface {
 	InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*InitiateAuthResponse, error)
 	CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*CompleteAuthResponse, error)
@@ -65,7 +67,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 	}
 	if !isTokenHashValid {
 		log.Ctx(ctx).Info().Msg("token is invalid")
-		return nil, errors.New("token is invalid")
+		return nil, ErrTokenInvalid
 	}
 
 	// TODO: mint a pair of tokens for the user
