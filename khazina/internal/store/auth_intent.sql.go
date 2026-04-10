@@ -23,3 +23,19 @@ func (q *Queries) CreateAuthIntent(ctx context.Context, arg CreateAuthIntentPara
 	_, err := q.db.Exec(ctx, createAuthIntent, arg.Email, arg.TokenHash)
 	return err
 }
+
+const isTokenHashValid = `-- name: IsTokenHashValid :one
+SELECT EXISTS (
+    SELECT 1
+    FROM auth_intent
+    WHERE token_hash = $1
+    AND expires_at > NOW()
+)
+`
+
+func (q *Queries) IsTokenHashValid(ctx context.Context, tokenHash []byte) (bool, error) {
+	row := q.db.QueryRow(ctx, isTokenHashValid, tokenHash)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

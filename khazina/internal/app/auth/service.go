@@ -55,5 +55,20 @@ func (s *service) InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*Ini
 }
 
 func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*CompleteAuthResponse, error) {
-	return &CompleteAuthResponse{}, nil
+	tokenHash := sha256.Sum256([]byte(r.Token))
+
+	isTokenHashValid, err := s.queries.IsTokenHashValid(ctx, tokenHash[:])
+	if err != nil {
+		return nil, errors.New("failed to get auth intent by token hash")
+	}
+	if !isTokenHashValid {
+		return nil, errors.New("token is invalid")
+	}
+
+	// TODO: mint a pair of tokens for the user
+
+	return &CompleteAuthResponse{
+		AccessToken:  "",
+		RefreshToken: "",
+	}, nil
 }
