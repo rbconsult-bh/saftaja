@@ -13,10 +13,19 @@ import (
 )
 
 const createCustomerIfNotExists = `-- name: CreateCustomerIfNotExists :one
-INSERT INTO customer (name, email)
-VALUES ($1, $2)
-ON CONFLICT (email) DO UPDATE SET email = customer.email
-RETURNING id, name, email, created_at, updated_at, deleted_at, (xmax != 0) as is_new_customer
+WITH upserted AS (
+  INSERT INTO customer (name, email)
+  VALUES ($1, $2)
+  ON CONFLICT (email) DO UPDATE SET email = customer.email
+  RETURNING id, name, email, created_at, updated_at, deleted_at
+)
+SELECT 
+  upserted.id, upserted.name, upserted.email, upserted.created_at, upserted.updated_at, upserted.deleted_at,
+  NOT EXISTS (
+    SELECT 1 FROM organization_customer 
+    WHERE customer_id = upserted.id
+  ) AS needs_default_org
+FROM upserted
 `
 
 type CreateCustomerIfNotExistsParams struct {
@@ -25,13 +34,13 @@ type CreateCustomerIfNotExistsParams struct {
 }
 
 type CreateCustomerIfNotExistsRow struct {
-	ID            uuid.UUID
-	Name          string
-	Email         string
-	CreatedAt     pgtype.Timestamptz
-	UpdatedAt     pgtype.Timestamptz
-	DeletedAt     pgtype.Timestamptz
-	IsNewCustomer bool
+	ID              uuid.UUID
+	Name            string
+	Email           string
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
+	DeletedAt       pgtype.Timestamptz
+	NeedsDefaultOrg bool
 }
 
 func (q *Queries) CreateCustomerIfNotExists(ctx context.Context, arg CreateCustomerIfNotExistsParams) (CreateCustomerIfNotExistsRow, error) {
@@ -44,7 +53,7 @@ func (q *Queries) CreateCustomerIfNotExists(ctx context.Context, arg CreateCusto
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.IsNewCustomer,
+		&i.NeedsDefaultOrg,
 	)
 	return i, err
 }
