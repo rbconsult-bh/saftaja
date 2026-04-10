@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rs/zerolog/log"
@@ -22,13 +23,15 @@ type AuthService interface {
 }
 
 type service struct {
-	queries        store.Querier
+	db             *pgxpool.Pool
+	queries        store.TransactionQuerier
 	emailer        email.Emailer
 	emailTemplates email.Templates
 }
 
-func New(queries store.Querier, emailer email.Emailer, emailTemplates email.Templates) AuthService {
+func New(dbPool *pgxpool.Pool, queries store.TransactionQuerier, emailer email.Emailer, emailTemplates email.Templates) AuthService {
 	return &service{
+		db:             dbPool,
 		queries:        queries,
 		emailer:        emailer,
 		emailTemplates: emailTemplates,
@@ -63,7 +66,16 @@ func (s *service) InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*Ini
 func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*CompleteAuthResponse, error) {
 	tokenHash := sha256.Sum256([]byte(r.Token))
 
-	userEmail, err := s.queries.ConsumeAuthIntentByTokenHash(ctx, tokenHash[:])
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to begin tx")
+		return nil, errors.New("failed to begin tx")
+	}
+	defer tx.Rollback(ctx)
+
+	queriesWithTx := s.queries.WithTx(tx)
+
+	userEmail, err := queriesWithTx.ConsumeAuthIntentByTokenHash(ctx, tokenHash[:])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("token is invalid")
@@ -77,7 +89,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 	log.Ctx(ctx).Info().Str("email", userEmail).Msg("we are good, the token is right :D")
 
 	name := strings.Split(userEmail, "@")[0]
-	createCustomerResp, err := s.queries.CreateCustomerIfNotExists(ctx, store.CreateCustomerIfNotExistsParams{
+	createCustomerResp, err := queriesWithTx.CreateCustomerIfNotExists(ctx, store.CreateCustomerIfNotExistsParams{
 		Name:  name,
 		Email: userEmail,
 	})
@@ -88,7 +100,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 
 	if createCustomerResp.IsNewCustomer {
 		log.Ctx(ctx).Info().Msg("user is new, creating default organization")
-		_, err = s.queries.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
+		_, err = queriesWithTx.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
 			Name:       fmt.Sprintf("%s's Organization", name),
 			CustomerID: createCustomerResp.ID,
 		})
@@ -101,13 +113,18 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 	currentJti := uuid.New()
 	currentJtiHash := sha256.Sum256([]byte(currentJti.String()))
 
-	err = s.queries.CreateCustomerSession(ctx, store.CreateCustomerSessionParams{
+	err = queriesWithTx.CreateCustomerSession(ctx, store.CreateCustomerSessionParams{
 		CustomerID:     createCustomerResp.ID,
 		CurrentJtiHash: currentJtiHash[:],
 	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create customer session")
 		return nil, errors.New("failed to create customer session")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit tx")
+		return nil, errors.New("failed to commit tx")
 	}
 
 	// TODO: mint a pair of tokens for the user

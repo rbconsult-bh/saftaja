@@ -69,7 +69,7 @@ func main() {
 	}
 	defer dbPool.Close()
 
-	queries := store.New(dbPool)
+	queries := store.NewTransactionQuerier(dbPool)
 
 	encryptionKey, err := cfg.GetEncryptionKey()
 	if err != nil {
@@ -138,7 +138,7 @@ func main() {
 
 	emailTemplates := email.NewTemplates(cfg.Domain)
 
-	authSvc := auth.New(queries, emailer, emailTemplates)
+	authSvc := auth.New(dbPool, queries, emailer, emailTemplates)
 
 	dashboardAuthSvc := authv1.New(authSvc)
 	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(

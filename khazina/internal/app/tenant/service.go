@@ -22,11 +22,11 @@ type Service interface {
 }
 
 type service struct {
-	queries *store.Queries
+	queries store.TransactionQuerier
 }
 
 // NewService creates a new tenant service.
-func NewService(queries *store.Queries) Service {
+func NewService(queries store.TransactionQuerier) Service {
 	return &service{queries: queries}
 }
 

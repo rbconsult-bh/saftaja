@@ -22,11 +22,11 @@ type Service interface {
 }
 
 type service struct {
-	queries       *store.Queries
+	queries       store.TransactionQuerier
 	encryptionKey []byte
 }
 
-func NewService(queries *store.Queries, encryptionKey []byte) Service {
+func NewService(queries store.TransactionQuerier, encryptionKey []byte) Service {
 	return &service{
 		queries:       queries,
 		encryptionKey: encryptionKey,

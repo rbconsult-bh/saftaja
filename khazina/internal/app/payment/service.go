@@ -30,11 +30,11 @@ type Service interface {
 
 type service struct {
 	pool          *pgxpool.Pool
-	queries       *store.Queries
+	queries       store.TransactionQuerier
 	encryptionKey []byte
 }
 
-func NewService(pool *pgxpool.Pool, queries *store.Queries, encryptionKey []byte) Service {
+func NewService(pool *pgxpool.Pool, queries store.TransactionQuerier, encryptionKey []byte) Service {
 	return &service{
 		pool:          pool,
 		queries:       queries,
