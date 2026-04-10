@@ -8,7 +8,7 @@ import (
 )
 
 type resendEmailer struct {
-	resend resend.Client
+	resend *resend.Client
 }
 
 func (e *resendEmailer) Send(ctx context.Context, from FromEmail, to, subject, body string) error {
@@ -32,7 +32,7 @@ func (e *resendEmailer) SendFromTemplate(ctx context.Context, from FromEmail, to
 	return e.Send(ctx, from, to, template.Subject, template.HTML)
 }
 
-func NewResendEmailer(resend resend.Client) Emailer {
+func NewResendEmailer(resend *resend.Client) Emailer {
 	return &resendEmailer{
 		resend: resend,
 	}

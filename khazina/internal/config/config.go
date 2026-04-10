@@ -19,6 +19,9 @@ type Config struct {
 	EncryptionKey      string `mapstructure:"ENCRYPTION_KEY"`
 	VerifyDomainSecret string `mapstructure:"VERIFY_DOMAIN_SECRET"`
 	AdminAPIKey        string `mapstructure:"ADMIN_API_KEY"`
+	Emailer            string `mapstructure:"EMAILER"`
+	ResendAPIKey       string `mapstructure:"RESEND_API_KEY"`
+	Domain             string `mapstructure:"DOMAIN"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {

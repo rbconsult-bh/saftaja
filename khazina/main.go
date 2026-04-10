@@ -20,12 +20,14 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/resendlabs/resend-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
 	_ "github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -126,7 +128,20 @@ func main() {
 		adminHandlers.RegisterRoutes(r)
 	})
 
-	authSvc := auth.New(queries)
+	var emailer email.Emailer
+	switch cfg.Emailer {
+	case string(email.EmailerName_Resend):
+		resendCli := resend.NewClient(cfg.ResendAPIKey)
+		emailer = email.NewResendEmailer(resendCli)
+	case string(email.EmailerName_Stdout):
+		emailer = email.NewStdoutEmailer()
+	default:
+		log.Fatal().Msgf("emailer is not expected: %v", cfg.Emailer)
+	}
+
+	emailTemplates := email.NewTemplates(cfg.Domain)
+
+	authSvc := auth.New(queries, emailer, emailTemplates)
 
 	dashboardAuthSvc := authv1.New(authSvc)
 	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(
