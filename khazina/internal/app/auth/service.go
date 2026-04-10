@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rs/zerolog/log"
 )
 
 type AuthService interface {
@@ -59,16 +60,18 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 
 	isTokenHashValid, err := s.queries.IsTokenHashValid(ctx, tokenHash[:])
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get auth intent by token hash")
 		return nil, errors.New("failed to get auth intent by token hash")
 	}
 	if !isTokenHashValid {
+		log.Ctx(ctx).Info().Msg("token is invalid")
 		return nil, errors.New("token is invalid")
 	}
 
 	// TODO: mint a pair of tokens for the user
 
 	return &CompleteAuthResponse{
-		AccessToken:  "",
-		RefreshToken: "",
+		AccessToken:  "fake good tokens",
+		RefreshToken: "fake good tokens",
 	}, nil
 }
