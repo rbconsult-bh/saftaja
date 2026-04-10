@@ -98,11 +98,6 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		return nil, errors.New("failed to create customer if not exists")
 	}
 
-	log.Ctx(ctx).Info().
-		Bool("is_new_customer", createCustomerResp.NeedsDefaultOrg).
-		Str("customer_id", createCustomerResp.ID.String()).
-		Msg("customer upserted")
-
 	if createCustomerResp.NeedsDefaultOrg {
 		log.Ctx(ctx).Info().Msg("user is new, creating default organization")
 		_, err = queriesWithTx.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
