@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rs/zerolog/log"
@@ -60,15 +61,22 @@ func (s *service) InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*Ini
 func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*CompleteAuthResponse, error) {
 	tokenHash := sha256.Sum256([]byte(r.Token))
 
-	isTokenHashValid, err := s.queries.IsTokenHashValid(ctx, tokenHash[:])
+	userEmail, err := s.queries.ConsumeAuthIntentByTokenHash(ctx, tokenHash[:])
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get auth intent by token hash")
-		return nil, errors.New("failed to get auth intent by token hash")
+		if errors.Is(err, pgx.ErrNoRows) {
+			log.Ctx(ctx).Info().Msg("token is invalid")
+			return nil, ErrTokenInvalid
+		}
+
+		log.Ctx(ctx).Error().Err(err).Msg("failed to consume auth intent by token hash")
+		return nil, errors.New("failed to consume auth intent by token hash")
 	}
-	if !isTokenHashValid {
-		log.Ctx(ctx).Info().Msg("token is invalid")
-		return nil, ErrTokenInvalid
-	}
+
+	log.Ctx(ctx).Info().Str("email", userEmail).Msg("we are good, the token is right :D")
+
+	// TODO: create a user in the db (new users only)
+
+	// TODO: create default user org (new users only)
 
 	// TODO: create a session in the db
 

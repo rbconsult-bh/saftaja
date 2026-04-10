@@ -12,6 +12,7 @@ import (
 )
 
 type Querier interface {
+	ConsumeAuthIntentByTokenHash(ctx context.Context, tokenHash []byte) (string, error)
 	CreateAuthIntent(ctx context.Context, arg CreateAuthIntentParams) error
 	CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
@@ -34,7 +35,6 @@ type Querier interface {
 	GetProjectByCustomDomain(ctx context.Context, customDomain pgtype.Text) (Project, error)
 	GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentSessionIDRow, error)
 	GetSuccessfulAuthTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error)
-	IsTokenHashValid(ctx context.Context, tokenHash []byte) (bool, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)
 	UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) error
 	UpdatePaymentSessionGatewayID(ctx context.Context, arg UpdatePaymentSessionGatewayIDParams) error

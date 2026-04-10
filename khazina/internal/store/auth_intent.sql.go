@@ -9,12 +9,27 @@ import (
 	"context"
 )
 
+const consumeAuthIntentByTokenHash = `-- name: ConsumeAuthIntentByTokenHash :one
+DELETE FROM auth_intent
+WHERE token_hash = $1
+  AND expires_at > NOW()
+RETURNING email
+`
+
+func (q *Queries) ConsumeAuthIntentByTokenHash(ctx context.Context, tokenHash []byte) (string, error) {
+	row := q.db.QueryRow(ctx, consumeAuthIntentByTokenHash, tokenHash)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}
+
 const createAuthIntent = `-- name: CreateAuthIntent :exec
 INSERT INTO auth_intent (email, token_hash, expires_at, created_at)
 VALUES ($1, $2, NOW() + INTERVAL '15 minutes', NOW())
 ON CONFLICT (email)
 	DO UPDATE
-	SET token_hash = $2
+	SET token_hash = $2,
+      expires_at = NOW() + INTERVAL '15 minutes'
 `
 
 type CreateAuthIntentParams struct {
@@ -25,20 +40,4 @@ type CreateAuthIntentParams struct {
 func (q *Queries) CreateAuthIntent(ctx context.Context, arg CreateAuthIntentParams) error {
 	_, err := q.db.Exec(ctx, createAuthIntent, arg.Email, arg.TokenHash)
 	return err
-}
-
-const isTokenHashValid = `-- name: IsTokenHashValid :one
-SELECT EXISTS (
-    SELECT 1
-    FROM auth_intent
-    WHERE token_hash = $1
-    AND expires_at > NOW()
-)
-`
-
-func (q *Queries) IsTokenHashValid(ctx context.Context, tokenHash []byte) (bool, error) {
-	row := q.db.QueryRow(ctx, isTokenHashValid, tokenHash)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
