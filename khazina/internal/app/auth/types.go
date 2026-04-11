@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/google/uuid"
+
 type (
 	InitiateAuthRequest struct {
 		Email string
@@ -15,4 +17,22 @@ type (
 		AccessToken  string
 		RefreshToken string
 	}
+)
+
+type (
+	RefreshTokenRequest struct {
+		Token string
+	}
+	RefreshTokenResponse struct {
+		AccessToken  string
+		RefreshToken string
+	}
+)
+
+type (
+	LogoutRequest struct {
+		CustomerSessionID uuid.UUID
+		CustomerID        uuid.UUID
+	}
+	LogoutResponse struct{}
 )

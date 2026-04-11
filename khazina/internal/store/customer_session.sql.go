@@ -34,3 +34,18 @@ func (q *Queries) CreateCustomerSession(ctx context.Context, arg CreateCustomerS
 	)
 	return i, err
 }
+
+const deleteCustomerSessionByIDAndCustomerID = `-- name: DeleteCustomerSessionByIDAndCustomerID :exec
+DELETE FROM customer_session
+WHERE id = $1 AND customer_id = $2
+`
+
+type DeleteCustomerSessionByIDAndCustomerIDParams struct {
+	ID         uuid.UUID
+	CustomerID uuid.UUID
+}
+
+func (q *Queries) DeleteCustomerSessionByIDAndCustomerID(ctx context.Context, arg DeleteCustomerSessionByIDAndCustomerIDParams) error {
+	_, err := q.db.Exec(ctx, deleteCustomerSessionByIDAndCustomerID, arg.ID, arg.CustomerID)
+	return err
+}

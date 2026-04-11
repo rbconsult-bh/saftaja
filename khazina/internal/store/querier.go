@@ -23,6 +23,7 @@ type Querier interface {
 	CreatePaymentSession(ctx context.Context, arg CreatePaymentSessionParams) (PaymentSession, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
 	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
+	DeleteCustomerSessionByIDAndCustomerID(ctx context.Context, arg DeleteCustomerSessionByIDAndCustomerIDParams) error
 	GetGatewayAccount(ctx context.Context, id uuid.UUID) (GatewayAccount, error)
 	GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGatewayAccountByIDAndProjectParams) (GatewayAccount, error)
 	GetGatewayAccountByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentSessionIDRow, error)

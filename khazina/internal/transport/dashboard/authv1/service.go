@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
 	authpbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
@@ -60,9 +61,35 @@ func (s *service) CompleteAuth(ctx context.Context, r *connect.Request[authpbv1.
 }
 
 func (s *service) RefreshToken(ctx context.Context, r *connect.Request[authpbv1.RefreshTokenRequest]) (*connect.Response[authpbv1.RefreshTokenResponse], error) {
-	panic("unimplemented")
+	resp, err := s.auth.RefreshToken(ctx, auth.RefreshTokenRequest{
+		Token: r.Msg.RefreshToken,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to call RefreshToken")
+		return nil, connect.NewError(connect.CodeInternal, errInternal)
+	}
+
+	return &connect.Response[authpbv1.RefreshTokenResponse]{
+		Msg: &authpbv1.RefreshTokenResponse{
+			AccessToken:  resp.AccessToken,
+			RefreshToken: resp.RefreshToken,
+		},
+	}, nil
 }
 
 func (s *service) Logout(ctx context.Context, r *connect.Request[authpbv1.LogoutRequest]) (*connect.Response[authpbv1.LogoutResponse], error) {
-	panic("unimplemented")
+	// TODO: bring customer session id from ctx.
+
+	_, err := s.auth.Logout(ctx, auth.LogoutRequest{
+		CustomerSessionID: uuid.UUID{},
+		CustomerID:        uuid.UUID{},
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to call Logout")
+		return nil, connect.NewError(connect.CodeInternal, errInternal)
+	}
+
+	return &connect.Response[authpbv1.LogoutResponse]{
+		Msg: &authpbv1.LogoutResponse{},
+	}, nil
 }

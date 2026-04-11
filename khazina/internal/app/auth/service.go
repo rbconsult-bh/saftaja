@@ -21,6 +21,8 @@ var ErrTokenInvalid = errors.New("token is invalid")
 type AuthService interface {
 	InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*InitiateAuthResponse, error)
 	CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*CompleteAuthResponse, error)
+	RefreshToken(ctx context.Context, r RefreshTokenRequest) (*RefreshTokenResponse, error)
+	Logout(ctx context.Context, r LogoutRequest) (*LogoutResponse, error)
 }
 
 type service struct {
@@ -140,4 +142,21 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
 	}, nil
+}
+
+func (s *service) RefreshToken(ctx context.Context, r RefreshTokenRequest) (*RefreshTokenResponse, error) {
+	return &RefreshTokenResponse{}, nil
+}
+
+func (s *service) Logout(ctx context.Context, r LogoutRequest) (*LogoutResponse, error) {
+	err := s.queries.DeleteCustomerSessionByIDAndCustomerID(ctx, store.DeleteCustomerSessionByIDAndCustomerIDParams{
+		ID:         r.CustomerSessionID,
+		CustomerID: r.CustomerID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete customer session by id and customer id")
+		return nil, errors.New("failed to delete customer sessoin by and and customer id")
+	}
+
+	return &LogoutResponse{}, nil
 }
