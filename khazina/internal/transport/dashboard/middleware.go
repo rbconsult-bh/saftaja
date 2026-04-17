@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -31,14 +32,19 @@ func NewAuthTokenInterceptor(tv *jwt.Verifier) connect.UnaryInterceptorFunc {
 				return next(ctx, req)
 			}
 
-			token := req.Header().Get("Authorization")
+			authHeader := req.Header().Get("authorization")
+			token, found := strings.CutPrefix(authHeader, "Bearer ")
+			if !found {
+				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("ensure token has 'Bearer ' before its value in header"))
+			}
+
 			claims, err := tv.Verify(token)
 			if err != nil {
-				return nil, connect.NewError(connect.CodeUnauthenticated, err)
+				return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 			}
 
 			if err := claims.MustBeAccess(); err != nil {
-				return nil, connect.NewError(connect.CodePermissionDenied, err)
+				return nil, connect.NewError(connect.CodePermissionDenied, nil)
 			}
 
 			userID, err := uuid.Parse(claims.Subject)
