@@ -31,15 +31,17 @@ type service struct {
 	emailer        email.Emailer
 	emailTemplates email.Templates
 	jwtIssuer      *jwt.Issuer
+	jwtVerifier    *jwt.Verifier
 }
 
-func New(dbPool *pgxpool.Pool, queries store.TransactionQuerier, emailer email.Emailer, emailTemplates email.Templates, jwtIssuer *jwt.Issuer) AuthService {
+func New(dbPool *pgxpool.Pool, queries store.TransactionQuerier, emailer email.Emailer, emailTemplates email.Templates, jwtIssuer *jwt.Issuer, jwtVerifier *jwt.Verifier) AuthService {
 	return &service{
 		db:             dbPool,
 		queries:        queries,
 		emailer:        emailer,
 		emailTemplates: emailTemplates,
 		jwtIssuer:      jwtIssuer,
+		jwtVerifier:    jwtVerifier,
 	}
 }
 
@@ -127,15 +129,15 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		return nil, errors.New("failed to create customer session")
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to commit tx")
-		return nil, errors.New("failed to commit tx")
-	}
-
 	tokenPair, err := s.jwtIssuer.IssueTokenPair(customerSession.CustomerID, customerSession.ID, currentJti)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to issue token pair")
 		return nil, errors.New("failed to issue token pair")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit tx")
+		return nil, errors.New("failed to commit tx")
 	}
 
 	return &CompleteAuthResponse{
@@ -145,7 +147,73 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 }
 
 func (s *service) RefreshToken(ctx context.Context, r RefreshTokenRequest) (*RefreshTokenResponse, error) {
-	return &RefreshTokenResponse{}, nil
+	claims, err := s.jwtVerifier.Verify(r.Token)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to verify refresh token")
+		// TODO: make this an "ErrXXX" so that transport can check its name.
+		return nil, errors.New("failed to verify refresh token")
+	}
+
+	if err := claims.MustBeRefresh(); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("token sent is not refresh token")
+		return nil, errors.New("token sent is not refresh token")
+	}
+
+	sessionID, err := uuid.Parse(claims.SessionID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to parse session id")
+		return nil, errors.New("failed to parse session id")
+	}
+
+	customerID, err := uuid.Parse(claims.RegisteredClaims.Subject)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to parse customer id")
+		return nil, errors.New("failed to parse customer id")
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to begin tx")
+		return nil, errors.New("failed to begin tx")
+	}
+	defer tx.Rollback(ctx)
+
+	queriesWithTx := s.queries.WithTx(tx)
+
+	currentJti := uuid.New()
+	currentJtiHash := sha256.Sum256([]byte(currentJti.String()))
+
+	_, err = queriesWithTx.UpdateCustomerSessionJtiHashByIDAndCustomerID(ctx, store.UpdateCustomerSessionJtiHashByIDAndCustomerIDParams{
+		CurrentJtiHash: currentJtiHash[:],
+		ID:             sessionID,
+		CustomerID:     customerID,
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Ctx(ctx).Error().Err(err).Msg("session expired or not found")
+			// TODO: make this an "ErrXXX" so that transport can check its name.
+			return nil, errors.New("session expired or not found")
+		}
+
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update customer session jti hash by id and customer id")
+		return nil, errors.New("failed to update customer session jti hash by id and customer id")
+	}
+
+	tokenPair, err := s.jwtIssuer.IssueTokenPair(customerID, sessionID, currentJti)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to issue token pair")
+		return nil, errors.New("failed to issue token pair")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit tx")
+		return nil, errors.New("failed to commit tx")
+	}
+
+	return &RefreshTokenResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+	}, nil
 }
 
 func (s *service) Logout(ctx context.Context, r LogoutRequest) (*LogoutResponse, error) {

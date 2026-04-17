@@ -84,7 +84,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	}
 
 	authInterceptor := dashboard.NewAuthTokenInterceptor(jwtVerifier)
-	authSvc := auth.New(dbPool, queries, emailer, emailTemplates, jwtIssuer)
+	authSvc := auth.New(dbPool, queries, emailer, emailTemplates, jwtIssuer, jwtVerifier)
 	dashboardAuthSvc := authv1.New(authSvc)
 
 	adminSvc := admin.NewService(queries, encryptionKey)
