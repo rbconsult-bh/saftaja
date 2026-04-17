@@ -45,7 +45,7 @@ func (s *service) CompleteAuth(ctx context.Context, r *connect.Request[authpbv1.
 	if err != nil {
 		if errors.Is(err, auth.ErrTokenInvalid) {
 			log.Ctx(ctx).Info().Msg("invalid auth token attempt")
-			return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+			return nil, connect.NewError(connect.CodeInvalidArgument, nil)
 		}
 
 		log.Ctx(ctx).Error().Err(err).Msg("failed to call CompleteAuth")
