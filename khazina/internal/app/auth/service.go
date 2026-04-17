@@ -150,7 +150,7 @@ func (s *service) RefreshToken(ctx context.Context, r RefreshTokenRequest) (*Ref
 
 func (s *service) Logout(ctx context.Context, r LogoutRequest) (*LogoutResponse, error) {
 	err := s.queries.DeleteCustomerSessionByIDAndCustomerID(ctx, store.DeleteCustomerSessionByIDAndCustomerIDParams{
-		ID:         r.CustomerSessionID,
+		ID:         r.SessionID,
 		CustomerID: r.CustomerID,
 	})
 	if err != nil {

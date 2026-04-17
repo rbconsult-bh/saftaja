@@ -51,7 +51,7 @@ func NewAuthTokenInterceptor(tv *jwt.Verifier) connect.UnaryInterceptorFunc {
 			if err != nil {
 				return nil, connect.NewError(connect.CodeInternal, ErrInternal)
 			}
-			ctx = saftajacontext.WithUserID(ctx, userID)
+			ctx = saftajacontext.WithCustomerID(ctx, userID)
 
 			sessionID, err := uuid.Parse(claims.SessionID)
 			if err != nil {

@@ -8,18 +8,18 @@ import (
 )
 
 type (
-	userIDKey    struct{}
-	sessionIDKey struct{}
+	customerIDKey struct{}
+	sessionIDKey  struct{}
 )
 
-func WithUserID(ctx context.Context, id uuid.UUID) context.Context {
-	return context.WithValue(ctx, userIDKey{}, id)
+func WithCustomerID(ctx context.Context, id uuid.UUID) context.Context {
+	return context.WithValue(ctx, customerIDKey{}, id)
 }
 
-func UserID(ctx context.Context) (uuid.UUID, error) {
-	id, ok := ctx.Value(userIDKey{}).(uuid.UUID)
+func CustomerID(ctx context.Context) (uuid.UUID, error) {
+	id, ok := ctx.Value(customerIDKey{}).(uuid.UUID)
 	if !ok || id == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("user id not found in context")
+		return uuid.Nil, fmt.Errorf("customer id not found in context")
 	}
 	return id, nil
 }

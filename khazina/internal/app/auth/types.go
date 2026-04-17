@@ -31,8 +31,8 @@ type (
 
 type (
 	LogoutRequest struct {
-		CustomerSessionID uuid.UUID
-		CustomerID        uuid.UUID
+		SessionID  uuid.UUID
+		CustomerID uuid.UUID
 	}
 	LogoutResponse struct{}
 )
