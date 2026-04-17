@@ -1,6 +1,10 @@
 package jwt
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	golangjwt "github.com/golang-jwt/jwt/v5"
+)
 
 type TokenType string
 
@@ -10,8 +14,22 @@ const (
 )
 
 type Claims struct {
-	Sub       uuid.UUID
-	SessionID uuid.UUID
-	Jti       uuid.UUID
-	Type      TokenType
+	SessionID string    `json:"sid"`
+	Type      TokenType `json:"type"`
+
+	golangjwt.RegisteredClaims
+}
+
+func (c *Claims) MustBeAccess() error {
+	if c.Type != TokenTypeAccess {
+		return fmt.Errorf("expected access token, got %s", c.Type)
+	}
+	return nil
+}
+
+func (c *Claims) MustBeRefresh() error {
+	if c.Type != TokenTypeRefresh {
+		return fmt.Errorf("expected refresh token, got %s", c.Type)
+	}
+	return nil
 }

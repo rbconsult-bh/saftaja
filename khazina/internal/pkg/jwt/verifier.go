@@ -2,8 +2,9 @@ package jwt
 
 import (
 	"crypto/rsa"
+	"fmt"
 
-	"github.com/google/uuid"
+	golangjwt "github.com/golang-jwt/jwt/v5"
 )
 
 type Verifier struct {
@@ -17,10 +18,25 @@ func NewVerifier(key *rsa.PublicKey) *Verifier {
 }
 
 func (v *Verifier) Verify(token string) (*Claims, error) {
-	return &Claims{
-		Sub:       uuid.UUID{},
-		SessionID: uuid.UUID{},
-		Jti:       uuid.UUID{},
-		Type:      "",
-	}, nil
+	var claims Claims
+	parsedToken, err := golangjwt.ParseWithClaims(
+		token,
+		&claims,
+		func(t *golangjwt.Token) (any, error) {
+			return v.key, nil
+		},
+		golangjwt.WithValidMethods(
+			[]string{golangjwt.SigningMethodRS256.Name},
+		),
+		golangjwt.WithExpirationRequired(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify token: %w", err)
+	}
+
+	if !parsedToken.Valid {
+		return nil, fmt.Errorf("token is invalid")
+	}
+
+	return &claims, nil
 }

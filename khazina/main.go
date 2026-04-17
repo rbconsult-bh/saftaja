@@ -33,6 +33,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/authv1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
@@ -139,17 +140,19 @@ func main() {
 
 	emailTemplates := email.NewTemplates(cfg.Domain)
 
-	jwtIssuer, _, err := jwt.ParseJWTPrivateKey(cfg.JWTPrivateKey)
+	jwtIssuer, jwtVerifier, err := jwt.ParseJWTPrivateKey(cfg.JWTPrivateKey)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to parse jwt private key")
 	}
+
+	authInterceptor := dashboard.NewAuthTokenInterceptor(jwtVerifier)
 
 	authSvc := auth.New(dbPool, queries, emailer, emailTemplates, jwtIssuer)
 
 	dashboardAuthSvc := authv1.New(authSvc)
 	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(
 		dashboardAuthSvc,
-		connect.WithInterceptors(validate.NewInterceptor()),
+		connect.WithInterceptors(authInterceptor, validate.NewInterceptor()),
 	)
 
 	r.Mount(dashboardAuthPath, dashboardAuthHandler)

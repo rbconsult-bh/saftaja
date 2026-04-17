@@ -26,24 +26,28 @@ type TokenPair struct {
 func (i *Issuer) IssueTokenPair(sub, sid, refreshJti uuid.UUID) (*TokenPair, error) {
 	now := time.Now()
 
-	accessToken, err := i.issue(golangjwt.MapClaims{
-		"type": "access",
-		"sub":  sub.String(),
-		"sid":  sid.String(),
-		"iat":  now.Unix(),
-		"exp":  now.Add(5 * time.Minute).Unix(),
+	accessToken, err := i.issue(Claims{
+		SessionID: sid.String(),
+		Type:      TokenTypeAccess,
+		RegisteredClaims: golangjwt.RegisteredClaims{
+			Subject:   sub.String(),
+			IssuedAt:  golangjwt.NewNumericDate(now),
+			ExpiresAt: golangjwt.NewNumericDate(now.Add(5 * time.Minute)),
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := i.issue(golangjwt.MapClaims{
-		"type": "refresh",
-		"sub":  sub.String(),
-		"sid":  sid.String(),
-		"jti":  refreshJti.String(),
-		"iat":  now.Unix(),
-		"exp":  now.Add(7 * 24 * time.Hour).Unix(),
+	refreshToken, err := i.issue(Claims{
+		SessionID: sid.String(),
+		Type:      TokenTypeRefresh,
+		RegisteredClaims: golangjwt.RegisteredClaims{
+			ID:        refreshJti.String(),
+			Subject:   sub.String(),
+			IssuedAt:  golangjwt.NewNumericDate(now),
+			ExpiresAt: golangjwt.NewNumericDate(now.Add(7 * 24 * time.Hour)),
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -55,10 +59,10 @@ func (i *Issuer) IssueTokenPair(sub, sid, refreshJti uuid.UUID) (*TokenPair, err
 	}, nil
 }
 
-func (i *Issuer) issue(mapClaims golangjwt.MapClaims) (string, error) {
+func (i *Issuer) issue(claims Claims) (string, error) {
 	token := golangjwt.NewWithClaims(
 		golangjwt.SigningMethodRS256,
-		mapClaims,
+		claims,
 	)
 
 	return token.SignedString(i.key)
