@@ -16,7 +16,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var ErrTokenInvalid = errors.New("token is invalid")
+var (
+	ErrAuthIntentTokenInvalid = errors.New("auth intent token invalid")
+	ErrSessionExpired         = errors.New("session expired")
+	ErrSessionRevoked         = errors.New("session revoked")
+	ErrInvalidArgument        = errors.New("invalid argument")
+)
 
 type AuthService interface {
 	InitiateAuth(ctx context.Context, r InitiateAuthRequest) (*InitiateAuthResponse, error)
@@ -86,7 +91,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("token is invalid")
-			return nil, ErrTokenInvalid
+			return nil, ErrAuthIntentTokenInvalid
 		}
 
 		log.Ctx(ctx).Error().Err(err).Msg("failed to consume auth intent by token hash")
@@ -149,8 +154,16 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 func (s *service) RefreshToken(ctx context.Context, r RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	claims, err := s.jwtVerifier.Verify(r.Token)
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			log.Ctx(ctx).Error().Err(err).Msg("session expired")
+			return nil, ErrSessionExpired
+		}
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			log.Ctx(ctx).Error().Err(err).Msg("token malformed")
+			return nil, ErrInvalidArgument
+		}
+
 		log.Ctx(ctx).Error().Err(err).Msg("failed to verify refresh token")
-		// TODO: make this an "ErrXXX" so that transport can check its name.
 		return nil, errors.New("failed to verify refresh token")
 	}
 
@@ -180,40 +193,46 @@ func (s *service) RefreshToken(ctx context.Context, r RefreshTokenRequest) (*Ref
 
 	queriesWithTx := s.queries.WithTx(tx)
 
-	currentJti := uuid.New()
-	currentJtiHash := sha256.Sum256([]byte(currentJti.String()))
+	newJti := uuid.New()
+	newJtiHash := sha256.Sum256([]byte(newJti.String()))
+	currentJtiHash := sha256.Sum256([]byte(claims.RegisteredClaims.ID))
 
-	_, err = queriesWithTx.UpdateCustomerSessionJtiHashByIDAndCustomerID(ctx, store.UpdateCustomerSessionJtiHashByIDAndCustomerIDParams{
-		CurrentJtiHash: currentJtiHash[:],
-		ID:             sessionID,
+	resRow, err := queriesWithTx.RotateOrRevokeCustomerSession(ctx, store.RotateOrRevokeCustomerSessionArgs{
+		SessionID:      sessionID,
 		CustomerID:     customerID,
+		NewJtiHash:     newJtiHash[:],
+		CurrentJtiHash: currentJtiHash[:],
 	})
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			log.Ctx(ctx).Error().Err(err).Msg("session expired or not found")
-			// TODO: make this an "ErrXXX" so that transport can check its name.
-			return nil, errors.New("session expired or not found")
-		}
-
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update customer session jti hash by id and customer id")
 		return nil, errors.New("failed to update customer session jti hash by id and customer id")
 	}
 
-	tokenPair, err := s.jwtIssuer.IssueTokenPair(customerID, sessionID, currentJti)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to issue token pair")
-		return nil, errors.New("failed to issue token pair")
+	if resRow.WasRotated {
+		tokenPair, err := s.jwtIssuer.IssueTokenPair(customerID, sessionID, newJti)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to issue token pair")
+			return nil, errors.New("failed to issue token pair")
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to commit tx")
+			return nil, errors.New("failed to commit tx")
+		}
+
+		return &RefreshTokenResponse{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
+		}, nil
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to commit tx")
-		return nil, errors.New("failed to commit tx")
+	if resRow.WasRevoked {
+		log.Ctx(ctx).Error().Msg("session revoked: old refresh token used (potential replay attack)")
+		return nil, ErrSessionRevoked
 	}
 
-	return &RefreshTokenResponse{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-	}, nil
+	log.Ctx(ctx).Error().Msg("session expired or not found")
+	return nil, ErrSessionExpired
 }
 
 func (s *service) Logout(ctx context.Context, r LogoutRequest) (*LogoutResponse, error) {

@@ -2,9 +2,15 @@ package jwt
 
 import (
 	"crypto/rsa"
+	"errors"
 	"fmt"
 
 	golangjwt "github.com/golang-jwt/jwt/v5"
+)
+
+var (
+	ErrTokenExpired   = errors.New("token expired")
+	ErrTokenMalformed = errors.New("token malformed")
 )
 
 type Verifier struct {
@@ -31,6 +37,13 @@ func (v *Verifier) Verify(token string) (*Claims, error) {
 		golangjwt.WithExpirationRequired(),
 	)
 	if err != nil {
+		if errors.Is(err, golangjwt.ErrTokenExpired) {
+			return nil, ErrTokenExpired
+		}
+		if errors.Is(err, golangjwt.ErrTokenMalformed) || errors.Is(err, golangjwt.ErrSignatureInvalid) {
+			return nil, ErrTokenMalformed
+		}
+
 		return nil, fmt.Errorf("failed to verify token: %w", err)
 	}
 

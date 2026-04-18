@@ -1,10 +1,14 @@
 package store
 
 import (
+	"context"
+
 	"github.com/jackc/pgx/v5"
 )
 
 type TransactionQuerier interface {
+	RotateOrRevokeCustomerSession(ctx context.Context, arg RotateOrRevokeCustomerSessionArgs) (RotateOrRevokeCustomerSessionRow, error)
+
 	Querier
 	WithTx(tx pgx.Tx) TransactionQuerier
 }

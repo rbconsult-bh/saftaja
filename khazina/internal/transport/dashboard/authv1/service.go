@@ -43,7 +43,7 @@ func (s *service) CompleteAuth(ctx context.Context, r *connect.Request[authpbv1.
 		Token: r.Msg.Token,
 	})
 	if err != nil {
-		if errors.Is(err, auth.ErrTokenInvalid) {
+		if errors.Is(err, auth.ErrAuthIntentTokenInvalid) {
 			log.Ctx(ctx).Info().Msg("invalid auth token attempt")
 			return nil, connect.NewError(connect.CodeInvalidArgument, nil)
 		}
@@ -65,6 +65,15 @@ func (s *service) RefreshToken(ctx context.Context, r *connect.Request[authpbv1.
 		Token: r.Msg.RefreshToken,
 	})
 	if err != nil {
+		if errors.Is(err, auth.ErrSessionExpired) || errors.Is(err, auth.ErrSessionRevoked) {
+			log.Ctx(ctx).Info().Msg("token is expired or revoked")
+			return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		}
+		if errors.Is(err, auth.ErrInvalidArgument) {
+			log.Ctx(ctx).Info().Msg("invalid argument")
+			return nil, connect.NewError(connect.CodeInvalidArgument, nil)
+		}
+
 		log.Ctx(ctx).Error().Err(err).Msg("failed to call RefreshToken")
 		return nil, connect.NewError(connect.CodeInternal, errInternal)
 	}

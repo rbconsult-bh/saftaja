@@ -7,8 +7,3 @@ RETURNING *;
 DELETE FROM customer_session
 WHERE id = $1 AND customer_id = $2;
 
--- name: UpdateCustomerSessionJtiHashByIDAndCustomerID :one
-UPDATE customer_session
-SET current_jti_hash = $1
-WHERE id = $2 AND customer_id = $3 AND expires_at > NOW()
-RETURNING id;

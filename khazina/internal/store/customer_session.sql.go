@@ -49,23 +49,3 @@ func (q *Queries) DeleteCustomerSessionByIDAndCustomerID(ctx context.Context, ar
 	_, err := q.db.Exec(ctx, deleteCustomerSessionByIDAndCustomerID, arg.ID, arg.CustomerID)
 	return err
 }
-
-const updateCustomerSessionJtiHashByIDAndCustomerID = `-- name: UpdateCustomerSessionJtiHashByIDAndCustomerID :one
-UPDATE customer_session
-SET current_jti_hash = $1
-WHERE id = $2 AND customer_id = $3 AND expires_at > NOW()
-RETURNING id
-`
-
-type UpdateCustomerSessionJtiHashByIDAndCustomerIDParams struct {
-	CurrentJtiHash []byte
-	ID             uuid.UUID
-	CustomerID     uuid.UUID
-}
-
-func (q *Queries) UpdateCustomerSessionJtiHashByIDAndCustomerID(ctx context.Context, arg UpdateCustomerSessionJtiHashByIDAndCustomerIDParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, updateCustomerSessionJtiHashByIDAndCustomerID, arg.CurrentJtiHash, arg.ID, arg.CustomerID)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
-}
