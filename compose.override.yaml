@@ -13,6 +13,11 @@ services:
       target: dev
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
+      - "40000:40000" # dlv
+    security_opt:
+      - "seccomp:unconfined" # dlv
+    cap_add:
+      - SYS_PTRACE # dlv
     develop:
       watch:
         - path: ./khazina

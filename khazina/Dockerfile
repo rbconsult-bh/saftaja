@@ -1,12 +1,15 @@
-FROM golang:1.25.5 AS base
+FROM golang:1.25.6 AS base
 WORKDIR /khazina
+
+RUN go install github.com/go-delve/delve/cmd/dlv@v1.26.1
+
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
 
 FROM base AS dev
-CMD [ "go", "run", "main.go" ]
+CMD ["dlv", "debug", "main.go", "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "--continue", "--build-flags=-gcflags='all=-N -l'"]
 
 
 FROM base AS builder

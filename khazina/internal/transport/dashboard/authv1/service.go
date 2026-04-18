@@ -65,8 +65,12 @@ func (s *service) RefreshToken(ctx context.Context, r *connect.Request[authpbv1.
 		Token: r.Msg.RefreshToken,
 	})
 	if err != nil {
-		if errors.Is(err, auth.ErrSessionExpired) || errors.Is(err, auth.ErrSessionRevoked) {
-			log.Ctx(ctx).Info().Msg("token is expired or revoked")
+		if errors.Is(err, auth.ErrSessionExpired) {
+			log.Ctx(ctx).Info().Msg("token is expired")
+			return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		}
+		if errors.Is(err, auth.ErrSessionRevoked) {
+			log.Ctx(ctx).Info().Msg("token is revoked")
 			return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 		}
 		if errors.Is(err, auth.ErrInvalidArgument) {
