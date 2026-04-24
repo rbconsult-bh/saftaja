@@ -1,13 +1,25 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
 
 export const Route = createFileRoute('/')({
   component: Index,
 })
 
 function Index() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // TODO: check if user is logged in or not
+    let isLoggedIn = false;
+    if (isLoggedIn) {
+      // TODO: go to /select
+    } else {
+      // TODO: go to /auth
+    }
+  }, [])
+
+
   return (
-    <div className="p-2">
-      <h3>Welcome Home!</h3>
-    </div>
+    <h1>YOU SHOULD NEVER EVER SEE THIS :D</h1>
   )
 }
