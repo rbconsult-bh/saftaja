@@ -6,6 +6,10 @@ import { refreshClient } from "./api-client";
 let refreshPromise: Promise<string> | null = null;
 
 export const authInterceptor: Interceptor = (next) => async (req) => {
+  if (refreshPromise) {
+    await refreshPromise;
+  }
+
   const accessToken = TokenVault.getAccess();
   if (accessToken) {
     req.header.set("authorization", `Bearer ${accessToken}`);
