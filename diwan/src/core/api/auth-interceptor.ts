@@ -2,10 +2,23 @@ import { Code, ConnectError, type Interceptor } from "@connectrpc/connect";
 import { TokenVault } from "../session/token-vault";
 import { useSessionStore } from "../session/store";
 import { refreshClient } from "./api-client";
+import { AuthService } from "../../gen/saftaja/dashboard/auth/v1/auth_pb";
+
+const authlessProcedures: string[] = [
+  `/${AuthService.typeName}/${AuthService.method.initiateAuth.name}`,
+  `/${AuthService.typeName}/${AuthService.method.completeAuth.name}`,
+  `/${AuthService.typeName}/${AuthService.method.refreshToken.name}`,
+];
 
 let refreshPromise: Promise<string> | null = null;
 
 export const authInterceptor: Interceptor = (next) => async (req) => {
+  const currentPath = `/${req.service.typeName}/${req.method.name}`;
+  const isAuthless = authlessProcedures.includes(currentPath);
+  if (isAuthless) {
+    return next(req);
+  }
+
   if (refreshPromise) {
     await refreshPromise;
   }
