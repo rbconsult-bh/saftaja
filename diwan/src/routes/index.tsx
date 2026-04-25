@@ -1,25 +1,22 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useSessionStore } from '../core/session/store';
 import { useEffect } from 'react';
 
 export const Route = createFileRoute('/')({
-  component: Index,
+  component: RouteComponent,
 })
 
-function Index() {
+function RouteComponent() {
+  const isAuthenticated = useSessionStore(s => s.isAuthenticated);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // TODO: check if user is logged in or not
-    let isLoggedIn = false;
-    if (isLoggedIn) {
-      // TODO: go to /select
+    if (!isAuthenticated) {
+      navigate({ to: "/auth" });
     } else {
-      // TODO: go to /auth
+      navigate({ to: "/project" });
     }
-  }, [])
+  }, [isAuthenticated]);
 
-
-  return (
-    <h1>YOU SHOULD NEVER EVER SEE THIS :D</h1>
-  )
+  return <></>;
 }
