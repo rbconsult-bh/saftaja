@@ -18,8 +18,8 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
 )
 
 // testProject is a helper to create a test project for tenant context

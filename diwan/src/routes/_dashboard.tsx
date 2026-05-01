@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { useSessionStore } from '../core/session/store';
 
 export const Route = createFileRoute('/_dashboard')({
@@ -12,5 +12,5 @@ export const Route = createFileRoute('/_dashboard')({
 })
 
 function RouteComponent() {
-  return <div>Hello "/_dashboard"!</div>
+  return <Outlet />;
 }

@@ -8,13 +8,14 @@ import (
 	"connectrpc.com/validate"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
 )
 
 func BuildRouter(cfg *config.Config, deps *dependencies) *chi.Mux {
@@ -24,19 +25,31 @@ func BuildRouter(cfg *config.Config, deps *dependencies) *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.ZeroLogger)
-	r.Use(middlewares.DynamicCORS(deps.tenantSvc))
-	r.Use(middlewares.TenantResolver(deps.tenantSvc))
 
 	mountHealthCheck(r, deps)
-	mountWebRoutes(r, cfg, deps)
-	mountAdminRoutes(r, cfg, deps)
-	mountDashboardRoutes(r, deps)
-	mountReflection(r, deps)
+
+	r.Group(func(webRouter chi.Router) {
+		webRouter.Use(middlewares.DynamicCORS(deps.tenantSvc))
+		webRouter.Use(middlewares.TenantResolver(deps.tenantSvc))
+
+		mountWebRoutes(webRouter, cfg, deps)
+	})
+
+	r.Group(func(dashRouter chi.Router) {
+		dashRouter.Use(cors.AllowAll().Handler)
+
+		mountDashboardRoutes(dashRouter, deps)
+		mountReflection(dashRouter, deps)
+	})
+
+	r.Group(func(adminRouter chi.Router) {
+		mountAdminRoutes(adminRouter, cfg, deps)
+	})
 
 	return r
 }
 
-func mountHealthCheck(r *chi.Mux, deps *dependencies) {
+func mountHealthCheck(r chi.Router, deps *dependencies) {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		if err := deps.dbPool.Ping(r.Context()); err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -46,7 +59,7 @@ func mountHealthCheck(r *chi.Mux, deps *dependencies) {
 	})
 }
 
-func mountWebRoutes(r *chi.Mux, cfg *config.Config, deps *dependencies) {
+func mountWebRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
 	h := web.New(deps.paymentSvc, cfg.VerifyDomainSecret)
 
 	r.Get("/verify-domain", h.VerifyDomainHandler)
@@ -59,14 +72,14 @@ func mountWebRoutes(r *chi.Mux, cfg *config.Config, deps *dependencies) {
 	})
 }
 
-func mountAdminRoutes(r *chi.Mux, cfg *config.Config, deps *dependencies) {
+func mountAdminRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
 	r.Route("/admin", func(r chi.Router) {
 		r.Use(admin.APIKeyAuth(cfg.AdminAPIKey))
 		deps.adminHandlers.RegisterRoutes(r)
 	})
 }
 
-func mountDashboardRoutes(r *chi.Mux, deps *dependencies) {
+func mountDashboardRoutes(r chi.Router, deps *dependencies) {
 	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(
 		deps.dashboardAuthSvc,
 		connect.WithInterceptors(
@@ -77,7 +90,7 @@ func mountDashboardRoutes(r *chi.Mux, deps *dependencies) {
 	r.Mount(dashboardAuthPath, dashboardAuthHandler)
 }
 
-func mountReflection(r *chi.Mux, deps *dependencies) {
+func mountReflection(r chi.Router, deps *dependencies) {
 	reflector := grpcreflect.NewStaticReflector(
 		authpbv1connect.AuthServiceName,
 	)

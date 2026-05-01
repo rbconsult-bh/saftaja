@@ -14,7 +14,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/templfiles"
 )
 
