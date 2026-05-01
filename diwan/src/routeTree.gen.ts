@@ -13,6 +13,7 @@ import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardProjectRouteImport } from './routes/_dashboard/project'
+import { Route as AuthMagicLinkRouteImport } from './routes/_auth/magic-link'
 import { Route as AuthAuthRouteImport } from './routes/_auth/auth'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -33,6 +34,11 @@ const DashboardProjectRoute = DashboardProjectRouteImport.update({
   path: '/project',
   getParentRoute: () => DashboardRoute,
 } as any)
+const AuthMagicLinkRoute = AuthMagicLinkRouteImport.update({
+  id: '/magic-link',
+  path: '/magic-link',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthAuthRoute = AuthAuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -42,11 +48,13 @@ const AuthAuthRoute = AuthAuthRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthAuthRoute
+  '/magic-link': typeof AuthMagicLinkRoute
   '/project': typeof DashboardProjectRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthAuthRoute
+  '/magic-link': typeof AuthMagicLinkRoute
   '/project': typeof DashboardProjectRoute
 }
 export interface FileRoutesById {
@@ -55,19 +63,21 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/_dashboard': typeof DashboardRouteWithChildren
   '/_auth/auth': typeof AuthAuthRoute
+  '/_auth/magic-link': typeof AuthMagicLinkRoute
   '/_dashboard/project': typeof DashboardProjectRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/project'
+  fullPaths: '/' | '/auth' | '/magic-link' | '/project'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/project'
+  to: '/' | '/auth' | '/magic-link' | '/project'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/_dashboard'
     | '/_auth/auth'
+    | '/_auth/magic-link'
     | '/_dashboard/project'
   fileRoutesById: FileRoutesById
 }
@@ -107,6 +117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardProjectRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_auth/magic-link': {
+      id: '/_auth/magic-link'
+      path: '/magic-link'
+      fullPath: '/magic-link'
+      preLoaderRoute: typeof AuthMagicLinkRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/auth': {
       id: '/_auth/auth'
       path: '/auth'
@@ -119,10 +136,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthAuthRoute: typeof AuthAuthRoute
+  AuthMagicLinkRoute: typeof AuthMagicLinkRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthAuthRoute: AuthAuthRoute,
+  AuthMagicLinkRoute: AuthMagicLinkRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
