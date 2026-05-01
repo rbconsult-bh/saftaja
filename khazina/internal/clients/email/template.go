@@ -31,7 +31,7 @@ func (t *templates) MagicLinkTemplate(token string) (*Template, error) {
 	
 Use the link below to login to your account, or create one if this is your first time:
 
-Link: %s/magic-link?token=%s
+		Link: https://%s/magic-link?token=%s
 
 If you didn't request this email, you can ignore it safely :D
 
