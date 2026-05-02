@@ -1,4 +1,20 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "example_message": "Hello world {username}"
+  "auth_login_title": "Sign in to Saftaja",
+  "auth_login_subtitle": "Enter your email to continue to the dashboard",
+  "auth_login_email_label": "Email Address",
+  "auth_login_email_placeholder": "name@company.com",
+  "auth_login_button": "Continue",
+  "auth_login_sending": "Sending...",
+  "auth_login_success": "Check your email for the next steps!",
+  "auth_magic_link_title": "Ready to sign in?",
+  "auth_magic_link_subtitle": "Click below to securely enter your dashboard.",
+  "auth_magic_link_button": "Enter Dashboard",
+  "auth_magic_link_authenticating": "Authenticating...",
+  "auth_magic_link_invalid_title": "Invalid Link",
+  "auth_magic_link_invalid_subtitle": "No authentication token was found.",
+  "auth_magic_link_return_button": "Return to login",
+  "auth_magic_link_failed_title": "Authentication Failed",
+  "auth_magic_link_failed_button": "Request new link",
+  "common_error": "Something went wrong, please try again."
 }

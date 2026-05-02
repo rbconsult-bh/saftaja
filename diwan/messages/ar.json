@@ -1,4 +1,20 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "example_message": "ahlan {username}"
+  "auth_login_title": "تسجيل الدخول إلى سفطجة",
+  "auth_login_subtitle": "أدخل بريدك الإلكتروني للمتابعة إلى لوحة التحكم",
+  "auth_login_email_label": "البريد الإلكتروني",
+  "auth_login_email_placeholder": "name@company.com",
+  "auth_login_button": "متابعة",
+  "auth_login_sending": "جاري الإرسال...",
+  "auth_login_success": "تحقق من بريدك الإلكتروني للحصول على رابط الدخول!",
+  "auth_magic_link_title": "جاهز لتسجيل الدخول؟",
+  "auth_magic_link_subtitle": "انقر أدناه للدخول بشكل آمن إلى لوحة التحكم الخاصة بك.",
+  "auth_magic_link_button": "دخول لوحة التحكم",
+  "auth_magic_link_authenticating": "جاري التحقق...",
+  "auth_magic_link_invalid_title": "رابط غير صالح",
+  "auth_magic_link_invalid_subtitle": "لم يتم العثور على رمز المصادقة.",
+  "auth_magic_link_return_button": "العودة لتسجيل الدخول",
+  "auth_magic_link_failed_title": "فشل التحقق",
+  "auth_magic_link_failed_button": "طلب رابط جديد",
+  "common_error": "حدث خطأ ما، يرجى المحاولة مرة أخرى."
 }

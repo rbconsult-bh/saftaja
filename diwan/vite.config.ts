@@ -9,18 +9,18 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    tailwindcss(),
-    tanstackRouter({
-      target: 'react',
-      autoCodeSplitting: true,
-    }),
-    react(),
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
       emitTsDeclarations: true,
       strategy: ['cookie', 'preferredLanguage', 'baseLocale']
     }),
+    tailwindcss(),
+    tanstackRouter({
+      target: 'react',
+      autoCodeSplitting: true,
+    }),
+    react(),
   ],
   resolve: {
     alias: {
