@@ -1,5 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "saftaja": "Saftaja",
   "auth_login_title": "Sign in to Saftaja",
   "auth_login_subtitle": "Enter your email to continue to the dashboard",
   "auth_login_email_label": "Email Address",
@@ -16,5 +17,11 @@
   "auth_magic_link_return_button": "Return to login",
   "auth_magic_link_failed_title": "Authentication Failed",
   "auth_magic_link_failed_button": "Request new link",
-  "common_error": "Something went wrong, please try again."
+  "common_error": "Something went wrong, please try again.",
+  "dashboard_project_title": "Project Overview",
+  "dashboard_project_welcome": "Hello \"/_dashboard/project\"! Your session is active.",
+  "dashboard_logout": "Logout",
+  "dashboard_nav_group": "Application",
+  "dashboard_nav_projects": "Projects",
+  "dashboard_nav_settings": "Settings"
 }

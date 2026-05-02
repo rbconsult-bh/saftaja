@@ -1,6 +1,6 @@
 import { useEffect, useState, createContext, useContext, type ReactNode } from "react"
-import { DirectionProvider } from "@radix-ui/react-direction"
 import { getLocale, getTextDirection, setLocale, type Locale } from "@/paraglide/runtime"
+import { DirectionProvider } from "@/components/ui/direction"
 
 interface LanguageContextType {
   locale: Locale
