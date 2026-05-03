@@ -30,7 +30,11 @@ function RouteComponent() {
         {
           onSuccess: (data) => {
             login(data.accessToken, data.refreshToken)
-            navigate({ to: '/project' })
+            // TODO: call dashboard project/workspace RPC here and route to the selected project
+            navigate({
+              to: '/$projectId/invoices',
+              params: { projectId: 'default-project' },
+            })
           },
         }
       )

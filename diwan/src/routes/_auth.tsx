@@ -1,12 +1,17 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { useSessionStore } from '../core/session/store'
+import { useWorkspaceStore } from '@/core/workspace/store'
 
 export const Route = createFileRoute('/_auth')({
   component: RouteComponent,
   beforeLoad: () => {
     const { isAuthenticated } = useSessionStore.getState()
     if (isAuthenticated) {
-      throw redirect({ to: "/project" });
+      const { lastActiveProjectId } = useWorkspaceStore.getState()
+      throw redirect({
+        to: '/$projectId',
+        params: { projectId: lastActiveProjectId ?? 'default-project' },
+      })
     }
   },
 })
