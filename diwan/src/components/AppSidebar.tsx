@@ -64,19 +64,19 @@ export function AppSidebar() {
                 to="/$projectId/invoices"
                 projectId={pid}
                 icon={ReceiptText}
-                label="Invoices"
+                label={m.dashboard_nav_invoices()}
               />
               <NavMenuItem
                 to="/$projectId/gateways"
                 projectId={pid}
                 icon={CreditCard}
-                label="Gateways"
+                label={m.dashboard_nav_gateways()}
               />
               <NavMenuItem
                 to="/$projectId/users"
                 projectId={pid}
                 icon={Users}
-                label="Users"
+                label={m.dashboard_nav_users()}
               />
               <NavMenuItem
                 to="/$projectId/settings"
@@ -127,23 +127,23 @@ function WorkspaceSwitcher({ activeProjectId }: { activeProjectId: string }) {
                 S
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">Saftaja Org</span>
+                <span className="truncate font-semibold">{m.dashboard_workspace_name_placeholder()}</span>
                 <span className="truncate text-xs text-muted-foreground">{activeProjectId}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-56" align="start" sideOffset={4}>
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Organizations</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">{m.dashboard_workspace_group_label()}</DropdownMenuLabel>
             {/* TODO: call dashboard workspace/project RPC here */}
             <DropdownMenuItem className="gap-2 p-2">
               <div className="flex size-6 items-center justify-center rounded-sm border">S</div>
-              Saftaja Org
+              {m.dashboard_workspace_name_placeholder()}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 p-2">
               <Plus className="size-4" />
-              <span className="font-medium text-muted-foreground text-xs">Create New Project</span>
+              <span className="font-medium text-muted-foreground text-xs">{m.dashboard_workspace_create_project()}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -178,8 +178,8 @@ function UserMenu({ projectId }: { projectId: string }) {
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold text-zinc-900">User Name</span>
-                <span className="truncate text-xs text-muted-foreground">user@saftaja.com</span>
+                <span className="truncate font-semibold text-zinc-900">{m.dashboard_user_name_placeholder()}</span>
+                <span className="truncate text-xs text-muted-foreground">{m.dashboard_user_email_placeholder()}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
@@ -191,15 +191,15 @@ function UserMenu({ projectId }: { projectId: string }) {
                   <AvatarFallback className="rounded-lg font-bold">ME</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-zinc-900">User Name</span>
-                  <span className="truncate text-xs text-muted-foreground">user@saftaja.com</span>
+                  <span className="truncate font-semibold text-zinc-900">{m.dashboard_user_name_placeholder()}</span>
+                  <span className="truncate text-xs text-muted-foreground">{m.dashboard_user_email_placeholder()}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link to="/$projectId/settings" params={{ projectId }} className="w-full flex items-center cursor-pointer">
-                <Settings className="mr-2 size-4" /> Global Settings
+                <Settings className="mr-2 size-4" /> {m.dashboard_global_settings()}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

@@ -1,7 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "saftaja": "سفنجة",
-  "auth_login_title": "تسجيل الدخول إلى سفطجة",
+  "saftaja": "سفتجة",
+  "auth_login_title": "تسجيل الدخول إلى سفتجة",
   "auth_login_subtitle": "أدخل بريدك الإلكتروني للمتابعة إلى لوحة التحكم",
   "auth_login_email_label": "البريد الإلكتروني",
   "auth_login_email_placeholder": "name@company.com",
@@ -23,5 +23,19 @@
   "dashboard_logout": "تسجيل الخروج",
   "dashboard_nav_group": "القائمة الرئيسية",
   "dashboard_nav_projects": "المشاريع",
-  "dashboard_nav_settings": "الإعدادات"
+  "dashboard_nav_invoices": "الفواتير",
+  "dashboard_nav_gateways": "بوابات الدفع",
+  "dashboard_nav_users": "المستخدمون",
+  "dashboard_nav_settings": "الإعدادات",
+  "dashboard_workspace_name_placeholder": "مؤسسة سفتجة",
+  "dashboard_workspace_group_label": "المؤسسات",
+  "dashboard_workspace_create_project": "إنشاء مشروع جديد",
+  "dashboard_user_name_placeholder": "اسم المستخدم",
+  "dashboard_user_email_placeholder": "user@saftaja.com",
+  "dashboard_global_settings": "الإعدادات العامة",
+  "common_loading_saftaja": "جاري تحميل سفتجة...",
+  "common_close": "إغلاق",
+  "sidebar_title": "الشريط الجانبي",
+  "sidebar_description": "يعرض الشريط الجانبي على الهاتف.",
+  "sidebar_toggle": "تبديل الشريط الجانبي"
 }

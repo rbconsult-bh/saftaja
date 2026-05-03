@@ -23,5 +23,19 @@
   "dashboard_logout": "Logout",
   "dashboard_nav_group": "Application",
   "dashboard_nav_projects": "Projects",
-  "dashboard_nav_settings": "Settings"
+  "dashboard_nav_invoices": "Invoices",
+  "dashboard_nav_gateways": "Gateways",
+  "dashboard_nav_users": "Users",
+  "dashboard_nav_settings": "Settings",
+  "dashboard_workspace_name_placeholder": "Saftaja Org",
+  "dashboard_workspace_group_label": "Organizations",
+  "dashboard_workspace_create_project": "Create New Project",
+  "dashboard_user_name_placeholder": "User Name",
+  "dashboard_user_email_placeholder": "user@saftaja.com",
+  "dashboard_global_settings": "Global Settings",
+  "common_loading_saftaja": "Loading Saftaja...",
+  "common_close": "Close",
+  "sidebar_title": "Sidebar",
+  "sidebar_description": "Displays the mobile sidebar.",
+  "sidebar_toggle": "Toggle Sidebar"
 }

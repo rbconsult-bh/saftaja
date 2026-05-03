@@ -7,11 +7,12 @@ import { QueryClientProvider } from '@tanstack/react-query';
 
 import { routeTree } from './routeTree.gen'
 import { queryClient, transport } from './core/api/api-client';
+import { m } from './paraglide/messages'
 
 const router = createRouter({
   routeTree, defaultPendingComponent: () => (
     <div className="flex h-screen items-center justify-center">
-      <p>Loading Saftaja...</p>
+      <p>{m.common_loading_saftaja()}</p>
     </div>
   ),
 })
