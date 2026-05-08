@@ -9,6 +9,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 )
 
 const createOrganizationForCustomer = `-- name: CreateOrganizationForCustomer :one
@@ -34,4 +36,55 @@ func (q *Queries) CreateOrganizationForCustomer(ctx context.Context, arg CreateO
 	var organization_id uuid.UUID
 	err := row.Scan(&organization_id)
 	return organization_id, err
+}
+
+const listOrganizationsWithProjectsForCustomer = `-- name: ListOrganizationsWithProjectsForCustomer :many
+SELECT
+  o.id AS org_id,
+  o.name AS org_name,
+  oc.role AS role,
+  p.id AS project_id,
+  p.name AS project_name,
+  p.environment AS environment
+FROM organizations o
+JOIN organization_customer oc ON oc.organization_id = o.id AND oc.customer_id = $1
+LEFT JOIN projects p ON p.organization_id = o.id AND p.deleted_at IS NULL
+WHERE o.deleted_at IS NULL
+ORDER BY o.created_at, p.created_at
+`
+
+type ListOrganizationsWithProjectsForCustomerRow struct {
+	OrgID       uuid.UUID
+	OrgName     string
+	Role        OrganizationRole
+	ProjectID   uuid.UUID
+	ProjectName pgtype.Text
+	Environment domain.ProjectEnvironment
+}
+
+func (q *Queries) ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error) {
+	rows, err := q.db.Query(ctx, listOrganizationsWithProjectsForCustomer, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOrganizationsWithProjectsForCustomerRow
+	for rows.Next() {
+		var i ListOrganizationsWithProjectsForCustomerRow
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.OrgName,
+			&i.Role,
+			&i.ProjectID,
+			&i.ProjectName,
+			&i.Environment,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

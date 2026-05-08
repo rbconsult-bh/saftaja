@@ -8,7 +8,7 @@ import (
 
 type (
 	GetForCustomerRequest struct {
-		CustomerID string
+		CustomerID uuid.UUID
 	}
 	GetForCustomerResponse struct {
 		Organizations []OrganizationWithProjects

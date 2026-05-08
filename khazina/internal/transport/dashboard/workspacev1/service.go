@@ -32,7 +32,7 @@ func (s *service) GetWorkspace(ctx context.Context, r *connect.Request[workspace
 	}
 
 	resp, err := s.membership.GetForCustomer(ctx, membership.GetForCustomerRequest{
-		CustomerID: customerID.String(),
+		CustomerID: customerID,
 	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to call membership.GetForCustomer")
