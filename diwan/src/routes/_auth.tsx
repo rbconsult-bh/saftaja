@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_auth')({
       const { lastActiveProjectId } = useWorkspaceStore.getState()
       throw redirect({
         to: '/$projectId',
-        params: { projectId: lastActiveProjectId ?? 'default-project' },
+        params: { projectId: lastActiveProjectId ?? '_' },
       })
     }
   },

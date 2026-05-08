@@ -24,21 +24,23 @@ function RouteComponent() {
   const completeAuthMut = useMutation(completeAuth)
 
   const handleLoginClick = () => {
-    if (token) {
-      completeAuthMut.mutate(
-        { token },
-        {
-          onSuccess: (data) => {
-            login(data.accessToken, data.refreshToken)
-            // TODO: call dashboard project/workspace RPC here and route to the selected project
-            navigate({
-              to: '/$projectId/invoices',
-              params: { projectId: 'default-project' },
-            })
-          },
-        }
-      )
-    }
+    if (!token) return
+
+    completeAuthMut.mutate(
+      { token },
+      {
+        onSuccess: (data) => {
+          login(data.accessToken, data.refreshToken)
+
+          // Navigate with placeholder — $projectId layout will fetch workspace
+          // and redirect to the user's first real project
+          navigate({
+            to: '/$projectId',
+            params: { projectId: '_' },
+          })
+        },
+      }
+    )
   }
 
   if (!token) {

@@ -37,16 +37,19 @@ import { useLanguage } from "./LanguageProvider"
 import { useSessionStore } from "@/core/session/store"
 import { useMutation } from "@connectrpc/connect-query"
 import { logout as logoutRpc } from "@/gen/saftaja/dashboard/auth/v1/auth-AuthService_connectquery"
+import type { Organization } from "@/gen/saftaja/dashboard/workspace/v1/workspace_pb"
 
-export function AppSidebar() {
+export function AppSidebar({ organizations }: { organizations: Organization[] }) {
   const { dir } = useLanguage()
   const params = useParams({ strict: false }) as { projectId?: string }
-  const pid = params.projectId || "default-project"
+
+  // Derive active project from URL, fall back to first project of first org
+  const pid = params.projectId || organizations[0]?.projects[0]?.id || ""
 
   return (
     <Sidebar collapsible="icon" side={dir === "rtl" ? "right" : "left"}>
       <SidebarHeader className="h-16 border-b border-sidebar-border justify-center">
-        <WorkspaceSwitcher activeProjectId={pid} />
+        <WorkspaceSwitcher organizations={organizations} activeProjectId={pid} />
       </SidebarHeader>
 
       <SidebarContent>
@@ -116,7 +119,16 @@ function NavMenuItem({ to, projectId, icon: Icon, label }: { to: ProjectRoute, p
   )
 }
 
-function WorkspaceSwitcher({ activeProjectId }: { activeProjectId: string }) {
+function WorkspaceSwitcher({ organizations, activeProjectId }: { organizations: Organization[]; activeProjectId: string }) {
+  const navigate = useNavigate()
+
+  // Find current org name for display
+  const currentProject = organizations.flatMap(o => o.projects).find(p => p.id === activeProjectId)
+  const currentOrg = organizations.find(o => o.projects.some(p => p.id === activeProjectId))
+  const displayName = currentProject?.name || m.dashboard_workspace_name_placeholder()
+  const displaySub = currentOrg?.name || ""
+  const orgInitial = (currentOrg?.name || "S")[0].toUpperCase()
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -124,24 +136,41 @@ function WorkspaceSwitcher({ activeProjectId }: { activeProjectId: string }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-zinc-900 text-white font-bold">
-                S
+                {orgInitial}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">{m.dashboard_workspace_name_placeholder()}</span>
-                <span className="truncate text-xs text-muted-foreground">{activeProjectId}</span>
+                <span className="truncate font-semibold">{displayName}</span>
+                <span className="truncate text-xs text-muted-foreground">{displaySub}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-56" align="start" sideOffset={4}>
-            <DropdownMenuLabel className="text-xs text-muted-foreground">{m.dashboard_workspace_group_label()}</DropdownMenuLabel>
-            {/* TODO: call dashboard workspace/project RPC here */}
-            <DropdownMenuItem className="gap-2 p-2">
-              <div className="flex size-6 items-center justify-center rounded-sm border">S</div>
-              {m.dashboard_workspace_name_placeholder()}
-            </DropdownMenuItem>
+            {organizations.map(org => (
+              <div key={org.id}>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  {org.name}
+                </DropdownMenuLabel>
+                {org.projects.map(project => (
+                  <DropdownMenuItem
+                    key={project.id}
+                    className={`gap-2 p-2 ${project.id === activeProjectId ? "bg-accent" : ""}`}
+                    onClick={() => navigate({ to: "/$projectId", params: { projectId: project.id } })}
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-sm border text-xs">
+                      {project.name[0].toUpperCase()}
+                    </div>
+                    <span>{project.name}</span>
+                  </DropdownMenuItem>
+                ))}
+                {/* Divider between orgs */}
+                {organizations.indexOf(org) < organizations.length - 1 && (
+                  <DropdownMenuSeparator />
+                )}
+              </div>
+            ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2">
+            <DropdownMenuItem className="gap-2 p-2" disabled>
               <Plus className="size-4" />
               <span className="font-medium text-muted-foreground text-xs">{m.dashboard_workspace_create_project()}</span>
             </DropdownMenuItem>

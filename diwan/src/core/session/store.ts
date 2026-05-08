@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { TokenVault } from "./token-vault";
 import { queryClient } from "../api/api-client";
+import { useWorkspaceStore } from "../workspace/store";
 
 interface SessionState {
   isAuthenticated: boolean;
@@ -22,6 +23,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       TokenVault.clearTokens();
       set({ isAuthenticated: false });
 
+      useWorkspaceStore.getState().actions.clear();
       queryClient.clear();
     },
   },
