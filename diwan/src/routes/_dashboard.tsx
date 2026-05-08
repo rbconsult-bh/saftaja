@@ -7,7 +7,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useQuery } from '@connectrpc/connect-query'
 import { getWorkspace } from '@/gen/saftaja/dashboard/workspace/v1/workspace-WorkspaceService_connectquery'
-import { WorkspaceProvider } from '@/core/workspace/WorkspaceContext'
 import { m } from '@/paraglide/messages'
 import { AlertTriangle, Plus } from 'lucide-react'
 
@@ -28,20 +27,18 @@ function DashboardLayout() {
   if (data.organizations.flatMap(o => o.projects).length === 0) return <NoProjects />
 
   return (
-    <WorkspaceProvider workspace={data}>
-      <SidebarProvider>
-        <AppSidebar organizations={data.organizations} />
-        <SidebarInset>
-          <header className="flex h-16 items-center gap-2 border-b px-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-          </header>
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
-    </WorkspaceProvider>
+    <SidebarProvider>
+      <AppSidebar organizations={data.organizations} />
+      <SidebarInset>
+        <header className="flex h-16 items-center gap-2 border-b px-4">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+        </header>
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 
