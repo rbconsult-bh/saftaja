@@ -40,7 +40,7 @@ func BuildRouter(cfg *config.Config, deps *dependencies) *chi.Mux {
 		dashRouter.Use(cors.AllowAll().Handler)
 
 		mountDashboardRoutes(dashRouter, deps)
-		mountReflection(dashRouter, deps)
+		mountReflection(dashRouter)
 	})
 
 	r.Group(func(adminRouter chi.Router) {
@@ -99,9 +99,10 @@ func mountDashboardRoutes(r chi.Router, deps *dependencies) {
 	r.Mount(dashboardWorkspacePath, dashboardWorkspaceHandler)
 }
 
-func mountReflection(r chi.Router, deps *dependencies) {
+func mountReflection(r chi.Router) {
 	reflector := grpcreflect.NewStaticReflector(
 		authpbv1connect.AuthServiceName,
+		workspacepbv1connect.WorkspaceServiceName,
 	)
 
 	v1Path, v1Handler := grpcreflect.NewHandlerV1(reflector)
