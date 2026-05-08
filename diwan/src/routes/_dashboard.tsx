@@ -61,7 +61,7 @@ function DashboardError({ onRetry }: { onRetry: () => void }) {
         <AlertTriangle className="mx-auto h-8 w-8 text-destructive" />
         <p className="text-muted-foreground">{m.common_error()}</p>
         <Button variant="outline" onClick={onRetry}>
-          Retry
+          {m.common_retry()}
         </Button>
       </div>
     </div>
@@ -72,10 +72,9 @@ function NoOrganizations() {
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="text-center space-y-4 max-w-md px-4">
-        <h2 className="text-xl font-semibold">Welcome to Saftaja</h2>
+        <h2 className="text-xl font-semibold">{m.dashboard_no_organizations_title()}</h2>
         <p className="text-muted-foreground">
-          You don&apos;t belong to any organization yet.
-          Please contact your administrator for an invitation.
+          {m.dashboard_no_organizations_description()}
         </p>
       </div>
     </div>
@@ -86,9 +85,9 @@ function NoProjects() {
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="text-center space-y-4 max-w-md px-4">
-        <h2 className="text-xl font-semibold">No Projects Yet</h2>
+        <h2 className="text-xl font-semibold">{m.dashboard_no_projects_title()}</h2>
         <p className="text-muted-foreground">
-          Your organization doesn&apos;t have any projects. Create one to get started.
+          {m.dashboard_no_projects_description()}
         </p>
         <Button disabled>
           <Plus className="mr-2 h-4 w-4" />

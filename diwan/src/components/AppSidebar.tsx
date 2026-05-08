@@ -41,7 +41,6 @@ export function AppSidebar({ organizations }: { organizations: Organization[] })
   const { dir } = useLanguage()
   const params = useParams({ strict: false }) as { projectId?: string }
 
-  // Derive active project from URL, fall back to first project of first org
   const pid = params.projectId || organizations[0]?.projects[0]?.id || ""
 
   return (
@@ -86,7 +85,7 @@ export function AppSidebar({ organizations }: { organizations: Organization[] })
   )
 }
 
-type ProjectRoute = '/$projectId' | '/$projectId/invoices' | '/$projectId/gateways' | '/$projectId/users' | '/$projectId/settings'
+type ProjectRoute = '/$projectId/invoices' | '/$projectId/gateways' | '/$projectId/settings'
 
 function NavMenuItem({ to, projectId, icon: Icon, label }: { to: ProjectRoute, projectId: string, icon: LucideIcon, label: string }) {
   return (
@@ -108,7 +107,6 @@ function NavMenuItem({ to, projectId, icon: Icon, label }: { to: ProjectRoute, p
 function WorkspaceSwitcher({ organizations, activeProjectId }: { organizations: Organization[]; activeProjectId: string }) {
   const navigate = useNavigate()
 
-  // Find current org name for display
   const currentProject = organizations.flatMap(o => o.projects).find(p => p.id === activeProjectId)
   const currentOrg = organizations.find(o => o.projects.some(p => p.id === activeProjectId))
   const displayName = currentProject?.name || m.dashboard_workspace_name_placeholder()
