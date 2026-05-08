@@ -13,7 +13,7 @@ var errInternal = errors.New("internal server error")
 
 type service struct{}
 
-func New() workspacepbv1connect.WorkspaceServiceClient {
+func New() workspacepbv1connect.WorkspaceServiceHandler {
 	return &service{}
 }
 
