@@ -3,7 +3,6 @@ package workspacev1
 import (
 	"context"
 	"errors"
-	"strconv"
 
 	"connectrpc.com/connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
@@ -40,16 +39,14 @@ func (s *service) GetWorkspace(ctx context.Context, r *connect.Request[workspace
 		return nil, connect.NewError(connect.CodeInternal, errInternal)
 	}
 
+	organizations := make([]*workspacepbv1.Organization, len(resp.Organizations))
+	for idx, orgWithProjs := range resp.Organizations {
+		organizations[idx] = mapMembershipOrgWithProjsToProto(orgWithProjs)
+	}
+
 	return &connect.Response[workspacepbv1.GetWorkspaceResponse]{
 		Msg: &workspacepbv1.GetWorkspaceResponse{
-			Organizations: []*workspacepbv1.Organization{
-				{
-					Id:       customerID.String(),
-					Name:     strconv.Itoa(len(resp.Organizations)),
-					Role:     0,
-					Projects: []*workspacepbv1.Project{},
-				},
-			},
+			Organizations: organizations,
 		},
 	}, nil
 }
