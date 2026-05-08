@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package saftaja.dashboard.workspace.v1;
+
+option go_package = "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1;workspacepbv1";
+
+service WorkpaceService {
+  rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
+}
+
+message GetWorkspaceRequest {}
+message GetWorkspaceResponse {
+  repeated Organization organizations = 1;
+}
+
+message Organization {
+  enum Role {
+    ROLE_UNSPECIFIED = 0;
+    ROLE_OWNER = 1;
+    ROLE_ADMIN = 2;
+    ROLE_MEMBER = 3;
+  }
+
+  string id = 1;
+  string name = 2;
+  Role role = 3;
+  repeated Project projects = 4;
+}
+
+message Project {
+  enum Environment {
+    ENVIRONMENT_UNSPECIFIED = 0;
+    ENVIRONMENT_SANDBOX = 1;
+    ENVIRONMENT_PRODUCTION = 2;
+  }
+
+  string id = 1;
+  string name = 2;
+  Environment environment = 3;
+}
