@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
@@ -32,6 +33,7 @@ type dependencies struct {
 	adminSvc              admin.Service
 	adminHandlers         *admin.Handlers
 	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
+	membershipSvc         membership.MembershipService
 	dashboardWorkspaceSvc workspacepbv1connect.WorkspaceServiceHandler
 	authInterceptor       connect.UnaryInterceptorFunc
 	emailer               email.Emailer
@@ -90,7 +92,8 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	authSvc := auth.New(dbPool, queries, emailer, emailTemplates, jwtIssuer, jwtVerifier)
 	dashboardAuthSvc := authv1.New(authSvc)
 
-	dashboardWorkspaceSvc := workspacev1.New()
+	membershipSvc := membership.New(dbPool, queries)
+	dashboardWorkspaceSvc := workspacev1.New(membershipSvc)
 
 	adminSvc := admin.NewService(queries, encryptionKey)
 	adminHandlers := admin.NewHandlers(adminSvc)
@@ -103,6 +106,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		adminSvc:              adminSvc,
 		adminHandlers:         adminHandlers,
 		dashboardAuthSvc:      dashboardAuthSvc,
+		membershipSvc:         membershipSvc,
 		dashboardWorkspaceSvc: dashboardWorkspaceSvc,
 		authInterceptor:       authInterceptor,
 		emailer:               emailer,
