@@ -15,6 +15,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1/workspacepbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
 )
 
@@ -80,14 +81,22 @@ func mountAdminRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
 }
 
 func mountDashboardRoutes(r chi.Router, deps *dependencies) {
+	interceptors := []connect.Interceptor{
+		deps.authInterceptor,
+		validate.NewInterceptor(),
+	}
+
 	dashboardAuthPath, dashboardAuthHandler := authpbv1connect.NewAuthServiceHandler(
 		deps.dashboardAuthSvc,
-		connect.WithInterceptors(
-			deps.authInterceptor,
-			validate.NewInterceptor(),
-		),
+		connect.WithInterceptors(interceptors...),
 	)
 	r.Mount(dashboardAuthPath, dashboardAuthHandler)
+
+	dashboardWorkspacePath, dashboardWorkspaceHandler := workspacepbv1connect.NewWorkspaceServiceHandler(
+		deps.dashboardWorkspaceSvc,
+		connect.WithInterceptors(interceptors...),
+	)
+	r.Mount(dashboardWorkspacePath, dashboardWorkspaceHandler)
 }
 
 func mountReflection(r chi.Router, deps *dependencies) {

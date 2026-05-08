@@ -7,13 +7,13 @@ import { GetWorkspaceRequest, GetWorkspaceResponse } from "./workspace_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * @generated from service saftaja.dashboard.workspace.v1.WorkpaceService
+ * @generated from service saftaja.dashboard.workspace.v1.WorkspaceService
  */
-export const WorkpaceService = {
-  typeName: "saftaja.dashboard.workspace.v1.WorkpaceService",
+export const WorkspaceService = {
+  typeName: "saftaja.dashboard.workspace.v1.WorkspaceService",
   methods: {
     /**
-     * @generated from rpc saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace
+     * @generated from rpc saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace
      */
     getWorkspace: {
       name: "GetWorkspace",

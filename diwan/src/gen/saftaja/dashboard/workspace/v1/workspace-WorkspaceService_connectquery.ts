@@ -2,9 +2,9 @@
 // @generated from file saftaja/dashboard/workspace/v1/workspace.proto (package saftaja.dashboard.workspace.v1, syntax proto3)
 /* eslint-disable */
 
-import { WorkpaceService } from "./workspace_pb";
+import { WorkspaceService } from "./workspace_pb";
 
 /**
- * @generated from rpc saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace
+ * @generated from rpc saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace
  */
-export const getWorkspace = WorkpaceService.method.getWorkspace;
+export const getWorkspace = WorkspaceService.method.getWorkspace;

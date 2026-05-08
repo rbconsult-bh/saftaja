@@ -4,7 +4,7 @@ package saftaja.dashboard.workspace.v1;
 
 option go_package = "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1;workspacepbv1";
 
-service WorkpaceService {
+service WorkspaceService {
   rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
 }
 

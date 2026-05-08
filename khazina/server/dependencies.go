@@ -19,22 +19,25 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/authv1"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/workspacev1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1/workspacepbv1connect"
 )
 
 type dependencies struct {
-	dbPool           *pgxpool.Pool
-	tenantSvc        tenant.Service
-	paymentSvc       payment.Service
-	authSvc          auth.AuthService
-	adminSvc         admin.Service
-	adminHandlers    *admin.Handlers
-	dashboardAuthSvc authpbv1connect.AuthServiceHandler
-	authInterceptor  connect.UnaryInterceptorFunc
-	emailer          email.Emailer
-	emailTemplates   email.Templates
-	encryptionKey    []byte
-	cfg              *config.Config
+	dbPool                *pgxpool.Pool
+	tenantSvc             tenant.Service
+	paymentSvc            payment.Service
+	authSvc               auth.AuthService
+	adminSvc              admin.Service
+	adminHandlers         *admin.Handlers
+	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
+	dashboardWorkspaceSvc workspacepbv1connect.WorkspaceServiceHandler
+	authInterceptor       connect.UnaryInterceptorFunc
+	emailer               email.Emailer
+	emailTemplates        email.Templates
+	encryptionKey         []byte
+	cfg                   *config.Config
 }
 
 func (d *dependencies) Cleanup() {
@@ -87,22 +90,25 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	authSvc := auth.New(dbPool, queries, emailer, emailTemplates, jwtIssuer, jwtVerifier)
 	dashboardAuthSvc := authv1.New(authSvc)
 
+	dashboardWorkspaceSvc := workspacev1.New()
+
 	adminSvc := admin.NewService(queries, encryptionKey)
 	adminHandlers := admin.NewHandlers(adminSvc)
 
 	return &dependencies{
-		dbPool:           dbPool,
-		tenantSvc:        tenantSvc,
-		paymentSvc:       paymentSvc,
-		authSvc:          authSvc,
-		adminSvc:         adminSvc,
-		adminHandlers:    adminHandlers,
-		dashboardAuthSvc: dashboardAuthSvc,
-		authInterceptor:  authInterceptor,
-		emailer:          emailer,
-		emailTemplates:   emailTemplates,
-		encryptionKey:    encryptionKey,
-		cfg:              cfg,
+		dbPool:                dbPool,
+		tenantSvc:             tenantSvc,
+		paymentSvc:            paymentSvc,
+		authSvc:               authSvc,
+		adminSvc:              adminSvc,
+		adminHandlers:         adminHandlers,
+		dashboardAuthSvc:      dashboardAuthSvc,
+		dashboardWorkspaceSvc: dashboardWorkspaceSvc,
+		authInterceptor:       authInterceptor,
+		emailer:               emailer,
+		emailTemplates:        emailTemplates,
+		encryptionKey:         encryptionKey,
+		cfg:                   cfg,
 	}, nil
 }
 

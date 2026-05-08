@@ -21,8 +21,8 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// WorkpaceServiceName is the fully-qualified name of the WorkpaceService service.
-	WorkpaceServiceName = "saftaja.dashboard.workspace.v1.WorkpaceService"
+	// WorkspaceServiceName is the fully-qualified name of the WorkspaceService service.
+	WorkspaceServiceName = "saftaja.dashboard.workspace.v1.WorkspaceService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,79 +33,80 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// WorkpaceServiceGetWorkspaceProcedure is the fully-qualified name of the WorkpaceService's
+	// WorkspaceServiceGetWorkspaceProcedure is the fully-qualified name of the WorkspaceService's
 	// GetWorkspace RPC.
-	WorkpaceServiceGetWorkspaceProcedure = "/saftaja.dashboard.workspace.v1.WorkpaceService/GetWorkspace"
+	WorkspaceServiceGetWorkspaceProcedure = "/saftaja.dashboard.workspace.v1.WorkspaceService/GetWorkspace"
 )
 
-// WorkpaceServiceClient is a client for the saftaja.dashboard.workspace.v1.WorkpaceService service.
-type WorkpaceServiceClient interface {
+// WorkspaceServiceClient is a client for the saftaja.dashboard.workspace.v1.WorkspaceService
+// service.
+type WorkspaceServiceClient interface {
 	GetWorkspace(context.Context, *connect.Request[v1.GetWorkspaceRequest]) (*connect.Response[v1.GetWorkspaceResponse], error)
 }
 
-// NewWorkpaceServiceClient constructs a client for the
-// saftaja.dashboard.workspace.v1.WorkpaceService service. By default, it uses the Connect protocol
+// NewWorkspaceServiceClient constructs a client for the
+// saftaja.dashboard.workspace.v1.WorkspaceService service. By default, it uses the Connect protocol
 // with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
 // use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
 // options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewWorkpaceServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) WorkpaceServiceClient {
+func NewWorkspaceServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) WorkspaceServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	workpaceServiceMethods := v1.File_saftaja_dashboard_workspace_v1_workspace_proto.Services().ByName("WorkpaceService").Methods()
-	return &workpaceServiceClient{
+	workspaceServiceMethods := v1.File_saftaja_dashboard_workspace_v1_workspace_proto.Services().ByName("WorkspaceService").Methods()
+	return &workspaceServiceClient{
 		getWorkspace: connect.NewClient[v1.GetWorkspaceRequest, v1.GetWorkspaceResponse](
 			httpClient,
-			baseURL+WorkpaceServiceGetWorkspaceProcedure,
-			connect.WithSchema(workpaceServiceMethods.ByName("GetWorkspace")),
+			baseURL+WorkspaceServiceGetWorkspaceProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("GetWorkspace")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// workpaceServiceClient implements WorkpaceServiceClient.
-type workpaceServiceClient struct {
+// workspaceServiceClient implements WorkspaceServiceClient.
+type workspaceServiceClient struct {
 	getWorkspace *connect.Client[v1.GetWorkspaceRequest, v1.GetWorkspaceResponse]
 }
 
-// GetWorkspace calls saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace.
-func (c *workpaceServiceClient) GetWorkspace(ctx context.Context, req *connect.Request[v1.GetWorkspaceRequest]) (*connect.Response[v1.GetWorkspaceResponse], error) {
+// GetWorkspace calls saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace.
+func (c *workspaceServiceClient) GetWorkspace(ctx context.Context, req *connect.Request[v1.GetWorkspaceRequest]) (*connect.Response[v1.GetWorkspaceResponse], error) {
 	return c.getWorkspace.CallUnary(ctx, req)
 }
 
-// WorkpaceServiceHandler is an implementation of the saftaja.dashboard.workspace.v1.WorkpaceService
-// service.
-type WorkpaceServiceHandler interface {
+// WorkspaceServiceHandler is an implementation of the
+// saftaja.dashboard.workspace.v1.WorkspaceService service.
+type WorkspaceServiceHandler interface {
 	GetWorkspace(context.Context, *connect.Request[v1.GetWorkspaceRequest]) (*connect.Response[v1.GetWorkspaceResponse], error)
 }
 
-// NewWorkpaceServiceHandler builds an HTTP handler from the service implementation. It returns the
+// NewWorkspaceServiceHandler builds an HTTP handler from the service implementation. It returns the
 // path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewWorkpaceServiceHandler(svc WorkpaceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	workpaceServiceMethods := v1.File_saftaja_dashboard_workspace_v1_workspace_proto.Services().ByName("WorkpaceService").Methods()
-	workpaceServiceGetWorkspaceHandler := connect.NewUnaryHandler(
-		WorkpaceServiceGetWorkspaceProcedure,
+func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	workspaceServiceMethods := v1.File_saftaja_dashboard_workspace_v1_workspace_proto.Services().ByName("WorkspaceService").Methods()
+	workspaceServiceGetWorkspaceHandler := connect.NewUnaryHandler(
+		WorkspaceServiceGetWorkspaceProcedure,
 		svc.GetWorkspace,
-		connect.WithSchema(workpaceServiceMethods.ByName("GetWorkspace")),
+		connect.WithSchema(workspaceServiceMethods.ByName("GetWorkspace")),
 		connect.WithHandlerOptions(opts...),
 	)
-	return "/saftaja.dashboard.workspace.v1.WorkpaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/saftaja.dashboard.workspace.v1.WorkspaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case WorkpaceServiceGetWorkspaceProcedure:
-			workpaceServiceGetWorkspaceHandler.ServeHTTP(w, r)
+		case WorkspaceServiceGetWorkspaceProcedure:
+			workspaceServiceGetWorkspaceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedWorkpaceServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedWorkpaceServiceHandler struct{}
+// UnimplementedWorkspaceServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedWorkspaceServiceHandler struct{}
 
-func (UnimplementedWorkpaceServiceHandler) GetWorkspace(context.Context, *connect.Request[v1.GetWorkspaceRequest]) (*connect.Response[v1.GetWorkspaceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace is not implemented"))
+func (UnimplementedWorkspaceServiceHandler) GetWorkspace(context.Context, *connect.Request[v1.GetWorkspaceRequest]) (*connect.Response[v1.GetWorkspaceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace is not implemented"))
 }

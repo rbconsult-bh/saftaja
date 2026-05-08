@@ -151,11 +151,11 @@ export enum Project_Environment {
 export declare const Project_EnvironmentSchema: GenEnum<Project_Environment>;
 
 /**
- * @generated from service saftaja.dashboard.workspace.v1.WorkpaceService
+ * @generated from service saftaja.dashboard.workspace.v1.WorkspaceService
  */
-export declare const WorkpaceService: GenService<{
+export declare const WorkspaceService: GenService<{
   /**
-   * @generated from rpc saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace
+   * @generated from rpc saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace
    */
   getWorkspace: {
     methodKind: "unary";

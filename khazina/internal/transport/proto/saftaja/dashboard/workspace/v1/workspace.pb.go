@@ -357,8 +357,8 @@ const file_saftaja_dashboard_workspace_v1_workspace_proto_rawDesc = "" +
 	"\vEnvironment\x12\x1b\n" +
 	"\x17ENVIRONMENT_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13ENVIRONMENT_SANDBOX\x10\x01\x12\x1a\n" +
-	"\x16ENVIRONMENT_PRODUCTION\x10\x022\x8c\x01\n" +
-	"\x0fWorkpaceService\x12y\n" +
+	"\x16ENVIRONMENT_PRODUCTION\x10\x022\x8d\x01\n" +
+	"\x10WorkspaceService\x12y\n" +
 	"\fGetWorkspace\x123.saftaja.dashboard.workspace.v1.GetWorkspaceRequest\x1a4.saftaja.dashboard.workspace.v1.GetWorkspaceResponseBoZmgithub.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1;workspacepbv1b\x06proto3"
 
 var (
@@ -388,8 +388,8 @@ var file_saftaja_dashboard_workspace_v1_workspace_proto_depIdxs = []int32{
 	0, // 1: saftaja.dashboard.workspace.v1.Organization.role:type_name -> saftaja.dashboard.workspace.v1.Organization.Role
 	5, // 2: saftaja.dashboard.workspace.v1.Organization.projects:type_name -> saftaja.dashboard.workspace.v1.Project
 	1, // 3: saftaja.dashboard.workspace.v1.Project.environment:type_name -> saftaja.dashboard.workspace.v1.Project.Environment
-	2, // 4: saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace:input_type -> saftaja.dashboard.workspace.v1.GetWorkspaceRequest
-	3, // 5: saftaja.dashboard.workspace.v1.WorkpaceService.GetWorkspace:output_type -> saftaja.dashboard.workspace.v1.GetWorkspaceResponse
+	2, // 4: saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace:input_type -> saftaja.dashboard.workspace.v1.GetWorkspaceRequest
+	3, // 5: saftaja.dashboard.workspace.v1.WorkspaceService.GetWorkspace:output_type -> saftaja.dashboard.workspace.v1.GetWorkspaceResponse
 	5, // [5:6] is the sub-list for method output_type
 	4, // [4:5] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
