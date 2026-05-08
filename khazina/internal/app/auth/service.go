@@ -8,8 +8,11 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -111,14 +114,27 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 	}
 
 	if createCustomerResp.NeedsDefaultOrg {
-		log.Ctx(ctx).Info().Msg("user is new, creating default organization")
-		_, err = queriesWithTx.CreateDefaultOrganizationForCustomer(ctx, store.CreateDefaultOrganizationForCustomerParams{
+		log.Ctx(ctx).Info().Msg("user is new, creating default organization and default project")
+		orgID, err := queriesWithTx.CreateOrganizationForCustomer(ctx, store.CreateOrganizationForCustomerParams{
 			Name:       fmt.Sprintf("%s's Organization", name),
 			CustomerID: createCustomerResp.ID,
+			Role:       store.OrganizationRoleOwner,
 		})
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to create create default organization for customer")
 			return nil, errors.New("failed to create create default organization for customer")
+		}
+
+		_, err = queriesWithTx.CreateProjectForOrganization(ctx, store.CreateProjectForOrganizationParams{
+			OrganizationID: orgID,
+			Name:           "Default Project",
+			Environment:    domain.ProjectEnvironmentSandbox,
+			// TODO: we need to pass slug, this way it uses our domain as default and custom_domain is extra user can set later.
+			CustomDomain: pgtype.Text{},
+		})
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to create create default project for customer")
+			return nil, errors.New("failed to create create default project for customer")
 		}
 	}
 

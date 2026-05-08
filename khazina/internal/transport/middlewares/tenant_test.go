@@ -13,7 +13,7 @@ import (
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 )
 
 func TestTenantResolver_ValidDomain(t *testing.T) {

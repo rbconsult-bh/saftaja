@@ -11,25 +11,26 @@ import (
 	"github.com/google/uuid"
 )
 
-const createDefaultOrganizationForCustomer = `-- name: CreateDefaultOrganizationForCustomer :one
+const createOrganizationForCustomer = `-- name: CreateOrganizationForCustomer :one
 WITH new_org AS (
   INSERT INTO organizations (name)
   VALUES ($1)
   RETURNING id, name, created_at, updated_at, deleted_at
 )
 INSERT INTO organization_customer (organization_id, customer_id, role)
-SELECT new_org.id, $2, 'owner'
+SELECT new_org.id, $2, $3
 FROM new_org
 RETURNING organization_id
 `
 
-type CreateDefaultOrganizationForCustomerParams struct {
+type CreateOrganizationForCustomerParams struct {
 	Name       string
 	CustomerID uuid.UUID
+	Role       OrganizationRole
 }
 
-func (q *Queries) CreateDefaultOrganizationForCustomer(ctx context.Context, arg CreateDefaultOrganizationForCustomerParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, createDefaultOrganizationForCustomer, arg.Name, arg.CustomerID)
+func (q *Queries) CreateOrganizationForCustomer(ctx context.Context, arg CreateOrganizationForCustomerParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createOrganizationForCustomer, arg.Name, arg.CustomerID, arg.Role)
 	var organization_id uuid.UUID
 	err := row.Scan(&organization_id)
 	return organization_id, err

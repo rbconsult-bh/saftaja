@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 )
 
 func TestDynamicCORS_ValidOrigin(t *testing.T) {
