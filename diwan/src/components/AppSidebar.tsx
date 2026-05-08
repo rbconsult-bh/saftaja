@@ -1,9 +1,7 @@
 import {
-  LayoutDashboard,
   Settings,
   ReceiptText,
   CreditCard,
-  Users,
   LogOut,
   ChevronsUpDown,
   Plus,
@@ -58,12 +56,6 @@ export function AppSidebar({ organizations }: { organizations: Organization[] })
           <SidebarGroupContent>
             <SidebarMenu>
               <NavMenuItem
-                to="/$projectId"
-                projectId={pid}
-                icon={LayoutDashboard}
-                label={m.dashboard_nav_projects()}
-              />
-              <NavMenuItem
                 to="/$projectId/invoices"
                 projectId={pid}
                 icon={ReceiptText}
@@ -74,12 +66,6 @@ export function AppSidebar({ organizations }: { organizations: Organization[] })
                 projectId={pid}
                 icon={CreditCard}
                 label={m.dashboard_nav_gateways()}
-              />
-              <NavMenuItem
-                to="/$projectId/users"
-                projectId={pid}
-                icon={Users}
-                label={m.dashboard_nav_users()}
               />
               <NavMenuItem
                 to="/$projectId/settings"

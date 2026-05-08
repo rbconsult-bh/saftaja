@@ -38,7 +38,6 @@ function ProjectLayout() {
     setLastActive(projectId)
   }, [workspace, projectId, setLastActive, navigate])
 
-  // Show skeleton while workspace loads or during redirect
   if (!workspace) {
     return (
       <div className="p-6 space-y-4">

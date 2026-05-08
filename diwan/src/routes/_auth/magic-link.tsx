@@ -32,8 +32,6 @@ function RouteComponent() {
         onSuccess: (data) => {
           login(data.accessToken, data.refreshToken)
 
-          // Navigate with placeholder — $projectId layout will fetch workspace
-          // and redirect to the user's first real project
           navigate({
             to: '/$projectId',
             params: { projectId: '_' },

@@ -15,8 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardProjectIdRouteImport } from './routes/_dashboard/$projectId'
 import { Route as AuthMagicLinkRouteImport } from './routes/_auth/magic-link'
 import { Route as AuthAuthRouteImport } from './routes/_auth/auth'
-import { Route as DashboardProjectIdIndexRouteImport } from './routes/_dashboard/$projectId/index'
-import { Route as DashboardProjectIdUsersRouteImport } from './routes/_dashboard/$projectId/users'
 import { Route as DashboardProjectIdSettingsRouteImport } from './routes/_dashboard/$projectId/settings'
 import { Route as DashboardProjectIdInvoicesRouteImport } from './routes/_dashboard/$projectId/invoices'
 import { Route as DashboardProjectIdGatewaysRouteImport } from './routes/_dashboard/$projectId/gateways'
@@ -49,16 +47,6 @@ const AuthAuthRoute = AuthAuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => AuthRoute,
 } as any)
-const DashboardProjectIdIndexRoute = DashboardProjectIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashboardProjectIdRoute,
-} as any)
-const DashboardProjectIdUsersRoute = DashboardProjectIdUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => DashboardProjectIdRoute,
-} as any)
 const DashboardProjectIdSettingsRoute =
   DashboardProjectIdSettingsRouteImport.update({
     id: '/settings',
@@ -86,18 +74,15 @@ export interface FileRoutesByFullPath {
   '/$projectId/gateways': typeof DashboardProjectIdGatewaysRoute
   '/$projectId/invoices': typeof DashboardProjectIdInvoicesRoute
   '/$projectId/settings': typeof DashboardProjectIdSettingsRoute
-  '/$projectId/users': typeof DashboardProjectIdUsersRoute
-  '/$projectId/': typeof DashboardProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthAuthRoute
   '/magic-link': typeof AuthMagicLinkRoute
+  '/$projectId': typeof DashboardProjectIdRouteWithChildren
   '/$projectId/gateways': typeof DashboardProjectIdGatewaysRoute
   '/$projectId/invoices': typeof DashboardProjectIdInvoicesRoute
   '/$projectId/settings': typeof DashboardProjectIdSettingsRoute
-  '/$projectId/users': typeof DashboardProjectIdUsersRoute
-  '/$projectId': typeof DashboardProjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,8 +95,6 @@ export interface FileRoutesById {
   '/_dashboard/$projectId/gateways': typeof DashboardProjectIdGatewaysRoute
   '/_dashboard/$projectId/invoices': typeof DashboardProjectIdInvoicesRoute
   '/_dashboard/$projectId/settings': typeof DashboardProjectIdSettingsRoute
-  '/_dashboard/$projectId/users': typeof DashboardProjectIdUsersRoute
-  '/_dashboard/$projectId/': typeof DashboardProjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,18 +106,15 @@ export interface FileRouteTypes {
     | '/$projectId/gateways'
     | '/$projectId/invoices'
     | '/$projectId/settings'
-    | '/$projectId/users'
-    | '/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/magic-link'
+    | '/$projectId'
     | '/$projectId/gateways'
     | '/$projectId/invoices'
     | '/$projectId/settings'
-    | '/$projectId/users'
-    | '/$projectId'
   id:
     | '__root__'
     | '/'
@@ -146,8 +126,6 @@ export interface FileRouteTypes {
     | '/_dashboard/$projectId/gateways'
     | '/_dashboard/$projectId/invoices'
     | '/_dashboard/$projectId/settings'
-    | '/_dashboard/$projectId/users'
-    | '/_dashboard/$projectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,20 +178,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAuthRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_dashboard/$projectId/': {
-      id: '/_dashboard/$projectId/'
-      path: '/'
-      fullPath: '/$projectId/'
-      preLoaderRoute: typeof DashboardProjectIdIndexRouteImport
-      parentRoute: typeof DashboardProjectIdRoute
-    }
-    '/_dashboard/$projectId/users': {
-      id: '/_dashboard/$projectId/users'
-      path: '/users'
-      fullPath: '/$projectId/users'
-      preLoaderRoute: typeof DashboardProjectIdUsersRouteImport
-      parentRoute: typeof DashboardProjectIdRoute
-    }
     '/_dashboard/$projectId/settings': {
       id: '/_dashboard/$projectId/settings'
       path: '/settings'
@@ -254,16 +218,12 @@ interface DashboardProjectIdRouteChildren {
   DashboardProjectIdGatewaysRoute: typeof DashboardProjectIdGatewaysRoute
   DashboardProjectIdInvoicesRoute: typeof DashboardProjectIdInvoicesRoute
   DashboardProjectIdSettingsRoute: typeof DashboardProjectIdSettingsRoute
-  DashboardProjectIdUsersRoute: typeof DashboardProjectIdUsersRoute
-  DashboardProjectIdIndexRoute: typeof DashboardProjectIdIndexRoute
 }
 
 const DashboardProjectIdRouteChildren: DashboardProjectIdRouteChildren = {
   DashboardProjectIdGatewaysRoute: DashboardProjectIdGatewaysRoute,
   DashboardProjectIdInvoicesRoute: DashboardProjectIdInvoicesRoute,
   DashboardProjectIdSettingsRoute: DashboardProjectIdSettingsRoute,
-  DashboardProjectIdUsersRoute: DashboardProjectIdUsersRoute,
-  DashboardProjectIdIndexRoute: DashboardProjectIdIndexRoute,
 }
 
 const DashboardProjectIdRouteWithChildren =
