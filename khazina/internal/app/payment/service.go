@@ -12,15 +12,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
 type Service interface {
-	GetCheckoutData(ctx context.Context, invoiceID, projectID uuid.UUID) (*CheckoutData, error)
+	GetInvoiceData(ctx context.Context, invoiceID, projectID uuid.UUID) (*InvoiceData, error)
+	ListActiveGatewayCredentials(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error)
 	InitiateSession(ctx context.Context, req *InitiateSessionRequest) (*InitiateSessionResult, error)
 	InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*InitiateAuthResult, error)
 	ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*ProcessAuthResult, error)
@@ -42,7 +42,7 @@ func NewService(pool *pgxpool.Pool, queries store.TransactionQuerier, encryption
 	}
 }
 
-func (s *service) GetCheckoutData(ctx context.Context, invoiceID, projectID uuid.UUID) (*CheckoutData, error) {
+func (s *service) GetInvoiceData(ctx context.Context, invoiceID, projectID uuid.UUID) (*InvoiceData, error) {
 	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
 		ID:        invoiceID,
 		ProjectID: projectID,
@@ -52,7 +52,7 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID, projectID uuid
 	}
 
 	if invoice.Status == domain.InvoiceStatusPaid {
-		return &CheckoutData{
+		return &InvoiceData{
 			Invoice: InvoiceInfo{
 				ID:        invoice.ID,
 				ProjectID: invoice.ProjectID,
@@ -74,41 +74,7 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID, projectID uuid
 		}
 	}
 
-	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, invoice.ProjectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list gateway accounts: %w", err)
-	}
-
-	var options []PaymentOption
-	var mpgsConfig *MPGSConfig
-
-	for _, acc := range accounts {
-		if acc.ConnectorType == domain.ConnectorTypeMPGS {
-			creds, err := mpgs.ParseEncryptedCredentials(acc.Credentials, s.encryptionKey)
-			if err != nil {
-				return nil, fmt.Errorf("invalid gateway credentials: %w", err)
-			}
-
-			mpgsConfig = &MPGSConfig{
-				BaseURL:    creds.BaseURL,
-				MerchantID: creds.MerchantID,
-				APIVersion: mpgsclient.APIVersion,
-			}
-
-			options = append(options, PaymentOption{
-				GatewayAccountID: acc.ID,
-				Method:           domain.PaymentMethodCard,
-				Label:            "Credit / Debit Card",
-			})
-			options = append(options, PaymentOption{
-				GatewayAccountID: acc.ID,
-				Method:           domain.PaymentMethodApplePay,
-				Label:            "Apple Pay",
-			})
-		}
-	}
-
-	return &CheckoutData{
+	return &InvoiceData{
 		Invoice: InvoiceInfo{
 			ID:            invoice.ID,
 			ProjectID:     invoice.ProjectID,
@@ -118,11 +84,45 @@ func (s *service) GetCheckoutData(ctx context.Context, invoiceID, projectID uuid
 			CustomerEmail: invoice.CustomerEmail.String,
 			CustomerName:  invoice.CustomerName.String,
 		},
-		Items:          itemInfos,
-		PaymentOptions: options,
-		MPGSConfig:     mpgsConfig,
-		IsPaid:         false,
+		Items:  itemInfos,
+		IsPaid: false,
 	}, nil
+}
+
+func (s *service) ListActiveGatewayCredentials(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error) {
+	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list gateway accounts: %w", err)
+	}
+
+	var result []GatewayCredentials
+	for _, acc := range accounts {
+		if acc.ConnectorType == domain.ConnectorTypeMPGS {
+			creds, err := mpgsclient.ParseEncryptedCredentials(acc.Credentials, s.encryptionKey)
+			if err != nil {
+				return nil, fmt.Errorf("invalid gateway credentials: %w", err)
+			}
+
+			var methods []string
+			if len(acc.PaymentMethods) > 0 {
+				_ = json.Unmarshal(acc.PaymentMethods, &methods)
+			}
+			if len(methods) == 0 {
+				methods = []string{"card"}
+			}
+
+			result = append(result, GatewayCredentials{
+				GatewayAccountID: acc.ID,
+				ConnectorType:    acc.ConnectorType,
+				BaseURL:          creds.BaseURL,
+				MerchantID:       creds.MerchantID,
+				APIPassword:      creds.APIPassword,
+				PaymentMethods:   methods,
+			})
+		}
+	}
+
+	return result, nil
 }
 
 func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionRequest) (*InitiateSessionResult, error) {
@@ -167,12 +167,12 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		return nil, fmt.Errorf("invalid gateway account: %w", err)
 	}
 
-	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgs.NewClient(creds)
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
 
 	resp, err := mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
@@ -251,12 +251,12 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, err
 	}
 
-	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgs.NewClient(creds)
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
 	gatewayTxID := uuid.New()
 
 	mpgsReq := &mpgsclient.InitiateAuthenticationRequest{
@@ -370,12 +370,12 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("custom domain not configured")
 	}
 
-	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgs.NewClient(creds)
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
 
 	mpgsReq := &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
@@ -513,12 +513,12 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, err
 	}
 
-	creds, err := mpgs.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgs.NewClient(creds)
+	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
 	gatewayTxID := uuid.New()
 
 	mpgsReq := &mpgsclient.ExecutePayRequest{

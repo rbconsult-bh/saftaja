@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
-	_ "github.com/rbconsult-bh/saftaja/khazina/internal/connectors/mpgs"
 )
 
 func RunServer(ctx context.Context, cfg *config.Config, r *chi.Mux) {

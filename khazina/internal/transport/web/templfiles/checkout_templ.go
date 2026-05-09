@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"fmt"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"golang.org/x/text/language"
 )
 

@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -50,8 +50,9 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
+	gatewayID := uuid.New()
 
-	mockSvc.EXPECT().GetCheckoutData(mock.Anything, invoiceID, projectID).Return(&payment.CheckoutData{
+	mockSvc.On("GetInvoiceData", mock.Anything, invoiceID, projectID).Return(&payment.InvoiceData{
 		Invoice: payment.InvoiceInfo{
 			ID:            invoiceID,
 			ProjectID:     projectID,
@@ -64,15 +65,18 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		Items: []payment.ItemInfo{
 			{Name: "Item 1", Quantity: 1, UnitPrice: "100.000", Amount: "100.000"},
 		},
-		PaymentOptions: []payment.PaymentOption{
-			{GatewayAccountID: uuid.New(), Method: domain.PaymentMethodCard, Label: "Credit Card"},
-		},
-		MPGSConfig: &payment.MPGSConfig{
-			BaseURL:    "https://test.gateway.mastercard.com",
-			MerchantID: "TESTMERCHANT",
-			APIVersion: "73",
-		},
 		IsPaid: false,
+	}, nil)
+
+	mockSvc.On("ListActiveGatewayCredentials", mock.Anything, projectID).Return([]payment.GatewayCredentials{
+		{
+			GatewayAccountID: gatewayID,
+			ConnectorType:    domain.ConnectorTypeMPGS,
+			BaseURL:          "https://test.gateway.mastercard.com",
+			MerchantID:       "TESTMERCHANT",
+			APIPassword:      "test-password",
+			PaymentMethods:   []string{"card"},
+		},
 	}, nil)
 
 	h := web.New(mockSvc, "test-secret")
@@ -88,7 +92,6 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	// Verify HTML content type
 	contentType := w.Header().Get("Content-Type")
 	if contentType != "text/html; charset=utf-8" {
 		t.Errorf("expected content type text/html; charset=utf-8, got %s", contentType)
@@ -119,7 +122,7 @@ func TestCheckoutPageHandler_WrongProject(t *testing.T) {
 	requestProjectID := uuid.New()
 	project := testProject(requestProjectID)
 
-	mockSvc.EXPECT().GetCheckoutData(mock.Anything, invoiceID, requestProjectID).Return(nil, sql.ErrNoRows)
+	mockSvc.On("GetInvoiceData", mock.Anything, invoiceID, requestProjectID).Return(nil, sql.ErrNoRows)
 
 	h := web.New(mockSvc, "test-secret")
 	r := setupRouter(h)
@@ -161,7 +164,7 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 	projectID := uuid.New()
 	project := testProject(projectID)
 
-	mockSvc.EXPECT().GetCheckoutData(mock.Anything, invoiceID, projectID).Return(&payment.CheckoutData{
+	mockSvc.On("GetInvoiceData", mock.Anything, invoiceID, projectID).Return(&payment.InvoiceData{
 		Invoice: payment.InvoiceInfo{
 			ID:        invoiceID,
 			ProjectID: projectID,
@@ -193,7 +196,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 	gatewayAccountID := uuid.New()
 	sessionID := uuid.New()
 
-	mockSvc.EXPECT().InitiateSession(mock.Anything, &payment.InitiateSessionRequest{
+	mockSvc.On("InitiateSession", mock.Anything, &payment.InitiateSessionRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
@@ -270,7 +273,7 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	mockSvc.EXPECT().InitiateSession(mock.Anything, &payment.InitiateSessionRequest{
+	mockSvc.On("InitiateSession", mock.Anything, &payment.InitiateSessionRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
@@ -308,7 +311,7 @@ func TestCardFinalizeHandler_Success(t *testing.T) {
 	project := testProject(projectID)
 	sessionID := uuid.New()
 
-	mockSvc.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
+	mockSvc.On("FinalizePayment", mock.Anything, &payment.FinalizePaymentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
@@ -357,7 +360,7 @@ func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
 	project := testProject(projectID)
 	sessionID := uuid.New()
 
-	mockSvc.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
+	mockSvc.On("FinalizePayment", mock.Anything, &payment.FinalizePaymentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
@@ -380,7 +383,7 @@ func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
 func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 
-	mockSvc.EXPECT().VerifyDomain(mock.Anything, "pay.merchant.com").Return(true, nil)
+	mockSvc.On("VerifyDomain", mock.Anything, "pay.merchant.com").Return(true, nil)
 
 	h := web.New(mockSvc, "test-secret")
 	r := setupRouter(h)
@@ -398,7 +401,7 @@ func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
 func TestVerifyDomainHandler_InvalidDomain(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 
-	mockSvc.EXPECT().VerifyDomain(mock.Anything, "unknown.domain.com").Return(false, nil)
+	mockSvc.On("VerifyDomain", mock.Anything, "unknown.domain.com").Return(false, nil)
 
 	h := web.New(mockSvc, "test-secret")
 	r := setupRouter(h)

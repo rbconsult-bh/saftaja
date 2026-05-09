@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"

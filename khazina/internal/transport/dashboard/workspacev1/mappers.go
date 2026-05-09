@@ -1,7 +1,7 @@
 package workspacev1
 
 import (
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	workspacepbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1"

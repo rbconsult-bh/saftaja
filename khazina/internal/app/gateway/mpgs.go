@@ -1,4 +1,4 @@
-package mpgs
+package gateway
 
 import (
 	"encoding/json"
@@ -8,14 +8,14 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 )
 
-type Credentials struct {
+type MPGSCredentials struct {
 	MerchantID  string `json:"merchant_id"`
 	BaseURL     string `json:"base_url"`
 	APIPassword string `json:"api_password"`
 }
 
-func ParseCredentials(data []byte) (*Credentials, error) {
-	var c Credentials
+func ParseCredentials(data []byte) (*MPGSCredentials, error) {
+	var c MPGSCredentials
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("invalid MPGS credentials JSON: %w", err)
 	}
@@ -31,10 +31,10 @@ func ParseCredentials(data []byte) (*Credentials, error) {
 	return &c, nil
 }
 
-func ParseEncryptedCredentials(encryptedData []byte, key []byte) (*Credentials, error) {
+func ParseEncryptedCredentials(encryptedData []byte, key []byte) (*MPGSCredentials, error) {
 	decrypted, err := crypto.Decrypt(encryptedData, key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt credentials: %w", err)
+		return nil, fmt.Errorf("failed to decrypt MPGS credentials: %w", err)
 	}
 	return ParseCredentials(decrypted)
 }

@@ -3,7 +3,7 @@ package payment_test
 import (
 	"testing"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 )
 

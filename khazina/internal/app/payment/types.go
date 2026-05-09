@@ -2,15 +2,13 @@ package payment
 
 import (
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
-type CheckoutData struct {
-	Invoice        InvoiceInfo
-	Items          []ItemInfo
-	PaymentOptions []PaymentOption
-	MPGSConfig     *MPGSConfig
-	IsPaid         bool
+type InvoiceData struct {
+	Invoice InvoiceInfo
+	Items   []ItemInfo
+	IsPaid  bool
 }
 
 type InvoiceInfo struct {
@@ -30,16 +28,13 @@ type ItemInfo struct {
 	Amount    string
 }
 
-type PaymentOption struct {
+type GatewayCredentials struct {
 	GatewayAccountID uuid.UUID
-	Method           domain.PaymentMethod
-	Label            string
-}
-
-type MPGSConfig struct {
-	BaseURL    string
-	MerchantID string
-	APIVersion string
+	ConnectorType    domain.ConnectorType
+	BaseURL          string
+	MerchantID       string
+	APIPassword      string
+	PaymentMethods   []string
 }
 
 type InitiateSessionRequest struct {

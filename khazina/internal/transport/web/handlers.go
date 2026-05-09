@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
@@ -48,14 +48,14 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutData, err := h.paymentService.GetCheckoutData(ctx, invoiceID, project.ID)
+	checkoutData, err := h.paymentService.GetInvoiceData(ctx, invoiceID, project.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("invoice not found")
 			http.Error(w, "invoice not found", http.StatusNotFound)
 			return
 		}
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get checkout data")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice data")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -77,7 +77,13 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map service data to template data
+	gateways, err := h.paymentService.ListActiveGatewayCredentials(ctx, project.ID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to list gateway credentials")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	checkoutItems := make([]templfiles.CheckoutItem, len(checkoutData.Items))
 	for i, item := range checkoutData.Items {
 		checkoutItems[i] = templfiles.CheckoutItem{
@@ -88,19 +94,20 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	options := make([]templfiles.PaymentOption, len(checkoutData.PaymentOptions))
-	for i, opt := range checkoutData.PaymentOptions {
-		options[i] = templfiles.PaymentOption{
-			ID:    opt.GatewayAccountID.String(),
-			Label: opt.Label,
-			Type:  string(opt.Method),
-		}
-	}
-
+	var options []templfiles.PaymentOption
 	var mpgsBaseURL, mpgsMerchantID string
-	if checkoutData.MPGSConfig != nil {
-		mpgsBaseURL = checkoutData.MPGSConfig.BaseURL
-		mpgsMerchantID = checkoutData.MPGSConfig.MerchantID
+
+	for _, gw := range gateways {
+		mpgsBaseURL = gw.BaseURL
+		mpgsMerchantID = gw.MerchantID
+
+		for _, method := range gw.PaymentMethods {
+			options = append(options, templfiles.PaymentOption{
+				ID:    gw.GatewayAccountID.String(),
+				Label: paymentMethodLabel(method),
+				Type:  method,
+			})
+		}
 	}
 
 	data := templfiles.CheckoutPageData{
@@ -123,6 +130,17 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("failed to render checkout page")
+	}
+}
+
+func paymentMethodLabel(method string) string {
+	switch method {
+	case "card":
+		return "Credit / Debit Card"
+	case "apple_pay":
+		return "Apple Pay"
+	default:
+		return method
 	}
 }
 
