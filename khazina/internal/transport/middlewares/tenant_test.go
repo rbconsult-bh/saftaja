@@ -7,21 +7,20 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 )
 
 func TestTenantResolver_ValidDomain(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	projectID := uuid.New()
-	project := &store.Project{
+	project := &tenant.Project{
 		ID:           projectID,
-		CustomDomain: pgtype.Text{String: "pay.merchant.com", Valid: true},
+		CustomDomain: "pay.merchant.com",
 	}
 
 	mockSvc.EXPECT().GetProjectByDomain(mock.Anything, "pay.merchant.com").Return(project, nil)
@@ -44,9 +43,9 @@ func TestTenantResolver_ValidDomain(t *testing.T) {
 func TestTenantResolver_ValidDomainWithPort(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	projectID := uuid.New()
-	project := &store.Project{
+	project := &tenant.Project{
 		ID:           projectID,
-		CustomDomain: pgtype.Text{String: "pay.merchant.com", Valid: true},
+		CustomDomain: "pay.merchant.com",
 	}
 
 	mockSvc.EXPECT().GetProjectByDomain(mock.Anything, "pay.merchant.com").Return(project, nil)
@@ -72,7 +71,7 @@ func TestTenantResolver_InvalidDomain(t *testing.T) {
 
 	handler := middlewares.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := middlewares.GetProjectFromContext(r.Context())
-		require.Nil(t, p) // No project in context for invalid domain
+		require.Nil(t, p)
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -81,7 +80,7 @@ func TestTenantResolver_InvalidDomain(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
-	require.Equal(t, http.StatusOK, w.Code) // Request still passes, handler can decide
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestGetProjectFromContext_NilWhenNoProject(t *testing.T) {

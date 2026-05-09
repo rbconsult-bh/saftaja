@@ -9,8 +9,40 @@ service ProjectService {
   rpc CreateGateway(CreateGatewayRequest) returns (CreateGatewayResponse);
 }
 
-message ListGatewaysRequest {}
-message ListGatewaysResponse {}
+message ListGatewaysRequest {
+  string project_id = 1;
+}
+message ListGatewaysResponse {
+  repeated Gateway gateways = 1;
+}
 
-message CreateGatewayRequest {}
+message Gateway {
+  string id = 1;
+  string account_name = 2;
+  ConnectorType connector_type = 3;
+  bool is_active = 4;
+  repeated string payment_methods = 5;
+
+  enum ConnectorType {
+    CONNECTOR_TYPE_UNSPECIFIED = 0;
+    CONNECTOR_TYPE_MPGS = 1;
+  }
+}
+
+message CreateGatewayRequest {
+  string project_id = 1;
+  string account_name = 2;
+
+  oneof credentials {
+    MPGSCredentials mpgs = 3;
+  }
+}
 message CreateGatewayResponse {}
+
+message MPGSCredentials {
+  string merchant_id = 1;
+  string base_url = 2;
+  string api_password = 3;
+}
+
+message P

@@ -22,3 +22,9 @@ JOIN organization_customer oc ON oc.organization_id = o.id AND oc.customer_id = 
 LEFT JOIN projects p ON p.organization_id = o.id AND p.deleted_at IS NULL
 WHERE o.deleted_at IS NULL
 ORDER BY o.created_at, p.created_at;
+
+-- name: VerifyCustomerProjectAccess :one
+SELECT 1 FROM organization_customer oc
+JOIN projects p ON p.organization_id = oc.organization_id
+WHERE oc.customer_id = $1 AND p.id = $2 AND p.deleted_at IS NULL
+LIMIT 1;

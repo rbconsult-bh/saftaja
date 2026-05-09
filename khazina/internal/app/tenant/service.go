@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
-// Service handles tenant/project resolution from custom domains.
-type Service interface {
-	// GetProjectByDomain returns the project for a custom domain.
-	// Used by tenant resolution middleware.
-	GetProjectByDomain(ctx context.Context, domain string) (*store.Project, error)
+type Project struct {
+	ID           uuid.UUID
+	Name         string
+	CustomDomain string
+}
 
-	// IsDomainValid checks if a domain is registered as a project's custom_domain.
-	// Used by CORS middleware and verify-domain endpoint.
+type Service interface {
+	GetProjectByDomain(ctx context.Context, domain string) (*Project, error)
 	IsDomainValid(ctx context.Context, domain string) (bool, error)
 }
 
@@ -25,18 +26,21 @@ type service struct {
 	queries store.TransactionQuerier
 }
 
-// NewService creates a new tenant service.
 func NewService(queries store.TransactionQuerier) Service {
 	return &service{queries: queries}
 }
 
-func (s *service) GetProjectByDomain(ctx context.Context, domain string) (*store.Project, error) {
-	project, err := s.queries.GetProjectByCustomDomain(ctx,
+func (s *service) GetProjectByDomain(ctx context.Context, domain string) (*Project, error) {
+	sp, err := s.queries.GetProjectByCustomDomain(ctx,
 		pgtype.Text{String: domain, Valid: true})
 	if err != nil {
 		return nil, err
 	}
-	return &project, nil
+	return &Project{
+		ID:           sp.ID,
+		Name:         sp.Name,
+		CustomDomain: sp.CustomDomain.String,
+	}, nil
 }
 
 func (s *service) IsDomainValid(ctx context.Context, domain string) (bool, error) {

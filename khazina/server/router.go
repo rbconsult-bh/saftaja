@@ -16,7 +16,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1/workspacepbv1connect"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
 
 func BuildRouter(cfg *config.Config, deps *dependencies) *chi.Mux {
@@ -57,7 +57,7 @@ func mountHealthCheck(r chi.Router, deps *dependencies) {
 }
 
 func mountWebRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
-	h := web.New(deps.paymentSvc, deps.invoiceSvc, deps.gatewaySvc, cfg.VerifyDomainSecret)
+	h := checkout.New(deps.paymentSvc, deps.invoiceSvc, deps.gatewaySvc, cfg.VerifyDomainSecret)
 
 	r.Get("/verify-domain", h.VerifyDomainHandler)
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)

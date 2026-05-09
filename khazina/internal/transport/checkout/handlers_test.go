@@ -1,4 +1,4 @@
-package web_test
+package checkout_test
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
@@ -21,24 +20,24 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
 
-func testProject(id uuid.UUID) *store.Project {
-	return &store.Project{
+func testProject(id uuid.UUID) *tenant.Project {
+	return &tenant.Project{
 		ID:           id,
-		CustomDomain: pgtype.Text{String: "pay.test.com", Valid: true},
+		CustomDomain: "pay.test.com",
 	}
 }
 
-func withTenantContext(r *http.Request, project *store.Project) *http.Request {
+func withTenantContext(r *http.Request, project *tenant.Project) *http.Request {
 	ctx := context.WithValue(r.Context(), middlewares.ProjectContextKey, project)
 	return r.WithContext(ctx)
 }
 
-func setupRouter(h web.Handlers) *chi.Mux {
+func setupRouter(h checkout.Handlers) *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
 	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
@@ -84,7 +83,7 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		},
 	}, nil)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -109,7 +108,7 @@ func TestCheckoutPageHandler_NoTenantContext(t *testing.T) {
 	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -132,7 +131,7 @@ func TestCheckoutPageHandler_WrongProject(t *testing.T) {
 
 	invSvc.EXPECT().GetByID(mock.Anything, invoiceID, requestProjectID).Return(nil, sql.ErrNoRows)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -153,7 +152,7 @@ func TestCheckoutPageHandler_InvalidInvoiceID(t *testing.T) {
 	projectID := uuid.New()
 	project := testProject(projectID)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/not-a-uuid", nil)
@@ -185,7 +184,7 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 		IsPaid: true,
 	}, nil)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -222,7 +221,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		GatewaySessionID: "MPGS_SESSION_123",
 	}, nil)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	body, _ := json.Marshal(map[string]any{
@@ -261,7 +260,7 @@ func TestInitiateSessionHandler_NoTenantContext(t *testing.T) {
 	invoiceID := uuid.New()
 	gatewayAccountID := uuid.New()
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	body, _ := json.Marshal(map[string]any{
@@ -300,7 +299,7 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 		IdempotencyKey:   "",
 	}).Return(nil, &payment.InvoiceAlreadyPaidError{InvoiceID: invoiceID.String()})
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	body, _ := json.Marshal(map[string]any{
@@ -340,7 +339,7 @@ func TestCardFinalizeHandler_Success(t *testing.T) {
 		CheckoutURL: "/checkout/" + invoiceID.String(),
 	}, nil)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/pay/card/"+sessionID.String()+"/finalize", nil)
@@ -361,7 +360,7 @@ func TestCardFinalizeHandler_NoTenantContext(t *testing.T) {
 	invoiceID := uuid.New()
 	sessionID := uuid.New()
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/pay/card/"+sessionID.String()+"/finalize", nil)
@@ -389,7 +388,7 @@ func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
 		PaymentSessionID: sessionID,
 	}).Return(nil, &payment.SessionExpiredError{SessionID: sessionID.String()})
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/pay/card/"+sessionID.String()+"/finalize", nil)
@@ -410,7 +409,7 @@ func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
 
 	paySvc.EXPECT().VerifyDomain(mock.Anything, "pay.merchant.com").Return(true, nil)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=test-secret&domain=pay.merchant.com", nil)
@@ -430,7 +429,7 @@ func TestVerifyDomainHandler_InvalidDomain(t *testing.T) {
 
 	paySvc.EXPECT().VerifyDomain(mock.Anything, "unknown.domain.com").Return(false, nil)
 
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=test-secret&domain=unknown.domain.com", nil)
@@ -447,7 +446,7 @@ func TestVerifyDomainHandler_MissingSecret(t *testing.T) {
 	paySvc := paymocks.NewMockService(t)
 	invSvc := invomocks.NewMockService(t)
 	gwSvc := gwmocks.NewMockService(t)
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?domain=pay.merchant.com", nil)
@@ -464,7 +463,7 @@ func TestVerifyDomainHandler_WrongSecret(t *testing.T) {
 	paySvc := paymocks.NewMockService(t)
 	invSvc := invomocks.NewMockService(t)
 	gwSvc := gwmocks.NewMockService(t)
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=wrong-secret&domain=pay.merchant.com", nil)
@@ -481,7 +480,7 @@ func TestVerifyDomainHandler_MissingDomain(t *testing.T) {
 	paySvc := paymocks.NewMockService(t)
 	invSvc := invomocks.NewMockService(t)
 	gwSvc := gwmocks.NewMockService(t)
-	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
+	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=test-secret", nil)

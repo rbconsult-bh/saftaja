@@ -88,3 +88,22 @@ func (q *Queries) ListOrganizationsWithProjectsForCustomer(ctx context.Context, 
 	}
 	return items, nil
 }
+
+const verifyCustomerProjectAccess = `-- name: VerifyCustomerProjectAccess :one
+SELECT 1 FROM organization_customer oc
+JOIN projects p ON p.organization_id = oc.organization_id
+WHERE oc.customer_id = $1 AND p.id = $2 AND p.deleted_at IS NULL
+LIMIT 1
+`
+
+type VerifyCustomerProjectAccessParams struct {
+	CustomerID uuid.UUID
+	ID         uuid.UUID
+}
+
+func (q *Queries) VerifyCustomerProjectAccess(ctx context.Context, arg VerifyCustomerProjectAccessParams) (int32, error) {
+	row := q.db.QueryRow(ctx, verifyCustomerProjectAccess, arg.CustomerID, arg.ID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}

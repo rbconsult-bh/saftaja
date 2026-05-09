@@ -7,7 +7,7 @@ package mocks
 import (
 	"context"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -39,23 +39,23 @@ func (_m *MockService) EXPECT() *MockService_Expecter {
 }
 
 // GetProjectByDomain provides a mock function for the type MockService
-func (_mock *MockService) GetProjectByDomain(ctx context.Context, domain string) (*store.Project, error) {
+func (_mock *MockService) GetProjectByDomain(ctx context.Context, domain string) (*tenant.Project, error) {
 	ret := _mock.Called(ctx, domain)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetProjectByDomain")
 	}
 
-	var r0 *store.Project
+	var r0 *tenant.Project
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*store.Project, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*tenant.Project, error)); ok {
 		return returnFunc(ctx, domain)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *store.Project); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *tenant.Project); ok {
 		r0 = returnFunc(ctx, domain)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*store.Project)
+			r0 = ret.Get(0).(*tenant.Project)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -96,12 +96,12 @@ func (_c *MockService_GetProjectByDomain_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockService_GetProjectByDomain_Call) Return(project *store.Project, err error) *MockService_GetProjectByDomain_Call {
+func (_c *MockService_GetProjectByDomain_Call) Return(project *tenant.Project, err error) *MockService_GetProjectByDomain_Call {
 	_c.Call.Return(project, err)
 	return _c
 }
 
-func (_c *MockService_GetProjectByDomain_Call) RunAndReturn(run func(ctx context.Context, domain string) (*store.Project, error)) *MockService_GetProjectByDomain_Call {
+func (_c *MockService_GetProjectByDomain_Call) RunAndReturn(run func(ctx context.Context, domain string) (*tenant.Project, error)) *MockService_GetProjectByDomain_Call {
 	_c.Call.Return(run)
 	return _c
 }

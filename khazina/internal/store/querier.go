@@ -44,6 +44,7 @@ type Querier interface {
 	UpdatePaymentSessionGatewayID(ctx context.Context, arg UpdatePaymentSessionGatewayIDParams) error
 	UpdatePaymentSessionStatus(ctx context.Context, arg UpdatePaymentSessionStatusParams) error
 	UpdateTransactionStatus(ctx context.Context, arg UpdateTransactionStatusParams) error
+	VerifyCustomerProjectAccess(ctx context.Context, arg VerifyCustomerProjectAccessParams) (int32, error)
 }
 
 var _ Querier = (*Queries)(nil)
