@@ -1,8 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useSessionStore } from '../core/session/store'
 import { useWorkspaceStore } from '@/core/workspace/store'
-
-const PLACEHOLDER_PROJECT_ID = '_'
+import { SENTINEL_PROJECT_ID } from '@/core/workspace/constants'
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
@@ -16,7 +15,7 @@ export const Route = createFileRoute('/')({
 
     throw redirect({
       to: '/$projectId',
-      params: { projectId: lastActiveProjectId ?? PLACEHOLDER_PROJECT_ID },
+      params: { projectId: lastActiveProjectId ?? SENTINEL_PROJECT_ID },
     })
   },
 })

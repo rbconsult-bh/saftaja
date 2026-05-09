@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@connectrpc/connect-query'
 import { getWorkspace } from '@/gen/saftaja/dashboard/workspace/v1/workspace-WorkspaceService_connectquery'
 
-const PLACEHOLDER_PROJECT_ID = '_'
+import { SENTINEL_PROJECT_ID } from '@/core/workspace/constants'
 
 export const Route = createFileRoute('/_dashboard/$projectId')({
   component: ProjectLayout,
@@ -23,7 +23,7 @@ function ProjectLayout() {
     const allProjects = workspace.organizations.flatMap((o) => o.projects)
     const projectExists = allProjects.some((p) => p.id === projectId)
 
-    if (!projectExists || projectId === PLACEHOLDER_PROJECT_ID) {
+    if (!projectExists || projectId === SENTINEL_PROJECT_ID) {
       const firstProject = workspace.organizations[0]?.projects[0]
       if (firstProject) {
         navigate({
@@ -49,7 +49,7 @@ function ProjectLayout() {
   }
 
   const allProjects = workspace.organizations.flatMap((o) => o.projects)
-  if (projectId === PLACEHOLDER_PROJECT_ID || !allProjects.some((p) => p.id === projectId)) {
+  if (projectId === SENTINEL_PROJECT_ID || !allProjects.some((p) => p.id === projectId)) {
     return (
       <div className="p-6 space-y-4">
         <Skeleton className="h-8 w-48" />
