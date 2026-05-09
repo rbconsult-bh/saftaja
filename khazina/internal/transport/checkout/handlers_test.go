@@ -2,7 +2,7 @@ package checkout_test
 
 import (
 	"bytes"
-	"context"
+	
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -21,7 +21,7 @@ import (
 	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
+	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
 
@@ -33,7 +33,7 @@ func testProject(id uuid.UUID) *tenant.Project {
 }
 
 func withTenantContext(r *http.Request, project *tenant.Project) *http.Request {
-	ctx := context.WithValue(r.Context(), middlewares.ProjectContextKey, project)
+	ctx := saftajacontext.WithProject(r.Context(), project)
 	return r.WithContext(ctx)
 }
 

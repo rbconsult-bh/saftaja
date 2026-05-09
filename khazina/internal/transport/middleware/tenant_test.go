@@ -1,4 +1,4 @@
-package middlewares_test
+package middleware_test
 
 import (
 	"net/http"
@@ -12,7 +12,8 @@ import (
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
+	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middleware"
 )
 
 func TestTenantResolver_ValidDomain(t *testing.T) {
@@ -25,8 +26,8 @@ func TestTenantResolver_ValidDomain(t *testing.T) {
 
 	mockSvc.EXPECT().GetProjectByDomain(mock.Anything, "pay.merchant.com").Return(project, nil)
 
-	handler := middlewares.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := middlewares.GetProjectFromContext(r.Context())
+	handler := middleware.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := saftajacontext.ProjectFromContext(r.Context())
 		require.NotNil(t, p)
 		require.Equal(t, projectID, p.ID)
 		w.WriteHeader(http.StatusOK)
@@ -50,8 +51,8 @@ func TestTenantResolver_ValidDomainWithPort(t *testing.T) {
 
 	mockSvc.EXPECT().GetProjectByDomain(mock.Anything, "pay.merchant.com").Return(project, nil)
 
-	handler := middlewares.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := middlewares.GetProjectFromContext(r.Context())
+	handler := middleware.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := saftajacontext.ProjectFromContext(r.Context())
 		require.NotNil(t, p)
 		require.Equal(t, projectID, p.ID)
 		w.WriteHeader(http.StatusOK)
@@ -69,8 +70,8 @@ func TestTenantResolver_InvalidDomain(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	mockSvc.EXPECT().GetProjectByDomain(mock.Anything, "unknown.com").Return(nil, pgx.ErrNoRows)
 
-	handler := middlewares.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := middlewares.GetProjectFromContext(r.Context())
+	handler := middleware.TenantResolver(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := saftajacontext.ProjectFromContext(r.Context())
 		require.Nil(t, p)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -85,6 +86,6 @@ func TestTenantResolver_InvalidDomain(t *testing.T) {
 
 func TestGetProjectFromContext_NilWhenNoProject(t *testing.T) {
 	req := httptest.NewRequest("GET", "/test", nil)
-	p := middlewares.GetProjectFromContext(req.Context())
+	p := saftajacontext.ProjectFromContext(req.Context())
 	require.Nil(t, p)
 }

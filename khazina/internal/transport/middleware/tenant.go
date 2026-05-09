@@ -1,16 +1,12 @@
-package middlewares
+package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
+	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 )
-
-type contextKey string
-
-const ProjectContextKey contextKey = "project"
 
 func TenantResolver(svc tenant.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -22,18 +18,11 @@ func TenantResolver(svc tenant.Service) func(http.Handler) http.Handler {
 
 			project, err := svc.GetProjectByDomain(r.Context(), host)
 			if err == nil && project != nil {
-				ctx := context.WithValue(r.Context(), ProjectContextKey, project)
+				ctx := saftajacontext.WithProject(r.Context(), project)
 				r = r.WithContext(ctx)
 			}
 
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-func GetProjectFromContext(ctx context.Context) *tenant.Project {
-	if p, ok := ctx.Value(ProjectContextKey).(*tenant.Project); ok {
-		return p
-	}
-	return nil
 }

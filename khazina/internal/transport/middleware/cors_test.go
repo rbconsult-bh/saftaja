@@ -1,4 +1,4 @@
-package middlewares_test
+package middleware_test
 
 import (
 	"net/http"
@@ -9,14 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middleware"
 )
 
 func TestDynamicCORS_ValidOrigin(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	mockSvc.EXPECT().IsDomainValid(mock.Anything, "pay.merchant.com").Return(true, nil)
 
-	handler := middlewares.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -34,7 +34,7 @@ func TestDynamicCORS_ValidOriginHTTP(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	mockSvc.EXPECT().IsDomainValid(mock.Anything, "pay.merchant.com").Return(true, nil)
 
-	handler := middlewares.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -51,7 +51,7 @@ func TestDynamicCORS_InvalidOrigin(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	mockSvc.EXPECT().IsDomainValid(mock.Anything, "evil.com").Return(false, nil)
 
-	handler := middlewares.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -68,7 +68,7 @@ func TestDynamicCORS_NoOriginHeader(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	// No mock expectation needed - IsDomainValid won't be called
 
-	handler := middlewares.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -85,7 +85,7 @@ func TestDynamicCORS_PreflightRequest(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	mockSvc.EXPECT().IsDomainValid(mock.Anything, "pay.merchant.com").Return(true, nil)
 
-	handler := middlewares.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called for OPTIONS request")
 	}))
 
@@ -105,7 +105,7 @@ func TestDynamicCORS_PreflightWithInvalidOrigin(t *testing.T) {
 	mockSvc := mocks.NewMockService(t)
 	mockSvc.EXPECT().IsDomainValid(mock.Anything, "evil.com").Return(false, nil)
 
-	handler := middlewares.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.DynamicCORS(mockSvc)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called for OPTIONS request")
 	}))
 

@@ -15,8 +15,8 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
+	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
 
@@ -39,7 +39,7 @@ func New(paymentService payment.Service, invoiceService invoice.Service, gateway
 func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	project := middlewares.GetProjectFromContext(ctx)
+	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
 		log.Ctx(ctx).Info().Str("host", r.Host).Msg("checkout accessed via unregistered domain")
 		http.Error(w, "not found", http.StatusNotFound)
@@ -153,7 +153,7 @@ func paymentMethodLabel(method string) string {
 func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	project := middlewares.GetProjectFromContext(ctx)
+	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
 		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
 		return
@@ -205,7 +205,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	project := middlewares.GetProjectFromContext(ctx)
+	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
 		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
 		return
@@ -242,7 +242,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	project := middlewares.GetProjectFromContext(ctx)
+	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
 		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
 		return
@@ -297,7 +297,7 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	project := middlewares.GetProjectFromContext(ctx)
+	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
 		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
 		return

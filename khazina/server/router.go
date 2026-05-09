@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
+	saftamiddleware "github.com/rbconsult-bh/saftaja/khazina/internal/transport/middleware"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1/workspacepbv1connect"
@@ -25,13 +25,13 @@ func BuildRouter(cfg *config.Config, deps *dependencies) *chi.Mux {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
-	r.Use(middlewares.ZeroLogger)
+	r.Use(saftamiddleware.ZeroLogger)
 
 	mountHealthCheck(r, deps)
 
 	r.Group(func(webRouter chi.Router) {
-		webRouter.Use(middlewares.DynamicCORS(deps.tenantSvc))
-		webRouter.Use(middlewares.TenantResolver(deps.tenantSvc))
+		webRouter.Use(saftamiddleware.DynamicCORS(deps.tenantSvc))
+		webRouter.Use(saftamiddleware.TenantResolver(deps.tenantSvc))
 
 		mountWebRoutes(webRouter, cfg, deps)
 	})
