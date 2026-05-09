@@ -15,6 +15,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1/workspacepbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
 )
@@ -97,12 +98,19 @@ func mountDashboardRoutes(r chi.Router, deps *dependencies) {
 		connect.WithInterceptors(interceptors...),
 	)
 	r.Mount(dashboardWorkspacePath, dashboardWorkspaceHandler)
+
+	dashboardProjectPath, dashboardProjectHandler := projectpbv1connect.NewProjectServiceHandler(
+		deps.dashboardProjectSvc,
+		connect.WithInterceptors(interceptors...),
+	)
+	r.Mount(dashboardProjectPath, dashboardProjectHandler)
 }
 
 func mountReflection(r chi.Router) {
 	reflector := grpcreflect.NewStaticReflector(
 		authpbv1connect.AuthServiceName,
 		workspacepbv1connect.WorkspaceServiceName,
+		projectpbv1connect.ProjectServiceName,
 	)
 
 	v1Path, v1Handler := grpcreflect.NewHandlerV1(reflector)

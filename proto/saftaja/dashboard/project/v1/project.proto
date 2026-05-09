@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package saftaja.dashboard.project.v1;
+
+option go_package = "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1;projectpbv1";
+
+service ProjectService {
+  rpc ListGateways(ListGatewaysRequest) returns (ListGatewaysResponse);
+  rpc CreateGateway(CreateGatewayRequest) returns (CreateGatewayResponse);
+}
+
+message ListGatewaysRequest {}
+message ListGatewaysResponse {}
+
+message CreateGatewayRequest {}
+message CreateGatewayResponse {}

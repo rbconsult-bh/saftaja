@@ -20,8 +20,10 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/authv1"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/projectv1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/workspacev1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1/workspacepbv1connect"
 )
 
@@ -35,6 +37,7 @@ type dependencies struct {
 	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
 	membershipSvc         membership.MembershipService
 	dashboardWorkspaceSvc workspacepbv1connect.WorkspaceServiceHandler
+	dashboardProjectSvc   projectpbv1connect.ProjectServiceHandler
 	authInterceptor       connect.UnaryInterceptorFunc
 	emailer               email.Emailer
 	emailTemplates        email.Templates
@@ -95,6 +98,8 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	membershipSvc := membership.New(dbPool, queries)
 	dashboardWorkspaceSvc := workspacev1.New(membershipSvc)
 
+	dashboardProjectSvc := projectv1.New()
+
 	adminSvc := admin.NewService(queries, encryptionKey)
 	adminHandlers := admin.NewHandlers(adminSvc)
 
@@ -108,6 +113,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		dashboardAuthSvc:      dashboardAuthSvc,
 		membershipSvc:         membershipSvc,
 		dashboardWorkspaceSvc: dashboardWorkspaceSvc,
+		dashboardProjectSvc:   dashboardProjectSvc,
 		authInterceptor:       authInterceptor,
 		emailer:               emailer,
 		emailTemplates:        emailTemplates,
