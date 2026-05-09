@@ -5,38 +5,6 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
-type InvoiceData struct {
-	Invoice InvoiceInfo
-	Items   []ItemInfo
-	IsPaid  bool
-}
-
-type InvoiceInfo struct {
-	ID            uuid.UUID
-	ProjectID     uuid.UUID
-	Amount        string
-	Currency      string
-	Description   string
-	CustomerEmail string
-	CustomerName  string
-}
-
-type ItemInfo struct {
-	Name      string
-	Quantity  int32
-	UnitPrice string
-	Amount    string
-}
-
-type GatewayCredentials struct {
-	GatewayAccountID uuid.UUID
-	ConnectorType    domain.ConnectorType
-	BaseURL          string
-	MerchantID       string
-	APIPassword      string
-	PaymentMethods   []string
-}
-
 type InitiateSessionRequest struct {
 	ProjectID        uuid.UUID
 	InvoiceID        uuid.UUID

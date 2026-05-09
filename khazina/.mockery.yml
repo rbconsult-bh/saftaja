@@ -1,17 +1,34 @@
-all: false
-dir: '{{.InterfaceDir}}'
-filename: mocks_test.go
-force-file-write: true
-formatter: goimports
-include-auto-generated: false
-log-level: info
-structname: '{{.Mock}}{{.InterfaceName}}'
-pkgname: '{{.SrcPackageName}}'
-recursive: false
-require-template-schema-exists: true
 template: testify
-template-schema: '{{.Template}}.schema.json'
 packages:
-  github.com/rbconsult-bh/saftaja/khazina:
-    config:
-      all: true
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/payment:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/payment/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/invoice/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/gateway/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/tenant/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go

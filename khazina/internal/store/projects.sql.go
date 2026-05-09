@@ -37,3 +37,87 @@ func (q *Queries) CreateProjectForOrganization(ctx context.Context, arg CreatePr
 	err := row.Scan(&id)
 	return id, err
 }
+
+const getProjectByCustomDomain = `-- name: GetProjectByCustomDomain :one
+SELECT id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at FROM projects
+WHERE custom_domain = $1
+AND deleted_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain pgtype.Text) (Project, error) {
+	row := q.db.QueryRow(ctx, getProjectByCustomDomain, customDomain)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Environment,
+		&i.CustomDomain,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getProjectByPaymentSessionID = `-- name: GetProjectByPaymentSessionID :one
+SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM projects p
+JOIN payment_sessions ps ON p.id = ps.project_id
+WHERE ps.id = $1
+`
+
+type GetProjectByPaymentSessionIDRow struct {
+	ID               uuid.UUID
+	OrganizationID   uuid.UUID
+	Name             string
+	Environment      domain.ProjectEnvironment
+	CustomDomain     pgtype.Text
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
+	ID_2             uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID        uuid.UUID
+	GatewayAccountID uuid.UUID
+	GatewaySessionID string
+	Status           domain.PaymentSessionStatus
+	PaymentMethod    domain.PaymentMethod
+	PayerIp          pgtype.Text
+	PayerUserAgent   pgtype.Text
+	ExpiresAt        pgtype.Timestamptz
+	CreatedAt_2      pgtype.Timestamptz
+	UpdatedAt_2      pgtype.Timestamptz
+	DeletedAt_2      pgtype.Timestamptz
+	IdempotencyKey   pgtype.Text
+}
+
+func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentSessionIDRow, error) {
+	row := q.db.QueryRow(ctx, getProjectByPaymentSessionID, id)
+	var i GetProjectByPaymentSessionIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Environment,
+		&i.CustomDomain,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.ID_2,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt_2,
+		&i.UpdatedAt_2,
+		&i.DeletedAt_2,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}

@@ -18,10 +18,8 @@ type Querier interface {
 	CreateCustomerSession(ctx context.Context, arg CreateCustomerSessionParams) (CustomerSession, error)
 	CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
-	CreateOrganization(ctx context.Context, name string) (Organization, error)
 	CreateOrganizationForCustomer(ctx context.Context, arg CreateOrganizationForCustomerParams) (uuid.UUID, error)
 	CreatePaymentSession(ctx context.Context, arg CreatePaymentSessionParams) (PaymentSession, error)
-	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
 	CreateProjectForOrganization(ctx context.Context, arg CreateProjectForOrganizationParams) (uuid.UUID, error)
 	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
 	DeleteCustomerSessionByIDAndCustomerID(ctx context.Context, arg DeleteCustomerSessionByIDAndCustomerIDParams) error

@@ -9,8 +9,52 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/shopspring/decimal"
 )
+
+const createInvoice = `-- name: CreateInvoice :one
+INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status)
+VALUES ($1, $2, $3, $4, $5, $6, 'pending') RETURNING id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at
+`
+
+type CreateInvoiceParams struct {
+	ProjectID     uuid.UUID
+	Amount        decimal.Decimal
+	Currency      string
+	CustomerEmail pgtype.Text
+	CustomerName  pgtype.Text
+	Description   pgtype.Text
+}
+
+func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {
+	row := q.db.QueryRow(ctx, createInvoice,
+		arg.ProjectID,
+		arg.Amount,
+		arg.Currency,
+		arg.CustomerEmail,
+		arg.CustomerName,
+		arg.Description,
+	)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.ExternalID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.Description,
+		&i.PaidAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
 
 const getInvoiceByID = `-- name: GetInvoiceByID :one
 SELECT id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at FROM invoices WHERE id = $1

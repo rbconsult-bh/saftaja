@@ -36,35 +36,35 @@ sql:
 
           - column: "projects.environment"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "ProjectEnvironment"
 
           - column: "gateway_accounts.connector_type"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "ConnectorType"
 
           - column: "invoices.status"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "InvoiceStatus"
 
           - column: "payment_sessions.status"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "PaymentSessionStatus"
 
           - column: "payment_sessions.payment_method"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "PaymentMethod"
 
           - column: "transactions.transaction_type"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "TransactionType"
 
           - column: "transactions.status"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "TransactionStatus"

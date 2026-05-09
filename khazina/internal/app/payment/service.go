@@ -19,8 +19,6 @@ import (
 )
 
 type Service interface {
-	GetInvoiceData(ctx context.Context, invoiceID, projectID uuid.UUID) (*InvoiceData, error)
-	ListActiveGatewayCredentials(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error)
 	InitiateSession(ctx context.Context, req *InitiateSessionRequest) (*InitiateSessionResult, error)
 	InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*InitiateAuthResult, error)
 	ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*ProcessAuthResult, error)
@@ -40,89 +38,6 @@ func NewService(pool *pgxpool.Pool, queries store.TransactionQuerier, encryption
 		queries:       queries,
 		encryptionKey: encryptionKey,
 	}
-}
-
-func (s *service) GetInvoiceData(ctx context.Context, invoiceID, projectID uuid.UUID) (*InvoiceData, error) {
-	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
-		ID:        invoiceID,
-		ProjectID: projectID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if invoice.Status == domain.InvoiceStatusPaid {
-		return &InvoiceData{
-			Invoice: InvoiceInfo{
-				ID:        invoice.ID,
-				ProjectID: invoice.ProjectID,
-				Amount:    invoice.Amount.String(),
-				Currency:  invoice.Currency,
-			},
-			IsPaid: true,
-		}, nil
-	}
-
-	items, _ := s.queries.GetInvoiceItems(ctx, invoiceID)
-	itemInfos := make([]ItemInfo, len(items))
-	for i, item := range items {
-		itemInfos[i] = ItemInfo{
-			Name:      item.Name,
-			Quantity:  item.Quantity,
-			UnitPrice: item.UnitPrice.String(),
-			Amount:    item.Amount.String(),
-		}
-	}
-
-	return &InvoiceData{
-		Invoice: InvoiceInfo{
-			ID:            invoice.ID,
-			ProjectID:     invoice.ProjectID,
-			Amount:        invoice.Amount.String(),
-			Currency:      invoice.Currency,
-			Description:   invoice.Description.String,
-			CustomerEmail: invoice.CustomerEmail.String,
-			CustomerName:  invoice.CustomerName.String,
-		},
-		Items:  itemInfos,
-		IsPaid: false,
-	}, nil
-}
-
-func (s *service) ListActiveGatewayCredentials(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error) {
-	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list gateway accounts: %w", err)
-	}
-
-	var result []GatewayCredentials
-	for _, acc := range accounts {
-		if acc.ConnectorType == domain.ConnectorTypeMPGS {
-			creds, err := mpgsclient.ParseEncryptedCredentials(acc.Credentials, s.encryptionKey)
-			if err != nil {
-				return nil, fmt.Errorf("invalid gateway credentials: %w", err)
-			}
-
-			var methods []string
-			if len(acc.PaymentMethods) > 0 {
-				_ = json.Unmarshal(acc.PaymentMethods, &methods)
-			}
-			if len(methods) == 0 {
-				methods = []string{"card"}
-			}
-
-			result = append(result, GatewayCredentials{
-				GatewayAccountID: acc.ID,
-				ConnectorType:    acc.ConnectorType,
-				BaseURL:          creds.BaseURL,
-				MerchantID:       creds.MerchantID,
-				APIPassword:      creds.APIPassword,
-				PaymentMethods:   methods,
-			})
-		}
-	}
-
-	return result, nil
 }
 
 func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionRequest) (*InitiateSessionResult, error) {

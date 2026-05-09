@@ -61,6 +61,95 @@ func (q *Queries) CreatePaymentSession(ctx context.Context, arg CreatePaymentSes
 	return i, err
 }
 
+const getLatestPaymentSession = `-- name: GetLatestPaymentSession :one
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
+WHERE invoice_id = $1
+AND status IN ('created', 'authenticating', 'authenticated')
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetLatestPaymentSession(ctx context.Context, invoiceID uuid.UUID) (PaymentSession, error) {
+	row := q.db.QueryRow(ctx, getLatestPaymentSession, invoiceID)
+	var i PaymentSession
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getPaymentSessionByID = `-- name: GetPaymentSessionByID :one
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetPaymentSessionByID(ctx context.Context, id uuid.UUID) (PaymentSession, error) {
+	row := q.db.QueryRow(ctx, getPaymentSessionByID, id)
+	var i PaymentSession
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
+const getPaymentSessionByIDAndProject = `-- name: GetPaymentSessionByIDAndProject :one
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
+WHERE id = $1 AND project_id = $2 LIMIT 1
+`
+
+type GetPaymentSessionByIDAndProjectParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func (q *Queries) GetPaymentSessionByIDAndProject(ctx context.Context, arg GetPaymentSessionByIDAndProjectParams) (PaymentSession, error) {
+	row := q.db.QueryRow(ctx, getPaymentSessionByIDAndProject, arg.ID, arg.ProjectID)
+	var i PaymentSession
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
 const getPaymentSessionByIdempotencyKey = `-- name: GetPaymentSessionByIdempotencyKey :one
 SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_sessions
 WHERE invoice_id = $1
@@ -93,4 +182,36 @@ func (q *Queries) GetPaymentSessionByIdempotencyKey(ctx context.Context, arg Get
 		&i.IdempotencyKey,
 	)
 	return i, err
+}
+
+const updatePaymentSessionGatewayID = `-- name: UpdatePaymentSessionGatewayID :exec
+UPDATE payment_sessions
+SET gateway_session_id = $2
+WHERE id = $1
+`
+
+type UpdatePaymentSessionGatewayIDParams struct {
+	ID               uuid.UUID
+	GatewaySessionID string
+}
+
+func (q *Queries) UpdatePaymentSessionGatewayID(ctx context.Context, arg UpdatePaymentSessionGatewayIDParams) error {
+	_, err := q.db.Exec(ctx, updatePaymentSessionGatewayID, arg.ID, arg.GatewaySessionID)
+	return err
+}
+
+const updatePaymentSessionStatus = `-- name: UpdatePaymentSessionStatus :exec
+UPDATE payment_sessions
+SET status = $2
+WHERE id = $1
+`
+
+type UpdatePaymentSessionStatusParams struct {
+	ID     uuid.UUID
+	Status domain.PaymentSessionStatus
+}
+
+func (q *Queries) UpdatePaymentSessionStatus(ctx context.Context, arg UpdatePaymentSessionStatusParams) error {
+	_, err := q.db.Exec(ctx, updatePaymentSessionStatus, arg.ID, arg.Status)
+	return err
 }

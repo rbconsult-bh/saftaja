@@ -13,6 +13,8 @@ import (
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web/templfiles"
@@ -20,12 +22,16 @@ import (
 
 type handlers struct {
 	paymentService     payment.Service
+	invoiceService     invoice.Service
+	gatewayService     gateway.Service
 	verifyDomainSecret string
 }
 
-func New(paymentService payment.Service, verifyDomainSecret string) Handlers {
+func New(paymentService payment.Service, invoiceService invoice.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
 	return &handlers{
 		paymentService:     paymentService,
+		invoiceService:     invoiceService,
+		gatewayService:     gatewayService,
 		verifyDomainSecret: verifyDomainSecret,
 	}
 }
@@ -48,7 +54,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutData, err := h.paymentService.GetInvoiceData(ctx, invoiceID, project.ID)
+	checkoutData, err := h.invoiceService.GetByID(ctx, invoiceID, project.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("invoice not found")
@@ -77,7 +83,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gateways, err := h.paymentService.ListActiveGatewayCredentials(ctx, project.ID)
+	gateways, err := h.gatewayService.ListActiveByProject(ctx, project.ID)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to list gateway credentials")
 		http.Error(w, "internal error", http.StatusInternalServerError)

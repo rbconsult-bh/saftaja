@@ -10,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
@@ -30,6 +32,8 @@ type dependencies struct {
 	dbPool                *pgxpool.Pool
 	tenantSvc             tenant.Service
 	paymentSvc            payment.Service
+	invoiceSvc            invoice.Service
+	gatewaySvc            gateway.Service
 	authSvc               auth.AuthService
 	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
 	membershipSvc         membership.MembershipService
@@ -75,6 +79,8 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 
 	tenantSvc := tenant.NewService(queries)
 	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
+	invoiceSvc := invoice.New(queries)
+	gatewaySvc := gateway.New(queries, encryptionKey)
 
 	emailer, err := initEmailer(cfg)
 	if err != nil {
@@ -101,6 +107,8 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		dbPool:                dbPool,
 		tenantSvc:             tenantSvc,
 		paymentSvc:            paymentSvc,
+		invoiceSvc:            invoiceSvc,
+		gatewaySvc:            gatewaySvc,
 		authSvc:               authSvc,
 		dashboardAuthSvc:      dashboardAuthSvc,
 		membershipSvc:         membershipSvc,

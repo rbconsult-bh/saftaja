@@ -14,15 +14,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
+	gwmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway/mocks"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
+	invomocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
+	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/web"
 )
 
-// testProject is a helper to create a test project for tenant context
 func testProject(id uuid.UUID) *store.Project {
 	return &store.Project{
 		ID:           id,
@@ -30,7 +33,6 @@ func testProject(id uuid.UUID) *store.Project {
 	}
 }
 
-// withTenantContext adds a project to the request context for testing
 func withTenantContext(r *http.Request, project *store.Project) *http.Request {
 	ctx := context.WithValue(r.Context(), middlewares.ProjectContextKey, project)
 	return r.WithContext(ctx)
@@ -46,14 +48,17 @@ func setupRouter(h web.Handlers) *chi.Mux {
 }
 
 func TestCheckoutPageHandler_Success(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
+
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	gatewayID := uuid.New()
 
-	mockSvc.On("GetInvoiceData", mock.Anything, invoiceID, projectID).Return(&payment.InvoiceData{
-		Invoice: payment.InvoiceInfo{
+	invSvc.EXPECT().GetByID(mock.Anything, invoiceID, projectID).Return(&invoice.InvoiceData{
+		Invoice: invoice.InvoiceInfo{
 			ID:            invoiceID,
 			ProjectID:     projectID,
 			Amount:        "100.000",
@@ -62,13 +67,13 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 			CustomerEmail: "test@example.com",
 			CustomerName:  "Test Customer",
 		},
-		Items: []payment.ItemInfo{
+		Items: []invoice.ItemInfo{
 			{Name: "Item 1", Quantity: 1, UnitPrice: "100.000", Amount: "100.000"},
 		},
 		IsPaid: false,
 	}, nil)
 
-	mockSvc.On("ListActiveGatewayCredentials", mock.Anything, projectID).Return([]payment.GatewayCredentials{
+	gwSvc.EXPECT().ListActiveByProject(mock.Anything, projectID).Return([]gateway.GatewayCredentials{
 		{
 			GatewayAccountID: gatewayID,
 			ConnectorType:    domain.ConnectorTypeMPGS,
@@ -79,7 +84,7 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		},
 	}, nil)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -99,14 +104,15 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 }
 
 func TestCheckoutPageHandler_NoTenantContext(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
-	// No tenant context added
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -117,14 +123,16 @@ func TestCheckoutPageHandler_NoTenantContext(t *testing.T) {
 }
 
 func TestCheckoutPageHandler_WrongProject(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	requestProjectID := uuid.New()
 	project := testProject(requestProjectID)
 
-	mockSvc.On("GetInvoiceData", mock.Anything, invoiceID, requestProjectID).Return(nil, sql.ErrNoRows)
+	invSvc.EXPECT().GetByID(mock.Anything, invoiceID, requestProjectID).Return(nil, sql.ErrNoRows)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -133,18 +141,19 @@ func TestCheckoutPageHandler_WrongProject(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	// Should return 404 because invoice belongs to different project
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status %d, got %d", http.StatusNotFound, w.Code)
 	}
 }
 
 func TestCheckoutPageHandler_InvalidInvoiceID(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	projectID := uuid.New()
 	project := testProject(projectID)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/not-a-uuid", nil)
@@ -159,13 +168,15 @@ func TestCheckoutPageHandler_InvalidInvoiceID(t *testing.T) {
 }
 
 func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 
-	mockSvc.On("GetInvoiceData", mock.Anything, invoiceID, projectID).Return(&payment.InvoiceData{
-		Invoice: payment.InvoiceInfo{
+	invSvc.EXPECT().GetByID(mock.Anything, invoiceID, projectID).Return(&invoice.InvoiceData{
+		Invoice: invoice.InvoiceInfo{
 			ID:        invoiceID,
 			ProjectID: projectID,
 			Amount:    "100.000",
@@ -174,7 +185,7 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 		IsPaid: true,
 	}, nil)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/checkout/"+invoiceID.String(), nil)
@@ -189,14 +200,16 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 }
 
 func TestInitiateSessionHandler_Success(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 	sessionID := uuid.New()
 
-	mockSvc.On("InitiateSession", mock.Anything, &payment.InitiateSessionRequest{
+	paySvc.EXPECT().InitiateSession(mock.Anything, &payment.InitiateSessionRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
@@ -209,7 +222,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		GatewaySessionID: "MPGS_SESSION_123",
 	}, nil)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	body, _ := json.Marshal(map[string]any{
@@ -242,11 +255,13 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 }
 
 func TestInitiateSessionHandler_NoTenantContext(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	gatewayAccountID := uuid.New()
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	body, _ := json.Marshal(map[string]any{
@@ -267,13 +282,15 @@ func TestInitiateSessionHandler_NoTenantContext(t *testing.T) {
 }
 
 func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	mockSvc.On("InitiateSession", mock.Anything, &payment.InitiateSessionRequest{
+	paySvc.EXPECT().InitiateSession(mock.Anything, &payment.InitiateSessionRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
@@ -283,7 +300,7 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 		IdempotencyKey:   "",
 	}).Return(nil, &payment.InvoiceAlreadyPaidError{InvoiceID: invoiceID.String()})
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	body, _ := json.Marshal(map[string]any{
@@ -305,13 +322,15 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 }
 
 func TestCardFinalizeHandler_Success(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	sessionID := uuid.New()
 
-	mockSvc.On("FinalizePayment", mock.Anything, &payment.FinalizePaymentRequest{
+	paySvc.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
@@ -321,7 +340,7 @@ func TestCardFinalizeHandler_Success(t *testing.T) {
 		CheckoutURL: "/checkout/" + invoiceID.String(),
 	}, nil)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/pay/card/"+sessionID.String()+"/finalize", nil)
@@ -336,11 +355,13 @@ func TestCardFinalizeHandler_Success(t *testing.T) {
 }
 
 func TestCardFinalizeHandler_NoTenantContext(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	sessionID := uuid.New()
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/pay/card/"+sessionID.String()+"/finalize", nil)
@@ -354,19 +375,21 @@ func TestCardFinalizeHandler_NoTenantContext(t *testing.T) {
 }
 
 func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	sessionID := uuid.New()
 
-	mockSvc.On("FinalizePayment", mock.Anything, &payment.FinalizePaymentRequest{
+	paySvc.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		PaymentSessionID: sessionID,
 	}).Return(nil, &payment.SessionExpiredError{SessionID: sessionID.String()})
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/pay/card/"+sessionID.String()+"/finalize", nil)
@@ -381,11 +404,13 @@ func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
 }
 
 func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 
-	mockSvc.On("VerifyDomain", mock.Anything, "pay.merchant.com").Return(true, nil)
+	paySvc.EXPECT().VerifyDomain(mock.Anything, "pay.merchant.com").Return(true, nil)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=test-secret&domain=pay.merchant.com", nil)
@@ -399,11 +424,13 @@ func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
 }
 
 func TestVerifyDomainHandler_InvalidDomain(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
 
-	mockSvc.On("VerifyDomain", mock.Anything, "unknown.domain.com").Return(false, nil)
+	paySvc.EXPECT().VerifyDomain(mock.Anything, "unknown.domain.com").Return(false, nil)
 
-	h := web.New(mockSvc, "test-secret")
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=test-secret&domain=unknown.domain.com", nil)
@@ -417,8 +444,10 @@ func TestVerifyDomainHandler_InvalidDomain(t *testing.T) {
 }
 
 func TestVerifyDomainHandler_MissingSecret(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
-	h := web.New(mockSvc, "test-secret")
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?domain=pay.merchant.com", nil)
@@ -432,8 +461,10 @@ func TestVerifyDomainHandler_MissingSecret(t *testing.T) {
 }
 
 func TestVerifyDomainHandler_WrongSecret(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
-	h := web.New(mockSvc, "test-secret")
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=wrong-secret&domain=pay.merchant.com", nil)
@@ -447,8 +478,10 @@ func TestVerifyDomainHandler_WrongSecret(t *testing.T) {
 }
 
 func TestVerifyDomainHandler_MissingDomain(t *testing.T) {
-	mockSvc := mocks.NewMockService(t)
-	h := web.New(mockSvc, "test-secret")
+	paySvc := paymocks.NewMockService(t)
+	invSvc := invomocks.NewMockService(t)
+	gwSvc := gwmocks.NewMockService(t)
+	h := web.New(paySvc, invSvc, gwSvc, "test-secret")
 	r := setupRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/verify-domain?secret=test-secret", nil)
