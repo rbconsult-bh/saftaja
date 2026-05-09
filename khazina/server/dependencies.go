@@ -17,7 +17,6 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/authv1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/dashboard/projectv1"
@@ -32,8 +31,6 @@ type dependencies struct {
 	tenantSvc             tenant.Service
 	paymentSvc            payment.Service
 	authSvc               auth.AuthService
-	adminSvc              admin.Service
-	adminHandlers         *admin.Handlers
 	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
 	membershipSvc         membership.MembershipService
 	dashboardWorkspaceSvc workspacepbv1connect.WorkspaceServiceHandler
@@ -100,16 +97,11 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 
 	dashboardProjectSvc := projectv1.New()
 
-	adminSvc := admin.NewService(queries, encryptionKey)
-	adminHandlers := admin.NewHandlers(adminSvc)
-
 	return &dependencies{
 		dbPool:                dbPool,
 		tenantSvc:             tenantSvc,
 		paymentSvc:            paymentSvc,
 		authSvc:               authSvc,
-		adminSvc:              adminSvc,
-		adminHandlers:         adminHandlers,
 		dashboardAuthSvc:      dashboardAuthSvc,
 		membershipSvc:         membershipSvc,
 		dashboardWorkspaceSvc: dashboardWorkspaceSvc,

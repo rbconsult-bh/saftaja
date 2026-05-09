@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/admin"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/middlewares"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1/authpbv1connect"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
@@ -44,10 +43,6 @@ func BuildRouter(cfg *config.Config, deps *dependencies) *chi.Mux {
 		mountReflection(dashRouter)
 	})
 
-	r.Group(func(adminRouter chi.Router) {
-		mountAdminRoutes(adminRouter, cfg, deps)
-	})
-
 	return r
 }
 
@@ -71,13 +66,6 @@ func mountWebRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
 		r.Post("/initiate-auth", h.CardInitiateAuthHandler)
 		r.Post("/process-auth", h.CardProcessAuthHandler)
 		r.Post("/finalize", h.CardFinalizeHandler)
-	})
-}
-
-func mountAdminRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
-	r.Route("/admin", func(r chi.Router) {
-		r.Use(admin.APIKeyAuth(cfg.AdminAPIKey))
-		deps.adminHandlers.RegisterRoutes(r)
 	})
 }
 
