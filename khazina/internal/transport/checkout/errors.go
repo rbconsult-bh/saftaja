@@ -9,6 +9,7 @@ import (
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
 
 type ErrorCode string
@@ -30,8 +31,8 @@ type APIError struct {
 	Message string    `json:"message"`
 }
 
-func respondError(w http.ResponseWriter, r *http.Request, code ErrorCode, msg domain.LocalizedString, status int) {
-	lang := domain.DetectLanguage(r)
+func respondError(w http.ResponseWriter, r *http.Request, code ErrorCode, msg checkout.LocalizedString, status int) {
+	lang := checkout.DetectLanguage(r)
 
 	resp := APIError{
 		Code:    code,
@@ -60,27 +61,27 @@ func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 
 	switch {
 	case errors.As(err, &notFound):
-		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 	case errors.As(err, &sessionExpired):
-		respondError(w, r, ErrCodeSessionExpired, domain.MsgSessionExpired, http.StatusGone)
+		respondError(w, r, ErrCodeSessionExpired, templfiles.MsgSessionExpired, http.StatusGone)
 	case errors.As(err, &invalidTransition):
-		respondError(w, r, ErrCodeInvalidState, domain.MsgInvalidState, http.StatusConflict)
+		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
 	case errors.As(err, &alreadyPaid):
-		respondError(w, r, ErrCodeAlreadyPaid, domain.MsgAlreadyPaid, http.StatusConflict)
+		respondError(w, r, ErrCodeAlreadyPaid, templfiles.MsgAlreadyPaid, http.StatusConflict)
 	case errors.As(err, &mismatch):
-		respondError(w, r, ErrCodeSessionMismatch, domain.MsgInvalidState, http.StatusForbidden)
+		respondError(w, r, ErrCodeSessionMismatch, templfiles.MsgInvalidState, http.StatusForbidden)
 	case errors.As(err, &gatewayErr):
 		log.Ctx(ctx).Error().Err(err).Msg("gateway error")
-		respondError(w, r, ErrCodeGatewayError, domain.MsgGatewayError, http.StatusBadGateway)
+		respondError(w, r, ErrCodeGatewayError, templfiles.MsgGatewayError, http.StatusBadGateway)
 	default:
 		log.Ctx(ctx).Error().Err(err).Msg("internal error")
-		respondError(w, r, ErrCodeInternalError, domain.MsgInternalError, http.StatusInternalServerError)
+		respondError(w, r, ErrCodeInternalError, templfiles.MsgInternalError, http.StatusInternalServerError)
 	}
 }
 
-var PaymentResultMessages = map[payment.PaymentResultCode]domain.LocalizedString{
-	payment.ResultSuccess:      domain.MsgPaymentSuccessful,
-	payment.ResultDeclined:     domain.MsgPaymentDeclined,
-	payment.ResultAuthFailed:   domain.MsgAuthenticationFailed,
-	payment.ResultGatewayError: domain.MsgGatewayError,
+var PaymentResultMessages = map[payment.PaymentResultCode]checkout.LocalizedString{
+	payment.ResultSuccess:      templfiles.MsgPaymentSuccessful,
+	payment.ResultDeclined:     templfiles.MsgPaymentDeclined,
+	payment.ResultAuthFailed:   templfiles.MsgAuthenticationFailed,
+	payment.ResultGatewayError: templfiles.MsgGatewayError,
 }

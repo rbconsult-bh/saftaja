@@ -3,7 +3,6 @@ package templfiles
 import (
 	"fmt"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/domain"
 	"golang.org/x/text/language"
 )
 
@@ -63,7 +62,7 @@ templ CheckoutPage(data CheckoutPageData) {
 	<!DOCTYPE html>
 	<html lang={ langCode(data.Lang) } dir={ langDir(data.Lang) }>
 		<head>
-			<title>{ domain.LblSecureCheckout.Get(data.Lang) }</title>
+			<title>{ LblSecureCheckout.Get(data.Lang) }</title>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -178,7 +177,7 @@ templ SuccessPage(invoice CheckoutInvoice, lang language.Tag) {
 					<path class="checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"></path>
 				</svg>
 			</div>
-			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ domain.LblPaymentSuccessful.Get(lang) }</h1>
+			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ LblPaymentSuccessful.Get(lang) }</h1>
 			<div class="fade-in-up delay-200">
 				<div class="flex items-baseline justify-center gap-2 mb-6 ltr-nums">
 					<span class="text-4xl font-bold text-slate-900">{ invoice.Amount }</span>
@@ -188,20 +187,20 @@ templ SuccessPage(invoice CheckoutInvoice, lang language.Tag) {
 			<div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300">
 				<div class="space-y-3 text-start">
 					<div class="flex justify-between">
-						<span class="text-slate-500">{ domain.LblInvoice.Get(lang) }</span>
+						<span class="text-slate-500">{ LblInvoice.Get(lang) }</span>
 						<span class="text-slate-900 font-medium font-mono text-sm ltr-nums">{ truncateID(invoice.ID) }</span>
 					</div>
 					if invoice.CustomerEmail != "" {
 						<div class="flex justify-between">
-							<span class="text-slate-500">{ domain.LblCustomer.Get(lang) }</span>
+							<span class="text-slate-500">{ LblCustomer.Get(lang) }</span>
 							<span class="text-slate-900 font-medium">{ invoice.CustomerEmail }</span>
 						</div>
 					}
 				</div>
 			</div>
-			<p class="text-slate-500 mb-8 fade-in-up delay-400">{ domain.LblThankYou.Get(lang) }</p>
+			<p class="text-slate-500 mb-8 fade-in-up delay-400">{ LblThankYou.Get(lang) }</p>
 			<div class="text-center mt-8">
-				<p class="text-slate-400 text-sm">{ domain.LblPoweredBy.Get(lang) }</p>
+				<p class="text-slate-400 text-sm">{ LblPoweredBy.Get(lang) }</p>
 			</div>
 		</div>
 	</div>
@@ -221,7 +220,7 @@ templ CheckoutForm(data CheckoutPageData) {
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 								</svg>
 							</div>
-							<p class="text-slate-400 text-sm uppercase tracking-wider">{ domain.LblAmountDue.Get(data.Lang) }</p>
+							<p class="text-slate-400 text-sm uppercase tracking-wider">{ LblAmountDue.Get(data.Lang) }</p>
 						</div>
 						<div class="mb-6">
 							<div class="flex items-baseline gap-2 ltr-nums">
@@ -232,13 +231,13 @@ templ CheckoutForm(data CheckoutPageData) {
 						<div class="space-y-4 flex-1">
 							if data.Invoice.Description != "" {
 								<div>
-									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ domain.LblDescription.Get(data.Lang) }</p>
+									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ LblDescription.Get(data.Lang) }</p>
 									<p class="text-white">{ data.Invoice.Description }</p>
 								</div>
 							}
 							if data.Invoice.CustomerEmail != "" {
 								<div>
-									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ domain.LblCustomer.Get(data.Lang) }</p>
+									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ LblCustomer.Get(data.Lang) }</p>
 									<p class="text-white">{ data.Invoice.CustomerEmail }</p>
 									if data.Invoice.CustomerName != "" {
 										<p class="text-slate-300 text-sm">{ data.Invoice.CustomerName }</p>
@@ -253,7 +252,7 @@ templ CheckoutForm(data CheckoutPageData) {
 										class="w-full flex items-center justify-between text-start cursor-pointer"
 									>
 										<span class="text-slate-400 text-xs uppercase tracking-wider">
-											{ fmt.Sprintf("%d", len(data.Items)) } { pluralizeLocalized(len(data.Items), domain.LblItem.Get(data.Lang), domain.LblItems.Get(data.Lang)) }
+											{ fmt.Sprintf("%d", len(data.Items)) } { pluralizeLocalized(len(data.Items), LblItem.Get(data.Lang), LblItems.Get(data.Lang)) }
 										</span>
 										<svg id="items-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -278,7 +277,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
 								</svg>
-								<span>{ domain.Lbl256BitEncryption.Get(data.Lang) }</span>
+								<span>{ Lbl256BitEncryption.Get(data.Lang) }</span>
 							</div>
 						</div>
 					</div>
@@ -294,17 +293,17 @@ templ CheckoutForm(data CheckoutPageData) {
 								</svg>
 							</div>
 							<div>
-								<p class="text-red-800 font-medium text-sm">{ domain.LblPaymentFailed.Get(data.Lang) }</p>
-								<p id="error-banner-message" class="text-red-600 text-sm">{ domain.LblPleaseTryAgain.Get(data.Lang) }</p>
+								<p class="text-red-800 font-medium text-sm">{ LblPaymentFailed.Get(data.Lang) }</p>
+								<p id="error-banner-message" class="text-red-600 text-sm">{ LblPleaseTryAgain.Get(data.Lang) }</p>
 							</div>
 						</div>
 					</div>
 					<!-- Payment Method Selection -->
 					<div id="method-selection">
-						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ domain.LblPaymentMethod.Get(data.Lang) }</h2>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ LblPaymentMethod.Get(data.Lang) }</h2>
 						<div class="space-y-3" id="payment-options">
 							if len(data.Options) == 0 {
-								<p class="text-slate-500 text-sm">{ domain.LblNoPaymentMethods.Get(data.Lang) }</p>
+								<p class="text-slate-500 text-sm">{ LblNoPaymentMethods.Get(data.Lang) }</p>
 							}
 							for _, opt := range data.Options {
 								<button
@@ -330,9 +329,9 @@ templ CheckoutForm(data CheckoutPageData) {
 									<div class="flex-1 text-start">
 										<p class="font-medium text-slate-900">{ opt.Label }</p>
 										if opt.Type == "card" {
-											<p class="text-sm text-slate-500">{ domain.LblVisaMastercardAmex.Get(data.Lang) }</p>
+											<p class="text-sm text-slate-500">{ LblVisaMastercardAmex.Get(data.Lang) }</p>
 										} else if opt.Type == "apple_pay" {
-											<p class="text-sm text-slate-500">{ domain.LblQuickAndSecure.Get(data.Lang) }</p>
+											<p class="text-sm text-slate-500">{ LblQuickAndSecure.Get(data.Lang) }</p>
 										}
 									</div>
 									<svg class="w-5 h-5 text-slate-400 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,9 +351,9 @@ templ CheckoutForm(data CheckoutPageData) {
 							<svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
 							</svg>
-							<span class="text-sm">{ domain.LblBack.Get(data.Lang) }</span>
+							<span class="text-sm">{ LblBack.Get(data.Lang) }</span>
 						</button>
-						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ domain.LblCardDetails.Get(data.Lang) }</h2>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ LblCardDetails.Get(data.Lang) }</h2>
 						<div class="space-y-4">
 							<div>
 								<div class="skeleton h-4 w-24 rounded mb-2"></div>
@@ -380,7 +379,7 @@ templ CheckoutForm(data CheckoutPageData) {
 							</div>
 							<div class="skeleton h-14 rounded-xl mt-6"></div>
 						</div>
-						<p class="text-center text-slate-400 text-sm mt-4 pulse">{ domain.LblSecuringConnection.Get(data.Lang) }</p>
+						<p class="text-center text-slate-400 text-sm mt-4 pulse">{ LblSecuringConnection.Get(data.Lang) }</p>
 					</div>
 					<!-- Card Form -->
 					<div id="card-form-container" class="hidden">
@@ -392,12 +391,12 @@ templ CheckoutForm(data CheckoutPageData) {
 							<svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
 							</svg>
-							<span class="text-sm">{ domain.LblBack.Get(data.Lang) }</span>
+							<span class="text-sm">{ LblBack.Get(data.Lang) }</span>
 						</button>
-						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ domain.LblCardDetails.Get(data.Lang) }</h2>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ LblCardDetails.Get(data.Lang) }</h2>
 						<div class="space-y-4">
 							<div>
-								<label for="card-number" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblCardNumber.Get(data.Lang) }</label>
+								<label for="card-number" class="block text-sm font-medium text-slate-700 mb-2">{ LblCardNumber.Get(data.Lang) }</label>
 								<input
 									type="text"
 									id="card-number"
@@ -408,7 +407,7 @@ templ CheckoutForm(data CheckoutPageData) {
 							</div>
 							<div class="grid grid-cols-3 gap-3">
 								<div>
-									<label for="expiry-month" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblMonth.Get(data.Lang) }</label>
+									<label for="expiry-month" class="block text-sm font-medium text-slate-700 mb-2">{ LblMonth.Get(data.Lang) }</label>
 									<input
 										type="text"
 										id="expiry-month"
@@ -418,7 +417,7 @@ templ CheckoutForm(data CheckoutPageData) {
 									/>
 								</div>
 								<div>
-									<label for="expiry-year" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblYear.Get(data.Lang) }</label>
+									<label for="expiry-year" class="block text-sm font-medium text-slate-700 mb-2">{ LblYear.Get(data.Lang) }</label>
 									<input
 										type="text"
 										id="expiry-year"
@@ -428,7 +427,7 @@ templ CheckoutForm(data CheckoutPageData) {
 									/>
 								</div>
 								<div>
-									<label for="security-code" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblCVC.Get(data.Lang) }</label>
+									<label for="security-code" class="block text-sm font-medium text-slate-700 mb-2">{ LblCVC.Get(data.Lang) }</label>
 									<input
 										type="text"
 										id="security-code"
@@ -439,7 +438,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								</div>
 							</div>
 							<div>
-								<label for="cardholder-name" class="block text-sm font-medium text-slate-700 mb-2">{ domain.LblCardholderName.Get(data.Lang) }</label>
+								<label for="cardholder-name" class="block text-sm font-medium text-slate-700 mb-2">{ LblCardholderName.Get(data.Lang) }</label>
 								<input
 									type="text"
 									id="cardholder-name"
@@ -454,7 +453,7 @@ templ CheckoutForm(data CheckoutPageData) {
 								onclick="pay()"
 								class="w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:bg-slate-400 disabled:cursor-not-allowed"
 							>
-								<span id="payButtonText">{ domain.LblPay.Get(data.Lang) } <span class="ltr-nums">{ data.Invoice.Amount } { data.Invoice.Currency }</span></span>
+								<span id="payButtonText">{ LblPay.Get(data.Lang) } <span class="ltr-nums">{ data.Invoice.Amount } { data.Invoice.Currency }</span></span>
 								<div id="payButtonSpinner" class="spinner hidden"></div>
 							</button>
 						</div>
@@ -467,7 +466,7 @@ templ CheckoutForm(data CheckoutPageData) {
 				</div>
 			</div>
 			<div class="text-center mt-6">
-				<p class="text-slate-400 text-sm">{ domain.LblPoweredBy.Get(data.Lang) }</p>
+				<p class="text-slate-400 text-sm">{ LblPoweredBy.Get(data.Lang) }</p>
 			</div>
 		</div>
 	</div>
@@ -475,8 +474,8 @@ templ CheckoutForm(data CheckoutPageData) {
 	<div id="processing-overlay" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur flex items-center justify-center p-4">
 		<div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
 			<div class="spinner spinner-large text-slate-900 mx-auto mb-6"></div>
-			<h3 class="text-xl font-semibold text-slate-900 mb-2">{ domain.LblProcessingPayment.Get(data.Lang) }</h3>
-			<p class="text-slate-500">{ domain.LblPleaseWait.Get(data.Lang) }</p>
+			<h3 class="text-xl font-semibold text-slate-900 mb-2">{ LblProcessingPayment.Get(data.Lang) }</h3>
+			<p class="text-slate-500">{ LblPleaseWait.Get(data.Lang) }</p>
 		</div>
 	</div>
 	<!-- 3DS Challenge Modal -->
@@ -490,8 +489,8 @@ templ CheckoutForm(data CheckoutPageData) {
 						</svg>
 					</div>
 					<div>
-						<h3 class="font-semibold">{ domain.LblBankVerification.Get(data.Lang) }</h3>
-						<p class="text-slate-300 text-sm">{ domain.LblConfirmIdentity.Get(data.Lang) }</p>
+						<h3 class="font-semibold">{ LblBankVerification.Get(data.Lang) }</h3>
+						<p class="text-slate-300 text-sm">{ LblConfirmIdentity.Get(data.Lang) }</p>
 					</div>
 				</div>
 			</div>
@@ -503,7 +502,7 @@ templ CheckoutForm(data CheckoutPageData) {
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 					</svg>
-					<span>{ domain.LblBankRequired.Get(data.Lang) }</span>
+					<span>{ LblBankRequired.Get(data.Lang) }</span>
 				</div>
 			</div>
 		</div>
@@ -517,7 +516,7 @@ templ CheckoutForm(data CheckoutPageData) {
 					<path class="checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"></path>
 				</svg>
 			</div>
-			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ domain.LblPaymentSuccessful.Get(data.Lang) }</h1>
+			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ LblPaymentSuccessful.Get(data.Lang) }</h1>
 			<div class="fade-in-up delay-200">
 				<div class="flex items-baseline justify-center gap-2 mb-6 ltr-nums">
 					<span class="text-4xl font-bold text-slate-900">{ data.Invoice.Amount }</span>
@@ -527,18 +526,18 @@ templ CheckoutForm(data CheckoutPageData) {
 			<div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300">
 				<div class="space-y-3 text-start">
 					<div class="flex justify-between">
-						<span class="text-slate-500">{ domain.LblInvoice.Get(data.Lang) }</span>
+						<span class="text-slate-500">{ LblInvoice.Get(data.Lang) }</span>
 						<span class="text-slate-900 font-medium font-mono text-sm ltr-nums">{ truncateID(data.Invoice.ID) }</span>
 					</div>
 					<div class="flex justify-between">
-						<span class="text-slate-500">{ domain.LblDate.Get(data.Lang) }</span>
+						<span class="text-slate-500">{ LblDate.Get(data.Lang) }</span>
 						<span class="text-slate-900 font-medium" id="success-date">-</span>
 					</div>
 				</div>
 			</div>
-			<p class="text-slate-500 fade-in-up delay-400">{ domain.LblThankYou.Get(data.Lang) }</p>
+			<p class="text-slate-500 fade-in-up delay-400">{ LblThankYou.Get(data.Lang) }</p>
 			<div class="text-center mt-8">
-				<p class="text-slate-400 text-sm">{ domain.LblPoweredBy.Get(data.Lang) }</p>
+				<p class="text-slate-400 text-sm">{ LblPoweredBy.Get(data.Lang) }</p>
 			</div>
 		</div>
 	</div>
@@ -613,14 +612,14 @@ templ CheckoutForm(data CheckoutPageData) {
 				}
 			} catch (e) {
 				console.error("Init failed", e);
-				showError({{ domain.LblPaymentFailedInit.Get(data.Lang) }});
+				showError({{ LblPaymentFailedInit.Get(data.Lang) }});
 				goBack();
 			}
 		}
 
 		function initializeMPGS(mpgsSessionId) {
 			if (typeof PaymentSession === 'undefined') {
-				showError({{ domain.LblGatewayLoadFailed.Get(data.Lang) }});
+				showError({{ LblGatewayLoadFailed.Get(data.Lang) }});
 				goBack();
 				return;
 			}
@@ -680,7 +679,7 @@ templ CheckoutForm(data CheckoutPageData) {
 			const spinner = document.getElementById('payButtonSpinner');
 
 			btn.disabled = true;
-			text.textContent = {{ domain.LblProcessingPayment.Get(data.Lang) }};
+			text.textContent = {{ LblProcessingPayment.Get(data.Lang) }};
 			spinner.classList.remove('hidden');
 
 			PaymentSession.updateSessionFromForm('card');
@@ -692,7 +691,7 @@ templ CheckoutForm(data CheckoutPageData) {
 			const spinner = document.getElementById('payButtonSpinner');
 
 			btn.disabled = false;
-			text.textContent = `{{ domain.LblPay.Get(data.Lang) }} ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;
+			text.textContent = `{{ LblPay.Get(data.Lang) }} ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;
 			spinner.classList.add('hidden');
 		}
 
@@ -762,13 +761,13 @@ templ CheckoutForm(data CheckoutPageData) {
 				if (initRes.next_step === "authenticate") {
 					doAuthenticatePayer(initRes.tx_id);
 				} else if (initRes.next_step === "cant_continue") {
-					showError({{ domain.MsgPaymentDeclined.Get(data.Lang) }});
+					showError({{ MsgPaymentDeclined.Get(data.Lang) }});
 				} else {
-					showError({{ domain.MsgInternalError.Get(data.Lang) }});
+					showError({{ MsgInternalError.Get(data.Lang) }});
 				}
 			} catch (e) {
 				console.error(e);
-				showError({{ domain.MsgGatewayError.Get(data.Lang) }});
+				showError({{ MsgGatewayError.Get(data.Lang) }});
 			}
 		}
 
@@ -801,7 +800,7 @@ templ CheckoutForm(data CheckoutPageData) {
 				}
 			} catch (e) {
 				console.error(e);
-				showError({{ domain.MsgAuthenticationFailed.Get(data.Lang) }});
+				showError({{ MsgAuthenticationFailed.Get(data.Lang) }});
 			}
 		}
 
@@ -821,7 +820,7 @@ templ CheckoutForm(data CheckoutPageData) {
 				showSuccess();
 			} catch (e) {
 				console.error(e);
-				showError({{ domain.MsgGatewayError.Get(data.Lang) }});
+				showError({{ MsgGatewayError.Get(data.Lang) }});
 			}
 		}
 
@@ -832,7 +831,7 @@ templ CheckoutForm(data CheckoutPageData) {
 				if (event.data.status === 'success') {
 					showSuccess();
 				} else {
-					showError(event.data.message || {{ domain.MsgPaymentDeclined.Get(data.Lang) }});
+					showError(event.data.message || {{ MsgPaymentDeclined.Get(data.Lang) }});
 				}
 			}
 		});

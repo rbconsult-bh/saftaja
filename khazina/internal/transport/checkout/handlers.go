@@ -75,7 +75,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 				CustomerEmail: checkoutData.Invoice.CustomerEmail,
 			},
 			IsPaid: true,
-			Lang:   domain.DetectLanguage(r),
+			Lang:   checkout.DetectLanguage(r),
 		}
 		if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
 			log.Error().Err(err).Msg("failed to render checkout page")
@@ -131,7 +131,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		Items:   checkoutItems,
 		Options: options,
 		IsPaid:  false,
-		Lang:    domain.DetectLanguage(r),
+		Lang:    checkout.DetectLanguage(r),
 	}
 
 	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
@@ -155,13 +155,13 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 
 	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
-		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 		return
 	}
 
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
@@ -170,14 +170,14 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		PaymentMethod    domain.PaymentMethod `json:"payment_method"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
 	payerIP, err := ExtractPayerIP(r)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("invalid ip address")
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
@@ -207,19 +207,19 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 
 	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
-		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 		return
 	}
 
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
 	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
@@ -244,33 +244,33 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 
 	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
-		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 		return
 	}
 
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
 	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
 	var browserDetails payment.BrowserDetails
 	if err := json.NewDecoder(r.Body).Decode(&browserDetails); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to decode browser details")
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
 	payerIP, err := ExtractPayerIP(r)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("invalid ip address")
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
@@ -299,19 +299,19 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 
 	project := saftajacontext.ProjectFromContext(ctx)
 	if project == nil {
-		respondError(w, r, ErrCodeInvoiceNotFound, domain.MsgInvoiceNotFound, http.StatusNotFound)
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 		return
 	}
 
 	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
 	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
 	if err != nil {
-		respondError(w, r, ErrCodeInvalidRequest, domain.MsgInvalidRequest, http.StatusBadRequest)
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
@@ -331,7 +331,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		status = "success"
 	}
 
-	lang := domain.DetectLanguage(r)
+	lang := checkout.DetectLanguage(r)
 	data := templfiles.CompletionPageData{
 		Status:      status,
 		Message:     message,
