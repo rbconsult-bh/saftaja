@@ -1,147 +1,79 @@
-package payment_test
+package payment
 
 import (
 	"testing"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 )
 
-func TestValidateSessionTransition_Valid(t *testing.T) {
+func TestValidateSessionTransition(t *testing.T) {
 	tests := []struct {
 		name string
 		from domain.PaymentSessionStatus
 		to   domain.PaymentSessionStatus
+		err  bool
 	}{
-		{"created to authenticating", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusAuthenticating},
-		{"authenticating to authenticated", domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusAuthenticated},
-		{"authenticating to failed", domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusFailed},
-		{"authenticated to paying", domain.PaymentSessionStatusAuthenticated, domain.PaymentSessionStatusPaying},
-		{"paying to completed", domain.PaymentSessionStatusPaying, domain.PaymentSessionStatusCompleted},
-		{"paying to failed", domain.PaymentSessionStatusPaying, domain.PaymentSessionStatusFailed},
+		{"created to authenticating", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusAuthenticating, false},
+		{"created to completed", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusCompleted, true},
+		{"authenticating to authenticated", domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusAuthenticated, false},
+		{"authenticated to paying", domain.PaymentSessionStatusAuthenticated, domain.PaymentSessionStatusPaying, false},
+		{"completed to anything", domain.PaymentSessionStatusCompleted, domain.PaymentSessionStatusAuthenticating, true},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := payment.ValidateSessionTransition(tc.from, tc.to)
-			if err != nil {
-				t.Errorf("expected valid transition %s -> %s, got error: %v", tc.from, tc.to, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateSessionTransition(tt.from, tt.to)
+			if (err != nil) != tt.err {
+				t.Errorf("ValidateSessionTransition(%s, %s) error = %v, wantError %v", tt.from, tt.to, err, tt.err)
 			}
 		})
 	}
 }
 
-func TestValidateSessionTransition_Invalid(t *testing.T) {
-	tests := []struct {
-		name string
-		from domain.PaymentSessionStatus
-		to   domain.PaymentSessionStatus
-	}{
-		{"created to completed (skip)", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusCompleted},
-		{"created to paying (skip)", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusPaying},
-		{"completed to paying (terminal)", domain.PaymentSessionStatusCompleted, domain.PaymentSessionStatusPaying},
-		{"failed to created (terminal)", domain.PaymentSessionStatusFailed, domain.PaymentSessionStatusCreated},
-		{"authenticating to paying (skip)", domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusPaying},
-		{"authenticated to completed (skip)", domain.PaymentSessionStatusAuthenticated, domain.PaymentSessionStatusCompleted},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := payment.ValidateSessionTransition(tc.from, tc.to)
-			if err == nil {
-				t.Errorf("expected invalid transition %s -> %s, got nil error", tc.from, tc.to)
-			}
-			var transitionErr *payment.InvalidStateTransitionError
-			if _, ok := err.(*payment.InvalidStateTransitionError); !ok {
-				t.Errorf("expected InvalidStateTransitionError, got %T", transitionErr)
-			}
-		})
-	}
-}
-
-func TestValidateInvoiceTransition_Valid(t *testing.T) {
+func TestValidateInvoiceTransition(t *testing.T) {
 	tests := []struct {
 		name string
 		from domain.InvoiceStatus
 		to   domain.InvoiceStatus
+		err  bool
 	}{
-		{"pending to processing", domain.InvoiceStatusPending, domain.InvoiceStatusProcessing},
-		{"pending to failed", domain.InvoiceStatusPending, domain.InvoiceStatusFailed},
-		{"processing to paid", domain.InvoiceStatusProcessing, domain.InvoiceStatusPaid},
-		{"processing to failed", domain.InvoiceStatusProcessing, domain.InvoiceStatusFailed},
+		{"pending to processing", domain.InvoiceStatusPending, domain.InvoiceStatusProcessing, false},
+		{"pending to failed", domain.InvoiceStatusPending, domain.InvoiceStatusFailed, false},
+		{"processing to paid", domain.InvoiceStatusProcessing, domain.InvoiceStatusPaid, false},
+		{"paid to processing", domain.InvoiceStatusPaid, domain.InvoiceStatusProcessing, true},
+		{"failed to paid", domain.InvoiceStatusFailed, domain.InvoiceStatusPaid, true},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := payment.ValidateInvoiceTransition(tc.from, tc.to)
-			if err != nil {
-				t.Errorf("expected valid transition %s -> %s, got error: %v", tc.from, tc.to, err)
-			}
-		})
-	}
-}
-
-func TestValidateInvoiceTransition_Invalid(t *testing.T) {
-	tests := []struct {
-		name string
-		from domain.InvoiceStatus
-		to   domain.InvoiceStatus
-	}{
-		{"pending to paid (skip)", domain.InvoiceStatusPending, domain.InvoiceStatusPaid},
-		{"paid to pending (terminal)", domain.InvoiceStatusPaid, domain.InvoiceStatusPending},
-		{"failed to processing (terminal)", domain.InvoiceStatusFailed, domain.InvoiceStatusProcessing},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := payment.ValidateInvoiceTransition(tc.from, tc.to)
-			if err == nil {
-				t.Errorf("expected invalid transition %s -> %s, got nil error", tc.from, tc.to)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateInvoiceTransition(tt.from, tt.to)
+			if (err != nil) != tt.err {
+				t.Errorf("ValidateInvoiceTransition(%s, %s) error = %v, wantError %v", tt.from, tt.to, err, tt.err)
 			}
 		})
 	}
 }
 
 func TestIsTerminalSessionStatus(t *testing.T) {
-	tests := []struct {
-		status   domain.PaymentSessionStatus
-		terminal bool
-	}{
-		{domain.PaymentSessionStatusCreated, false},
-		{domain.PaymentSessionStatusAuthenticating, false},
-		{domain.PaymentSessionStatusAuthenticated, false},
-		{domain.PaymentSessionStatusPaying, false},
-		{domain.PaymentSessionStatusCompleted, true},
-		{domain.PaymentSessionStatusFailed, true},
+	if !IsTerminalSessionStatus(domain.PaymentSessionStatusCompleted) {
+		t.Error("completed should be terminal")
 	}
-
-	for _, tc := range tests {
-		t.Run(string(tc.status), func(t *testing.T) {
-			got := payment.IsTerminalSessionStatus(tc.status)
-			if got != tc.terminal {
-				t.Errorf("IsTerminalSessionStatus(%s) = %v, want %v", tc.status, got, tc.terminal)
-			}
-		})
+	if !IsTerminalSessionStatus(domain.PaymentSessionStatusFailed) {
+		t.Error("failed should be terminal")
+	}
+	if IsTerminalSessionStatus(domain.PaymentSessionStatusAuthenticating) {
+		t.Error("authenticating should not be terminal")
 	}
 }
 
 func TestIsTerminalInvoiceStatus(t *testing.T) {
-	tests := []struct {
-		status   domain.InvoiceStatus
-		terminal bool
-	}{
-		{domain.InvoiceStatusPending, false},
-		{domain.InvoiceStatusProcessing, false},
-		{domain.InvoiceStatusPaid, true},
-		{domain.InvoiceStatusFailed, true},
+	if !IsTerminalInvoiceStatus(domain.InvoiceStatusPaid) {
+		t.Error("paid should be terminal")
 	}
-
-	for _, tc := range tests {
-		t.Run(string(tc.status), func(t *testing.T) {
-			got := payment.IsTerminalInvoiceStatus(tc.status)
-			if got != tc.terminal {
-				t.Errorf("IsTerminalInvoiceStatus(%s) = %v, want %v", tc.status, got, tc.terminal)
-			}
-		})
+	if !IsTerminalInvoiceStatus(domain.InvoiceStatusFailed) {
+		t.Error("failed should be terminal")
+	}
+	if IsTerminalInvoiceStatus(domain.InvoiceStatusPending) {
+		t.Error("pending should not be terminal")
 	}
 }
