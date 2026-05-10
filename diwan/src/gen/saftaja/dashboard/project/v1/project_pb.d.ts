@@ -2,7 +2,7 @@
 // @generated from file saftaja/dashboard/project/v1/project.proto (package saftaja.dashboard.project.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
@@ -14,6 +14,10 @@ export declare const file_saftaja_dashboard_project_v1_project: GenFile;
  * @generated from message saftaja.dashboard.project.v1.ListGatewaysRequest
  */
 export declare type ListGatewaysRequest = Message<"saftaja.dashboard.project.v1.ListGatewaysRequest"> & {
+  /**
+   * @generated from field: string project_id = 1;
+   */
+  projectId: string;
 };
 
 /**
@@ -26,6 +30,10 @@ export declare const ListGatewaysRequestSchema: GenMessage<ListGatewaysRequest>;
  * @generated from message saftaja.dashboard.project.v1.ListGatewaysResponse
  */
 export declare type ListGatewaysResponse = Message<"saftaja.dashboard.project.v1.ListGatewaysResponse"> & {
+  /**
+   * @generated from field: repeated saftaja.dashboard.project.v1.Gateway gateways = 1;
+   */
+  gateways: Gateway[];
 };
 
 /**
@@ -35,9 +43,85 @@ export declare type ListGatewaysResponse = Message<"saftaja.dashboard.project.v1
 export declare const ListGatewaysResponseSchema: GenMessage<ListGatewaysResponse>;
 
 /**
+ * @generated from message saftaja.dashboard.project.v1.Gateway
+ */
+export declare type Gateway = Message<"saftaja.dashboard.project.v1.Gateway"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string account_name = 2;
+   */
+  accountName: string;
+
+  /**
+   * @generated from field: saftaja.dashboard.project.v1.Gateway.ConnectorType connector_type = 3;
+   */
+  connectorType: Gateway_ConnectorType;
+
+  /**
+   * @generated from field: bool is_active = 4;
+   */
+  isActive: boolean;
+
+  /**
+   * @generated from field: repeated string payment_methods = 5;
+   */
+  paymentMethods: string[];
+};
+
+/**
+ * Describes the message saftaja.dashboard.project.v1.Gateway.
+ * Use `create(GatewaySchema)` to create a new message.
+ */
+export declare const GatewaySchema: GenMessage<Gateway>;
+
+/**
+ * @generated from enum saftaja.dashboard.project.v1.Gateway.ConnectorType
+ */
+export enum Gateway_ConnectorType {
+  /**
+   * @generated from enum value: CONNECTOR_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CONNECTOR_TYPE_MPGS = 1;
+   */
+  MPGS = 1,
+}
+
+/**
+ * Describes the enum saftaja.dashboard.project.v1.Gateway.ConnectorType.
+ */
+export declare const Gateway_ConnectorTypeSchema: GenEnum<Gateway_ConnectorType>;
+
+/**
  * @generated from message saftaja.dashboard.project.v1.CreateGatewayRequest
  */
 export declare type CreateGatewayRequest = Message<"saftaja.dashboard.project.v1.CreateGatewayRequest"> & {
+  /**
+   * @generated from field: string project_id = 1;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string account_name = 2;
+   */
+  accountName: string;
+
+  /**
+   * @generated from oneof saftaja.dashboard.project.v1.CreateGatewayRequest.credentials
+   */
+  credentials: {
+    /**
+     * @generated from field: saftaja.dashboard.project.v1.MPGSCredentials mpgs = 3;
+     */
+    value: MPGSCredentials;
+    case: "mpgs";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
@@ -57,6 +141,32 @@ export declare type CreateGatewayResponse = Message<"saftaja.dashboard.project.v
  * Use `create(CreateGatewayResponseSchema)` to create a new message.
  */
 export declare const CreateGatewayResponseSchema: GenMessage<CreateGatewayResponse>;
+
+/**
+ * @generated from message saftaja.dashboard.project.v1.MPGSCredentials
+ */
+export declare type MPGSCredentials = Message<"saftaja.dashboard.project.v1.MPGSCredentials"> & {
+  /**
+   * @generated from field: string merchant_id = 1;
+   */
+  merchantId: string;
+
+  /**
+   * @generated from field: string base_url = 2;
+   */
+  baseUrl: string;
+
+  /**
+   * @generated from field: string api_password = 3;
+   */
+  apiPassword: string;
+};
+
+/**
+ * Describes the message saftaja.dashboard.project.v1.MPGSCredentials.
+ * Use `create(MPGSCredentialsSchema)` to create a new message.
+ */
+export declare const MPGSCredentialsSchema: GenMessage<MPGSCredentials>;
 
 /**
  * @generated from service saftaja.dashboard.project.v1.ProjectService

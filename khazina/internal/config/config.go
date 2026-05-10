@@ -94,9 +94,6 @@ func (c *Config) Validate() error {
 	if c.VerifyDomainSecret == "" {
 		return errors.New("VERIFY_DOMAIN_SECRET is required")
 	}
-	if c.AdminAPIKey == "" {
-		return errors.New("ADMIN_API_KEY is required")
-	}
 	return nil
 }
 

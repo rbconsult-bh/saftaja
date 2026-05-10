@@ -39,6 +39,74 @@ func (_m *MockService) EXPECT() *MockService_Expecter {
 	return &MockService_Expecter{mock: &_m.Mock}
 }
 
+// Create provides a mock function for the type MockService
+func (_mock *MockService) Create(ctx context.Context, req gateway.CreateGatewayRequest) (*gateway.GatewayAccount, error) {
+	ret := _mock.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
+
+	var r0 *gateway.GatewayAccount
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, gateway.CreateGatewayRequest) (*gateway.GatewayAccount, error)); ok {
+		return returnFunc(ctx, req)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, gateway.CreateGatewayRequest) *gateway.GatewayAccount); ok {
+		r0 = returnFunc(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gateway.GatewayAccount)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, gateway.CreateGatewayRequest) error); ok {
+		r1 = returnFunc(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockService_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockService_Create_Call struct {
+	*mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req gateway.CreateGatewayRequest
+func (_e *MockService_Expecter) Create(ctx interface{}, req interface{}) *MockService_Create_Call {
+	return &MockService_Create_Call{Call: _e.mock.On("Create", ctx, req)}
+}
+
+func (_c *MockService_Create_Call) Run(run func(ctx context.Context, req gateway.CreateGatewayRequest)) *MockService_Create_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 gateway.CreateGatewayRequest
+		if args[1] != nil {
+			arg1 = args[1].(gateway.CreateGatewayRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_Create_Call) Return(gatewayAccount *gateway.GatewayAccount, err error) *MockService_Create_Call {
+	_c.Call.Return(gatewayAccount, err)
+	return _c
+}
+
+func (_c *MockService_Create_Call) RunAndReturn(run func(ctx context.Context, req gateway.CreateGatewayRequest) (*gateway.GatewayAccount, error)) *MockService_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListActiveByProject provides a mock function for the type MockService
 func (_mock *MockService) ListActiveByProject(ctx context.Context, projectID uuid.UUID) ([]gateway.GatewayCredentials, error) {
 	ret := _mock.Called(ctx, projectID)

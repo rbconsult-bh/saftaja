@@ -101,7 +101,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	membershipSvc := membership.New(dbPool, queries)
 	dashboardWorkspaceSvc := workspacev1.New(membershipSvc)
 
-	dashboardProjectSvc := projectv1.New()
+	dashboardProjectSvc := projectv1.New(gatewaySvc, membershipSvc)
 
 	return &dependencies{
 		dbPool:                dbPool,

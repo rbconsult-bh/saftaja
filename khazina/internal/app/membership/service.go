@@ -5,14 +5,19 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
-var ErrInvalidArgument = errors.New("invalid argument")
+var (
+	ErrInvalidArgument = errors.New("invalid argument")
+	ErrAccessDenied    = errors.New("access denied")
+)
 
 type MembershipService interface {
 	GetForCustomer(ctx context.Context, r GetForCustomerRequest) (*GetForCustomerResponse, error)
+	VerifyProjectAccess(ctx context.Context, customerID, projectID uuid.UUID) error
 }
 
 type service struct {
@@ -64,4 +69,18 @@ func (s *service) GetForCustomer(ctx context.Context, r GetForCustomerRequest) (
 	return &GetForCustomerResponse{
 		Organizations: result,
 	}, nil
+}
+
+func (s *service) VerifyProjectAccess(ctx context.Context, customerID, projectID uuid.UUID) error {
+	_, err := s.queries.VerifyCustomerProjectAccess(ctx, store.VerifyCustomerProjectAccessParams{
+		CustomerID: customerID,
+		ID:         projectID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrAccessDenied
+		}
+		return err
+	}
+	return nil
 }

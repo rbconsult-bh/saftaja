@@ -344,10 +344,6 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handlers) WalletPayHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Apple Pay implementation
-}
-
 func (h *handlers) VerifyDomainHandler(w http.ResponseWriter, r *http.Request) {
 	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(h.verifyDomainSecret)) == 0 {
 		w.WriteHeader(http.StatusForbidden)

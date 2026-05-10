@@ -44,5 +44,3 @@ message MPGSCredentials {
   string base_url = 2;
   string api_password = 3;
 }
-
-message P
