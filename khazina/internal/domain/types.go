@@ -16,10 +16,9 @@ const (
 type InvoiceStatus string
 
 const (
-	InvoiceStatusPending    InvoiceStatus = "pending"
-	InvoiceStatusProcessing InvoiceStatus = "processing"
-	InvoiceStatusPaid       InvoiceStatus = "paid"
-	InvoiceStatusFailed     InvoiceStatus = "failed"
+	InvoiceStatusPending InvoiceStatus = "pending"
+	InvoiceStatusPaid    InvoiceStatus = "paid"
+	InvoiceStatusFailed  InvoiceStatus = "failed"
 )
 
 type PaymentSessionStatus string

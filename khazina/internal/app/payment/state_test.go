@@ -14,10 +14,15 @@ func TestValidateSessionTransition(t *testing.T) {
 		err  bool
 	}{
 		{"created to authenticating", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusAuthenticating, false},
+		{"created to failed", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusFailed, false},
 		{"created to completed", domain.PaymentSessionStatusCreated, domain.PaymentSessionStatusCompleted, true},
 		{"authenticating to authenticated", domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusAuthenticated, false},
+		{"authenticating to failed", domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusFailed, false},
 		{"authenticated to paying", domain.PaymentSessionStatusAuthenticated, domain.PaymentSessionStatusPaying, false},
+		{"paying to completed", domain.PaymentSessionStatusPaying, domain.PaymentSessionStatusCompleted, false},
+		{"paying to failed", domain.PaymentSessionStatusPaying, domain.PaymentSessionStatusFailed, false},
 		{"completed to anything", domain.PaymentSessionStatusCompleted, domain.PaymentSessionStatusAuthenticating, true},
+		{"failed to anything", domain.PaymentSessionStatusFailed, domain.PaymentSessionStatusCreated, true},
 	}
 
 	for _, tt := range tests {
@@ -37,11 +42,10 @@ func TestValidateInvoiceTransition(t *testing.T) {
 		to   domain.InvoiceStatus
 		err  bool
 	}{
-		{"pending to processing", domain.InvoiceStatusPending, domain.InvoiceStatusProcessing, false},
+		{"pending to paid", domain.InvoiceStatusPending, domain.InvoiceStatusPaid, false},
 		{"pending to failed", domain.InvoiceStatusPending, domain.InvoiceStatusFailed, false},
-		{"processing to paid", domain.InvoiceStatusProcessing, domain.InvoiceStatusPaid, false},
-		{"paid to processing", domain.InvoiceStatusPaid, domain.InvoiceStatusProcessing, true},
-		{"failed to paid", domain.InvoiceStatusFailed, domain.InvoiceStatusPaid, true},
+		{"paid to anything", domain.InvoiceStatusPaid, domain.InvoiceStatusPending, true},
+		{"failed to anything", domain.InvoiceStatusFailed, domain.InvoiceStatusPaid, true},
 	}
 
 	for _, tt := range tests {

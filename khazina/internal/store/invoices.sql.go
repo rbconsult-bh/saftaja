@@ -113,7 +113,8 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 
 const updateInvoiceStatus = `-- name: UpdateInvoiceStatus :exec
 UPDATE invoices
-SET status = $2
+SET status = $2,
+    paid_at = CASE WHEN $2 = 'paid' THEN NOW() ELSE paid_at END
 WHERE id = $1
 `
 

@@ -6,7 +6,8 @@ SELECT * FROM invoices WHERE id = $1 AND project_id = $2;
 
 -- name: UpdateInvoiceStatus :exec
 UPDATE invoices
-SET status = $2
+SET status = $2,
+    paid_at = CASE WHEN $2 = 'paid' THEN NOW() ELSE paid_at END
 WHERE id = $1;
 
 -- name: CreateInvoice :one

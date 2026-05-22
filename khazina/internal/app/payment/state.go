@@ -3,7 +3,7 @@ package payment
 import "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 
 var validSessionTransitions = map[domain.PaymentSessionStatus][]domain.PaymentSessionStatus{
-	domain.PaymentSessionStatusCreated:        {domain.PaymentSessionStatusAuthenticating},
+	domain.PaymentSessionStatusCreated:        {domain.PaymentSessionStatusAuthenticating, domain.PaymentSessionStatusFailed},
 	domain.PaymentSessionStatusAuthenticating: {domain.PaymentSessionStatusAuthenticated, domain.PaymentSessionStatusFailed},
 	domain.PaymentSessionStatusAuthenticated:  {domain.PaymentSessionStatusPaying},
 	domain.PaymentSessionStatusPaying:         {domain.PaymentSessionStatusCompleted, domain.PaymentSessionStatusFailed},
@@ -23,8 +23,7 @@ func ValidateSessionTransition(from, to domain.PaymentSessionStatus) error {
 }
 
 var validInvoiceTransitions = map[domain.InvoiceStatus][]domain.InvoiceStatus{
-	domain.InvoiceStatusPending:    {domain.InvoiceStatusProcessing, domain.InvoiceStatusFailed},
-	domain.InvoiceStatusProcessing: {domain.InvoiceStatusPaid, domain.InvoiceStatusFailed},
+	domain.InvoiceStatusPending: {domain.InvoiceStatusPaid, domain.InvoiceStatusFailed},
 }
 
 func ValidateInvoiceTransition(from, to domain.InvoiceStatus) error {

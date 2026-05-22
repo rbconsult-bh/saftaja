@@ -157,6 +157,10 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, err
 	}
 
+	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
+		return nil, &SessionExpiredError{SessionID: session.ID.String()}
+	}
+
 	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
 		ID:        req.InvoiceID,
 		ProjectID: req.ProjectID,
@@ -268,6 +272,10 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 
 	if err := ValidateSessionTransition(session.Status, domain.PaymentSessionStatusAuthenticated); err != nil {
 		return nil, err
+	}
+
+	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
+		return nil, &SessionExpiredError{SessionID: session.ID.String()}
 	}
 
 	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
