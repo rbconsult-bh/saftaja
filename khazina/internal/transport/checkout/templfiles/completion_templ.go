@@ -56,97 +56,101 @@ func CompletionPage(data CompletionPageData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.Status == "success" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Payment Successful")
+			var templ_7745c5c3_Var3 string
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(LblPaymentSuccessful.Get(data.Lang))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 18, Col: 42}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "Payment Failed")
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(LblPaymentFailed.Get(data.Lang))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 20, Col: 38}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><style>\n\t\t\t\t* { margin: 0; padding: 0; box-sizing: border-box; }\n\t\t\t\tbody {\n\t\t\t\t\tfont-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tjustify-content: center;\n\t\t\t\t\tmin-height: 100vh;\n\t\t\t\t\tbackground: #0f172a;\n\t\t\t\t\tcolor: white;\n\t\t\t\t}\n\t\t\t\t.container { text-align: center; padding: 2rem; }\n\t\t\t\t.spinner {\n\t\t\t\t\twidth: 48px;\n\t\t\t\t\theight: 48px;\n\t\t\t\t\tborder: 4px solid rgba(255,255,255,0.2);\n\t\t\t\t\tborder-top-color: white;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tanimation: spin 0.8s linear infinite;\n\t\t\t\t\tmargin: 0 auto 1.5rem;\n\t\t\t\t}\n\t\t\t\t@keyframes spin { to { transform: rotate(360deg); } }\n\t\t\t\th2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }\n\t\t\t\tp { color: #94a3b8; font-size: 0.875rem; }\n\t\t\t</style></head><body><div class=\"container\"><div class=\"spinner\"></div><h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</title><style>\n\t\t\t\t* { margin: 0; padding: 0; box-sizing: border-box; }\n\t\t\t\tbody {\n\t\t\t\t\tfont-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tjustify-content: center;\n\t\t\t\t\tmin-height: 100vh;\n\t\t\t\t\tbackground: #0f172a;\n\t\t\t\t\tcolor: white;\n\t\t\t\t}\n\t\t\t\t.container { text-align: center; padding: 2rem; }\n\t\t\t\t.spinner {\n\t\t\t\t\twidth: 48px;\n\t\t\t\t\theight: 48px;\n\t\t\t\t\tborder: 4px solid rgba(255,255,255,0.2);\n\t\t\t\t\tborder-top-color: white;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tanimation: spin 0.8s linear infinite;\n\t\t\t\t\tmargin: 0 auto 1.5rem;\n\t\t\t\t}\n\t\t\t\t@keyframes spin { to { transform: rotate(360deg); } }\n\t\t\t\th2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }\n\t\t\t\tp { color: #94a3b8; font-size: 0.875rem; }\n\t\t\t</style></head><body><div class=\"container\"><div class=\"spinner\"></div><h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.Status == "success" {
-			if data.Lang == language.Arabic {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "جاري إتمام الدفع")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "Completing Payment")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(LblCompletingPayment.Get(data.Lang))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 54, Col: 43}
 			}
-		} else {
-			if data.Lang == language.Arabic {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "جاري المعالجة")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Processing")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</h2><p>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if data.Lang == language.Arabic {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "يرجى الانتظار...")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "Please wait...")
+			var templ_7745c5c3_Var6 string
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(LblProcessing.Get(data.Lang))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 56, Col: 36}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</p></div><script>\n\t\t\t\t(function() {\n\t\t\t\t\tvar status = ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</h2><p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var3, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Status)
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(LblPleaseWait.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 77, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 59, Col: 37}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, ";\n\t\t\t\t\tvar message = ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var4, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Message)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 78, Col: 34}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p></div><script>\n\t\t\t\t(function() {\n\t\t\t\t\tvar status = ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, ";\n\t\t\t\t\tvar checkoutURL = ")
+		templ_7745c5c3_Var8, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Status)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 63, Col: 32}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var5, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.CheckoutURL)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 79, Col: 42}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ";\n\t\t\t\t\tvar message = ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, ";\n\n\t\t\t\t\tif (window.parent && window.parent !== window) {\n\t\t\t\t\t\twindow.parent.postMessage({\n\t\t\t\t\t\t\ttype: '3DS_COMPLETE',\n\t\t\t\t\t\t\tstatus: status,\n\t\t\t\t\t\t\tmessage: message\n\t\t\t\t\t\t}, '*');\n\t\t\t\t\t}\n\n\t\t\t\t\tsetTimeout(function() {\n\t\t\t\t\t\twindow.top.location.href = checkoutURL;\n\t\t\t\t\t}, 3000);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Var9, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.Message)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 64, Col: 34}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, ";\n\t\t\t\t\tvar checkoutURL = ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var10, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(data.CheckoutURL)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/completion.templ`, Line: 65, Col: 42}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, ";\n\n\t\t\t\t\tif (window.parent && window.parent !== window) {\n\t\t\t\t\t\twindow.parent.postMessage({\n\t\t\t\t\t\t\ttype: '3DS_COMPLETE',\n\t\t\t\t\t\t\tstatus: status,\n\t\t\t\t\t\t\tmessage: message\n\t\t\t\t\t\t}, '*');\n\t\t\t\t\t}\n\n\t\t\t\t\tsetTimeout(function() {\n\t\t\t\t\t\twindow.top.location.href = checkoutURL;\n\t\t\t\t\t}, 3000);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

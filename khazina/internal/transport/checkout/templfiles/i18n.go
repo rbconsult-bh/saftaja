@@ -1,4 +1,4 @@
-package checkout
+package templfiles
 
 import (
 	"encoding/json"

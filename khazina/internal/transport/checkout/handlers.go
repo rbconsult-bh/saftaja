@@ -75,7 +75,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 				CustomerEmail: checkoutData.Invoice.CustomerEmail,
 			},
 			IsPaid: true,
-			Lang:   checkout.DetectLanguage(r),
+			Lang:   templfiles.DetectLanguage(r),
 		}
 		if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
 			log.Error().Err(err).Msg("failed to render checkout page")
@@ -131,7 +131,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		Items:   checkoutItems,
 		Options: options,
 		IsPaid:  false,
-		Lang:    checkout.DetectLanguage(r),
+		Lang:    templfiles.DetectLanguage(r),
 	}
 
 	if err := templfiles.CheckoutPage(data).Render(ctx, w); err != nil {
@@ -331,7 +331,7 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		status = "success"
 	}
 
-	lang := checkout.DetectLanguage(r)
+	lang := templfiles.DetectLanguage(r)
 	data := templfiles.CompletionPageData{
 		Status:      status,
 		Message:     message,

@@ -15,9 +15,9 @@ templ CompletionPage(data CompletionPageData) {
 		<head>
 			<title>
 				if data.Status == "success" {
-					Payment Successful
+					{ LblPaymentSuccessful.Get(data.Lang) }
 				} else {
-					Payment Failed
+					{ LblPaymentFailed.Get(data.Lang) }
 				}
 			</title>
 			<style>
@@ -51,26 +51,12 @@ templ CompletionPage(data CompletionPageData) {
 				<div class="spinner"></div>
 				<h2>
 					if data.Status == "success" {
-						if data.Lang == language.Arabic {
-							جاري إتمام الدفع
-						} else {
-							Completing Payment
-						}
+						{ LblCompletingPayment.Get(data.Lang) }
 					} else {
-						if data.Lang == language.Arabic {
-							جاري المعالجة
-						} else {
-							Processing
-						}
+						{ LblProcessing.Get(data.Lang) }
 					}
 				</h2>
-				<p>
-					if data.Lang == language.Arabic {
-						يرجى الانتظار...
-					} else {
-						Please wait...
-					}
-				</p>
+				<p>{ LblPleaseWait.Get(data.Lang) }</p>
 			</div>
 			<script>
 				(function() {

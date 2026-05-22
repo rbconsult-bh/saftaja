@@ -7,7 +7,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
@@ -31,8 +30,8 @@ type APIError struct {
 	Message string    `json:"message"`
 }
 
-func respondError(w http.ResponseWriter, r *http.Request, code ErrorCode, msg checkout.LocalizedString, status int) {
-	lang := checkout.DetectLanguage(r)
+func respondError(w http.ResponseWriter, r *http.Request, code ErrorCode, msg templfiles.LocalizedString, status int) {
+	lang := templfiles.DetectLanguage(r)
 
 	resp := APIError{
 		Code:    code,
@@ -79,7 +78,7 @@ func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 
-var PaymentResultMessages = map[payment.PaymentResultCode]checkout.LocalizedString{
+var PaymentResultMessages = map[payment.PaymentResultCode]templfiles.LocalizedString{
 	payment.ResultSuccess:      templfiles.MsgPaymentSuccessful,
 	payment.ResultDeclined:     templfiles.MsgPaymentDeclined,
 	payment.ResultAuthFailed:   templfiles.MsgAuthenticationFailed,
