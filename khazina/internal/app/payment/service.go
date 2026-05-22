@@ -538,10 +538,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 			return nil, fmt.Errorf("failed to update transaction: %w", err)
 		}
 
-		if err := qtx.UpdateInvoiceStatus(ctx, store.UpdateInvoiceStatusParams{
-			ID:     invoice.ID,
-			Status: domain.InvoiceStatusPaid,
-		}); err != nil {
+		if err := qtx.MarkInvoicePaid(ctx, invoice.ID); err != nil {
 			return nil, fmt.Errorf("failed to update invoice: %w", err)
 		}
 
@@ -565,6 +562,10 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 		result.Success = false
 		result.ResultCode = ResultDeclined
+
+		if err := qtx.MarkInvoiceFailed(ctx, invoice.ID); err != nil {
+			return nil, fmt.Errorf("failed to mark invoice as failed: %w", err)
+		}
 
 		if err := qtx.UpdatePaymentSessionStatus(ctx, store.UpdatePaymentSessionStatusParams{
 			ID:     session.ID,

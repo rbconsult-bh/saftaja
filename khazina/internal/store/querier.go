@@ -40,7 +40,8 @@ type Querier interface {
 	GetSuccessfulAuthTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)
 	ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error)
-	UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) error
+	MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error
+	MarkInvoicePaid(ctx context.Context, id uuid.UUID) error
 	UpdatePaymentSessionGatewayID(ctx context.Context, arg UpdatePaymentSessionGatewayIDParams) error
 	UpdatePaymentSessionStatus(ctx context.Context, arg UpdatePaymentSessionStatusParams) error
 	UpdateTransactionStatus(ctx context.Context, arg UpdateTransactionStatusParams) error

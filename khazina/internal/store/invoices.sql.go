@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/shopspring/decimal"
 )
 
@@ -111,19 +110,20 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 	return i, err
 }
 
-const updateInvoiceStatus = `-- name: UpdateInvoiceStatus :exec
-UPDATE invoices
-SET status = $2,
-    paid_at = CASE WHEN $2::text = 'paid' THEN NOW() ELSE paid_at END
-WHERE id = $1
+const markInvoiceFailed = `-- name: MarkInvoiceFailed :exec
+UPDATE invoices SET status = 'failed' WHERE id = $1
 `
 
-type UpdateInvoiceStatusParams struct {
-	ID     uuid.UUID
-	Status domain.InvoiceStatus
+func (q *Queries) MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markInvoiceFailed, id)
+	return err
 }
 
-func (q *Queries) UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) error {
-	_, err := q.db.Exec(ctx, updateInvoiceStatus, arg.ID, arg.Status)
+const markInvoicePaid = `-- name: MarkInvoicePaid :exec
+UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) MarkInvoicePaid(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markInvoicePaid, id)
 	return err
 }

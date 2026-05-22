@@ -4,11 +4,11 @@ SELECT * FROM invoices WHERE id = $1;
 -- name: GetInvoiceByIDAndProject :one
 SELECT * FROM invoices WHERE id = $1 AND project_id = $2;
 
--- name: UpdateInvoiceStatus :exec
-UPDATE invoices
-SET status = $2,
-    paid_at = CASE WHEN $2::text = 'paid' THEN NOW() ELSE paid_at END
-WHERE id = $1;
+-- name: MarkInvoicePaid :exec
+UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE id = $1;
+
+-- name: MarkInvoiceFailed :exec
+UPDATE invoices SET status = 'failed' WHERE id = $1;
 
 -- name: CreateInvoice :one
 INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status)
