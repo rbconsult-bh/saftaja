@@ -25,11 +25,7 @@ jobs:
 
       - name: Run Playwright tests
         working-directory: khazina/tests/e2e
-        run: |
-          echo "::add-mask::${{ secrets.KHAZINA_TEST_MPGS_MERCHANT_ID }}"
-          echo "::add-mask::${{ secrets.KHAZINA_TEST_MPGS_API_PASSWORD }}"
-          echo "::add-mask::${{ secrets.KHAZINA_TEST_MPGS_BASE_URL }}"
-          bun run playwright test -j 1
+        run: bun run playwright test -j 1
         env:
           KHAZINA_TEST_MPGS_BASE_URL: ${{ secrets.KHAZINA_TEST_MPGS_BASE_URL }}
           KHAZINA_TEST_MPGS_MERCHANT_ID: ${{ secrets.KHAZINA_TEST_MPGS_MERCHANT_ID }}
