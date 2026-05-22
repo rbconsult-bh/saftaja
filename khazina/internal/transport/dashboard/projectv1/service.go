@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	projectpbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
@@ -84,9 +84,9 @@ func (s *service) CreateGateway(ctx context.Context, r *connect.Request[projectp
 	}
 
 	gwReq := gateway.CreateGatewayRequest{
-		ProjectID:     projectID,
-		AccountName:   r.Msg.AccountName,
-		ConnectorType: domain.ConnectorTypeMPGS,
+		ProjectID:      projectID,
+		AccountName:    r.Msg.AccountName,
+		ConnectorType:  domain.ConnectorTypeMPGS,
 		PaymentMethods: []string{"card"},
 	}
 
@@ -110,13 +110,4 @@ func (s *service) CreateGateway(ctx context.Context, r *connect.Request[projectp
 	return &connect.Response[projectpbv1.CreateGatewayResponse]{
 		Msg: &projectpbv1.CreateGatewayResponse{},
 	}, nil
-}
-
-func mapConnectorType(ct domain.ConnectorType) projectpbv1.Gateway_ConnectorType {
-	switch ct {
-	case domain.ConnectorTypeMPGS:
-		return projectpbv1.Gateway_CONNECTOR_TYPE_MPGS
-	default:
-		return projectpbv1.Gateway_CONNECTOR_TYPE_UNSPECIFIED
-	}
 }
