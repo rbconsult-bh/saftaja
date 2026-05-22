@@ -24,7 +24,7 @@ async function globalSetup() {
     .withPassword(DB_CONFIG.password)
     .start();
 
-  process.env.DATABASE_URL = pgContainer.getConnectionUri();
+  const databaseUrl = pgContainer.getConnectionUri();
 
   console.log('🏗️  Building pay...');
   const payImage = await GenericContainer
@@ -60,15 +60,16 @@ async function globalSetup() {
 
   const localPort = payContainer.getMappedPort(payPort);
 
-  process.env.TEST_ENCRYPTION_KEY = encryptionKey;
-
   console.log('🚇 Starting ephemeral tunnel...');
   const { process: tunnelProcess, publicUrl } = await startTunnel(localPort);
 
   console.log(`✅ App is live at: ${publicUrl}`);
-  process.env.BASE_URL = publicUrl;
 
   await waitForHealthCheck(`${publicUrl}/health`, 15000);
+
+  process.env.KHAZINA_TEST_ENCRYPTION_KEY = encryptionKey;
+  process.env.KHAZINA_TEST_DATABASE_URL = databaseUrl;
+  process.env.KHAZINA_TEST_BASE_URL = publicUrl;
 
   globalThis.pgContainer = pgContainer;
   globalThis.payContainer = payContainer;

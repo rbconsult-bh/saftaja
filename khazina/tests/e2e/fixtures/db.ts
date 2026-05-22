@@ -23,24 +23,24 @@ function encryptAES256GCM(plaintext: string, keyBase64: string): Buffer {
 }
 
 export async function seedDb(): Promise<SeedIds> {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error('DATABASE_URL not set');
+  const connectionString = process.env.KHAZINA_TEST_DATABASE_URL;
+  if (!connectionString) throw new Error('KHAZINA_TEST_DATABASE_URL not set (global-setup must run first)');
 
-  const publicUrl = process.env.BASE_URL;
-  if (!publicUrl) throw new Error('BASE_URL not set');
+  const publicUrl = process.env.KHAZINA_TEST_BASE_URL;
+  if (!publicUrl) throw new Error('KHAZINA_TEST_BASE_URL not set (global-setup must run first)');
 
   const domain = new URL(publicUrl).hostname;
 
-  const mpgsMerchantId = process.env.TEST_MPGS_MERCHANT_ID;
-  const mpgsApiPassword = process.env.TEST_MPGS_API_PASSWORD;
-  const mpgsBaseUrl = process.env.TEST_MPGS_BASE_URL;
+  const mpgsMerchantId = process.env.KHAZINA_TEST_MPGS_MERCHANT_ID;
+  const mpgsApiPassword = process.env.KHAZINA_TEST_MPGS_API_PASSWORD;
+  const mpgsBaseUrl = process.env.KHAZINA_TEST_MPGS_BASE_URL;
 
   if (!mpgsMerchantId || !mpgsApiPassword || !mpgsBaseUrl) {
     throw new Error('TEST_MPGS_MERCHANT_ID, TEST_MPGS_API_PASSWORD, TEST_MPGS_BASE_URL must be set in tests/e2e/.env');
   }
 
-  const encryptionKey = process.env.TEST_ENCRYPTION_KEY;
-  if (!encryptionKey) throw new Error('TEST_ENCRYPTION_KEY not set (should be passed from global-setup)');
+  const encryptionKey = process.env.KHAZINA_TEST_ENCRYPTION_KEY;
+  if (!encryptionKey) throw new Error('KHAZINA_TEST_ENCRYPTION_KEY not set (global-setup must run first)');
 
   const credentialsJSON = JSON.stringify({
     merchant_id: mpgsMerchantId,
@@ -99,4 +99,29 @@ export async function seedDb(): Promise<SeedIds> {
 
 export async function resetDb(): Promise<SeedIds> {
   return seedDb();
+}
+
+export async function dumpDb(): Promise<void> {
+  const connectionString = process.env.KHAZINA_TEST_DATABASE_URL;
+  if (!connectionString) return;
+
+  const client = new Client({ connectionString });
+  await client.connect();
+
+  try {
+    const tables = ['organizations', 'projects', 'gateway_accounts', 'invoices', 'payment_sessions', 'transactions'];
+    for (const table of tables) {
+      const result = await client.query(`SELECT * FROM ${table}`);
+      if (result.rows.length > 0) {
+        console.log(`\n📋 ${table} (${result.rows.length} rows):`);
+        for (const row of result.rows) {
+          const safe = { ...row };
+          if ('credentials' in safe) safe.credentials = '[encrypted]';
+          console.log(JSON.stringify(safe, null, 2));
+        }
+      }
+    }
+  } finally {
+    await client.end();
+  }
 }
