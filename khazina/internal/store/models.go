@@ -138,13 +138,13 @@ type OrganizationCustomer struct {
 	CreatedAt      pgtype.Timestamptz
 }
 
-type PaymentSession struct {
+type PaymentIntent struct {
 	ID               uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID string
-	Status           domain.PaymentSessionStatus
+	GatewaySessionID pgtype.Text
+	Status           domain.PaymentIntentStatus
 	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
@@ -168,7 +168,7 @@ type Project struct {
 
 type Transaction struct {
 	ID                   uuid.UUID
-	PaymentSessionID     uuid.UUID
+	PaymentIntentID      uuid.UUID
 	InvoiceID            uuid.UUID
 	ProjectID            uuid.UUID
 	TransactionType      domain.TransactionType

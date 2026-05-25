@@ -15,15 +15,15 @@ import (
 
 const createTransaction = `-- name: CreateTransaction :one
 INSERT INTO transactions (
-    payment_session_id, invoice_id, project_id,
+    payment_intent_id, invoice_id, project_id,
     transaction_type, gateway_transaction_id, amount, currency, raw_request
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, payment_session_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at
+) RETURNING id, payment_intent_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at
 `
 
 type CreateTransactionParams struct {
-	PaymentSessionID     uuid.UUID
+	PaymentIntentID      uuid.UUID
 	InvoiceID            uuid.UUID
 	ProjectID            uuid.UUID
 	TransactionType      domain.TransactionType
@@ -35,7 +35,7 @@ type CreateTransactionParams struct {
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
 	row := q.db.QueryRow(ctx, createTransaction,
-		arg.PaymentSessionID,
+		arg.PaymentIntentID,
 		arg.InvoiceID,
 		arg.ProjectID,
 		arg.TransactionType,
@@ -47,7 +47,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
-		&i.PaymentSessionID,
+		&i.PaymentIntentID,
 		&i.InvoiceID,
 		&i.ProjectID,
 		&i.TransactionType,
@@ -65,18 +65,18 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 }
 
 const getLatestTransaction = `-- name: GetLatestTransaction :one
-SELECT id, payment_session_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
-WHERE payment_session_id = $1
+SELECT id, payment_intent_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
+WHERE payment_intent_id = $1
 ORDER BY created_at DESC
 LIMIT 1
 `
 
-func (q *Queries) GetLatestTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error) {
-	row := q.db.QueryRow(ctx, getLatestTransaction, paymentSessionID)
+func (q *Queries) GetLatestTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getLatestTransaction, paymentIntentID)
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
-		&i.PaymentSessionID,
+		&i.PaymentIntentID,
 		&i.InvoiceID,
 		&i.ProjectID,
 		&i.TransactionType,
@@ -93,20 +93,20 @@ func (q *Queries) GetLatestTransaction(ctx context.Context, paymentSessionID uui
 	return i, err
 }
 
-const getPayTransactionBySessionID = `-- name: GetPayTransactionBySessionID :one
-SELECT id, payment_session_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
-WHERE payment_session_id = $1
+const getPayTransactionByPaymentIntentID = `-- name: GetPayTransactionByPaymentIntentID :one
+SELECT id, payment_intent_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
+WHERE payment_intent_id = $1
 AND transaction_type = 'pay'
 AND status = 'success'
 LIMIT 1
 `
 
-func (q *Queries) GetPayTransactionBySessionID(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error) {
-	row := q.db.QueryRow(ctx, getPayTransactionBySessionID, paymentSessionID)
+func (q *Queries) GetPayTransactionByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getPayTransactionByPaymentIntentID, paymentIntentID)
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
-		&i.PaymentSessionID,
+		&i.PaymentIntentID,
 		&i.InvoiceID,
 		&i.ProjectID,
 		&i.TransactionType,
@@ -124,20 +124,20 @@ func (q *Queries) GetPayTransactionBySessionID(ctx context.Context, paymentSessi
 }
 
 const getSuccessfulAuthTransaction = `-- name: GetSuccessfulAuthTransaction :one
-SELECT id, payment_session_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
-WHERE payment_session_id = $1
+SELECT id, payment_intent_id, invoice_id, project_id, transaction_type, gateway_transaction_id, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at FROM transactions
+WHERE payment_intent_id = $1
 AND transaction_type = 'authenticate_payer'
 AND status = 'success'
 ORDER BY created_at DESC
 LIMIT 1
 `
 
-func (q *Queries) GetSuccessfulAuthTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error) {
-	row := q.db.QueryRow(ctx, getSuccessfulAuthTransaction, paymentSessionID)
+func (q *Queries) GetSuccessfulAuthTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error) {
+	row := q.db.QueryRow(ctx, getSuccessfulAuthTransaction, paymentIntentID)
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
-		&i.PaymentSessionID,
+		&i.PaymentIntentID,
 		&i.InvoiceID,
 		&i.ProjectID,
 		&i.TransactionType,

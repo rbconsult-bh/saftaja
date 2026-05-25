@@ -106,13 +106,13 @@ func (q *Queries) GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGa
 	return i, err
 }
 
-const getGatewayAccountByPaymentSessionID = `-- name: GetGatewayAccountByPaymentSessionID :one
-SELECT ga.id, ga.project_id, connector_type, account_name, settings, payment_methods, is_active, ga.created_at, ga.updated_at, ga.deleted_at, credentials, ps.id, invoice_id, ps.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM gateway_accounts ga
-JOIN payment_sessions ps ON ga.id = ps.gateway_account_id
-WHERE ps.id = $1
+const getGatewayAccountByPaymentIntentID = `-- name: GetGatewayAccountByPaymentIntentID :one
+SELECT ga.id, ga.project_id, connector_type, account_name, settings, payment_methods, is_active, ga.created_at, ga.updated_at, ga.deleted_at, credentials, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM gateway_accounts ga
+JOIN payment_intents pi ON ga.id = pi.gateway_account_id
+WHERE pi.id = $1
 `
 
-type GetGatewayAccountByPaymentSessionIDRow struct {
+type GetGatewayAccountByPaymentIntentIDRow struct {
 	ID               uuid.UUID
 	ProjectID        uuid.UUID
 	ConnectorType    domain.ConnectorType
@@ -128,8 +128,8 @@ type GetGatewayAccountByPaymentSessionIDRow struct {
 	InvoiceID        uuid.UUID
 	ProjectID_2      uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID string
-	Status           domain.PaymentSessionStatus
+	GatewaySessionID pgtype.Text
+	Status           domain.PaymentIntentStatus
 	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
@@ -140,9 +140,9 @@ type GetGatewayAccountByPaymentSessionIDRow struct {
 	IdempotencyKey   pgtype.Text
 }
 
-func (q *Queries) GetGatewayAccountByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentSessionIDRow, error) {
-	row := q.db.QueryRow(ctx, getGatewayAccountByPaymentSessionID, id)
-	var i GetGatewayAccountByPaymentSessionIDRow
+func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentIntentIDRow, error) {
+	row := q.db.QueryRow(ctx, getGatewayAccountByPaymentIntentID, id)
+	var i GetGatewayAccountByPaymentIntentIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,

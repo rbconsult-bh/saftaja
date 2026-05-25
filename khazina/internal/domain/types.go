@@ -21,15 +21,15 @@ const (
 	InvoiceStatusFailed  InvoiceStatus = "failed"
 )
 
-type PaymentSessionStatus string
+type PaymentIntentStatus string
 
 const (
-	PaymentSessionStatusCreated        PaymentSessionStatus = "created"
-	PaymentSessionStatusAuthenticating PaymentSessionStatus = "authenticating"
-	PaymentSessionStatusAuthenticated  PaymentSessionStatus = "authenticated"
-	PaymentSessionStatusPaying         PaymentSessionStatus = "paying"
-	PaymentSessionStatusCompleted      PaymentSessionStatus = "completed"
-	PaymentSessionStatusFailed         PaymentSessionStatus = "failed"
+	PaymentIntentStatusCreated        PaymentIntentStatus = "created"
+	PaymentIntentStatusAuthenticating PaymentIntentStatus = "authenticating"
+	PaymentIntentStatusAuthenticated  PaymentIntentStatus = "authenticated"
+	PaymentIntentStatusPaying         PaymentIntentStatus = "paying"
+	PaymentIntentStatusCompleted      PaymentIntentStatus = "completed"
+	PaymentIntentStatusFailed         PaymentIntentStatus = "failed"
 )
 
 type PaymentMethod string

@@ -19,31 +19,31 @@ type Querier interface {
 	CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
 	CreateOrganizationForCustomer(ctx context.Context, arg CreateOrganizationForCustomerParams) (uuid.UUID, error)
-	CreatePaymentSession(ctx context.Context, arg CreatePaymentSessionParams) (PaymentSession, error)
+	CreatePaymentIntent(ctx context.Context, arg CreatePaymentIntentParams) (PaymentIntent, error)
 	CreateProjectForOrganization(ctx context.Context, arg CreateProjectForOrganizationParams) (uuid.UUID, error)
 	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
 	DeleteCustomerSessionByIDAndCustomerID(ctx context.Context, arg DeleteCustomerSessionByIDAndCustomerIDParams) error
 	GetGatewayAccount(ctx context.Context, id uuid.UUID) (GatewayAccount, error)
 	GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGatewayAccountByIDAndProjectParams) (GatewayAccount, error)
-	GetGatewayAccountByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentSessionIDRow, error)
+	GetGatewayAccountByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentIntentIDRow, error)
 	GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error)
 	GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceByIDAndProjectParams) (Invoice, error)
 	GetInvoiceItems(ctx context.Context, invoiceID uuid.UUID) ([]InvoiceItem, error)
-	GetLatestPaymentSession(ctx context.Context, invoiceID uuid.UUID) (PaymentSession, error)
-	GetLatestTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error)
-	GetPayTransactionBySessionID(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error)
-	GetPaymentSessionByID(ctx context.Context, id uuid.UUID) (PaymentSession, error)
-	GetPaymentSessionByIDAndProject(ctx context.Context, arg GetPaymentSessionByIDAndProjectParams) (PaymentSession, error)
-	GetPaymentSessionByIdempotencyKey(ctx context.Context, arg GetPaymentSessionByIdempotencyKeyParams) (PaymentSession, error)
+	GetLatestPaymentIntent(ctx context.Context, invoiceID uuid.UUID) (PaymentIntent, error)
+	GetLatestTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
+	GetPayTransactionByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
+	GetPaymentIntentByID(ctx context.Context, id uuid.UUID) (PaymentIntent, error)
+	GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPaymentIntentByIDAndProjectParams) (PaymentIntent, error)
+	GetPaymentIntentByIdempotencyKey(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyParams) (PaymentIntent, error)
 	GetProjectByCustomDomain(ctx context.Context, customDomain pgtype.Text) (Project, error)
-	GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentSessionIDRow, error)
-	GetSuccessfulAuthTransaction(ctx context.Context, paymentSessionID uuid.UUID) (Transaction, error)
+	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)
+	GetSuccessfulAuthTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)
 	ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error)
 	MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error
 	MarkInvoicePaid(ctx context.Context, id uuid.UUID) error
-	UpdatePaymentSessionGatewayID(ctx context.Context, arg UpdatePaymentSessionGatewayIDParams) error
-	UpdatePaymentSessionStatus(ctx context.Context, arg UpdatePaymentSessionStatusParams) error
+	UpdatePaymentIntentStatus(ctx context.Context, arg UpdatePaymentIntentStatusParams) error
+	UpdatePaymentIntentsGatewayID(ctx context.Context, arg UpdatePaymentIntentsGatewayIDParams) error
 	UpdateTransactionStatus(ctx context.Context, arg UpdateTransactionStatusParams) error
 	VerifyCustomerProjectAccess(ctx context.Context, arg VerifyCustomerProjectAccessParams) (int32, error)
 }

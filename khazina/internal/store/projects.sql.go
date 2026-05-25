@@ -61,13 +61,13 @@ func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain pgt
 	return i, err
 }
 
-const getProjectByPaymentSessionID = `-- name: GetProjectByPaymentSessionID :one
-SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, ps.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, ps.created_at, ps.updated_at, ps.deleted_at, idempotency_key FROM projects p
-JOIN payment_sessions ps ON p.id = ps.project_id
-WHERE ps.id = $1
+const getProjectByPaymentIntentID = `-- name: GetProjectByPaymentIntentID :one
+SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, pi.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM projects p
+JOIN payment_intents pi ON p.id = pi.project_id
+WHERE pi.id = $1
 `
 
-type GetProjectByPaymentSessionIDRow struct {
+type GetProjectByPaymentIntentIDRow struct {
 	ID               uuid.UUID
 	OrganizationID   uuid.UUID
 	Name             string
@@ -80,8 +80,8 @@ type GetProjectByPaymentSessionIDRow struct {
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID string
-	Status           domain.PaymentSessionStatus
+	GatewaySessionID pgtype.Text
+	Status           domain.PaymentIntentStatus
 	PaymentMethod    domain.PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
@@ -92,9 +92,9 @@ type GetProjectByPaymentSessionIDRow struct {
 	IdempotencyKey   pgtype.Text
 }
 
-func (q *Queries) GetProjectByPaymentSessionID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentSessionIDRow, error) {
-	row := q.db.QueryRow(ctx, getProjectByPaymentSessionID, id)
-	var i GetProjectByPaymentSessionIDRow
+func (q *Queries) GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error) {
+	row := q.db.QueryRow(ctx, getProjectByPaymentIntentID, id)
+	var i GetProjectByPaymentIntentIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.OrganizationID,

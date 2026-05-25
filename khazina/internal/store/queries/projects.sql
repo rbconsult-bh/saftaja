@@ -3,10 +3,10 @@ INSERT INTO projects (organization_id, name, environment, custom_domain)
 VALUES ($1, $2, $3, $4)
 RETURNING id;
 
--- name: GetProjectByPaymentSessionID :one
+-- name: GetProjectByPaymentIntentID :one
 SELECT * FROM projects p
-JOIN payment_sessions ps ON p.id = ps.project_id
-WHERE ps.id = $1;
+JOIN payment_intents pi ON p.id = pi.project_id
+WHERE pi.id = $1;
 
 -- name: GetProjectByCustomDomain :one
 SELECT * FROM projects

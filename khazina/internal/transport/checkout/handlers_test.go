@@ -2,7 +2,6 @@ package checkout_test
 
 import (
 	"bytes"
-	
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -19,8 +18,8 @@ import (
 	invomocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
@@ -217,7 +216,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
 	}).Return(&payment.InitiateSessionResult{
-		PaymentSessionID: sessionID,
+		PaymentIntentID:  sessionID,
 		GatewaySessionID: "MPGS_SESSION_123",
 	}, nil)
 
@@ -330,9 +329,9 @@ func TestCardFinalizeHandler_Success(t *testing.T) {
 	sessionID := uuid.New()
 
 	paySvc.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
-		ProjectID:        projectID,
-		InvoiceID:        invoiceID,
-		PaymentSessionID: sessionID,
+		ProjectID:       projectID,
+		InvoiceID:       invoiceID,
+		PaymentIntentID: sessionID,
 	}).Return(&payment.FinalizePaymentResult{
 		Success:     true,
 		ResultCode:  payment.ResultSuccess,
@@ -383,9 +382,9 @@ func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
 	sessionID := uuid.New()
 
 	paySvc.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
-		ProjectID:        projectID,
-		InvoiceID:        invoiceID,
-		PaymentSessionID: sessionID,
+		ProjectID:       projectID,
+		InvoiceID:       invoiceID,
+		PaymentIntentID: sessionID,
 	}).Return(nil, &payment.SessionExpiredError{SessionID: sessionID.String()})
 
 	h := checkout.New(paySvc, invSvc, gwSvc, "test-secret")

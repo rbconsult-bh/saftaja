@@ -11,12 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
-	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
 
@@ -197,7 +197,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 
 	respondJSON(w, map[string]any{
 		"action":             "render_embedded",
-		"payment_session_id": result.PaymentSessionID.String(),
+		"payment_session_id": result.PaymentIntentID.String(),
 		"mpgs_session_id":    result.GatewaySessionID,
 	})
 }
@@ -224,9 +224,9 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	result, err := h.paymentService.InitiateAuth(ctx, &payment.InitiateAuthRequest{
-		ProjectID:        project.ID,
-		InvoiceID:        invoiceID,
-		PaymentSessionID: sessionID,
+		ProjectID:       project.ID,
+		InvoiceID:       invoiceID,
+		PaymentIntentID: sessionID,
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
@@ -275,13 +275,13 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	result, err := h.paymentService.ProcessAuth(ctx, &payment.ProcessAuthRequest{
-		ProjectID:        project.ID,
-		InvoiceID:        invoiceID,
-		PaymentSessionID: sessionID,
-		BrowserDetails:   browserDetails,
-		PayerIP:          payerIP,
-		UserAgent:        r.Header.Get("User-Agent"),
-		AcceptHeaders:    r.Header.Get("Accept"),
+		ProjectID:       project.ID,
+		InvoiceID:       invoiceID,
+		PaymentIntentID: sessionID,
+		BrowserDetails:  browserDetails,
+		PayerIP:         payerIP,
+		UserAgent:       r.Header.Get("User-Agent"),
+		AcceptHeaders:   r.Header.Get("Accept"),
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
@@ -316,9 +316,9 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.paymentService.FinalizePayment(ctx, &payment.FinalizePaymentRequest{
-		ProjectID:        project.ID,
-		InvoiceID:        invoiceID,
-		PaymentSessionID: sessionID,
+		ProjectID:       project.ID,
+		InvoiceID:       invoiceID,
+		PaymentIntentID: sessionID,
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)

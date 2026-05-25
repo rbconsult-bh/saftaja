@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -58,14 +58,14 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 
 	// Check for existing session with same idempotency key
 	if req.IdempotencyKey != "" {
-		existingSession, err := s.queries.GetPaymentSessionByIdempotencyKey(ctx, store.GetPaymentSessionByIdempotencyKeyParams{
+		existingSession, err := s.queries.GetPaymentIntentByIdempotencyKey(ctx, store.GetPaymentIntentByIdempotencyKeyParams{
 			InvoiceID:      req.InvoiceID,
 			IdempotencyKey: pgtype.Text{String: req.IdempotencyKey, Valid: true},
 		})
 		if err == nil {
 			// Session already exists, return it
 			return &InitiateSessionResult{
-				PaymentSessionID: existingSession.ID,
+				PaymentIntentID:  existingSession.ID,
 				GatewaySessionID: existingSession.GatewaySessionID,
 			}, nil
 		}
@@ -103,7 +103,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		idempotencyKey = pgtype.Text{String: req.IdempotencyKey, Valid: true}
 	}
 
-	dbSession, err := s.queries.CreatePaymentSession(ctx, store.CreatePaymentSessionParams{
+	dbSession, err := s.queries.CreatePaymentIntent(ctx, store.CreatePaymentIntentParams{
 		InvoiceID:        invoice.ID,
 		ProjectID:        invoice.ProjectID,
 		GatewayAccountID: account.ID,
@@ -129,14 +129,14 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 	}
 
 	return &InitiateSessionResult{
-		PaymentSessionID: dbSession.ID,
+		PaymentIntentID:  dbSession.ID,
 		GatewaySessionID: resp.Data.Session.ID,
 	}, nil
 }
 
 func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*InitiateAuthResult, error) {
-	session, err := s.queries.GetPaymentSessionByIDAndProject(ctx, store.GetPaymentSessionByIDAndProjectParams{
-		ID:        req.PaymentSessionID,
+	session, err := s.queries.GetPaymentIntentByIDAndProject(ctx, store.GetPaymentIntentByIDAndProjectParams{
+		ID:        req.PaymentIntentID,
 		ProjectID: req.ProjectID,
 	})
 	if err != nil {
@@ -148,12 +148,12 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 
 	if session.InvoiceID != req.InvoiceID {
 		return nil, &SessionInvoiceMismatchError{
-			SessionID: req.PaymentSessionID.String(),
+			SessionID: req.PaymentIntentID.String(),
 			InvoiceID: req.InvoiceID.String(),
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, domain.PaymentSessionStatusAuthenticating); err != nil {
+	if err := ValidateSessionTransition(session.Status, domain.PaymentIntentStatusAuthenticating); err != nil {
 		return nil, err
 	}
 
@@ -169,7 +169,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, err
 	}
 
-	account, err := s.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	account, err := s.queries.GetGatewayAccountByPaymentIntentID(ctx, session.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 	}
 
 	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
+		PaymentIntentID:      session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
 		TransactionType:      domain.TransactionTypeInitiateAuth,
@@ -229,9 +229,9 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 	}
 
 	if status == domain.TransactionStatusSuccess {
-		if err := s.queries.UpdatePaymentSessionStatus(ctx, store.UpdatePaymentSessionStatusParams{
+		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentSessionStatusAuthenticating,
+			Status: domain.PaymentIntentStatusAuthenticating,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -252,8 +252,8 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 }
 
 func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*ProcessAuthResult, error) {
-	session, err := s.queries.GetPaymentSessionByIDAndProject(ctx, store.GetPaymentSessionByIDAndProjectParams{
-		ID:        req.PaymentSessionID,
+	session, err := s.queries.GetPaymentIntentByIDAndProject(ctx, store.GetPaymentIntentByIDAndProjectParams{
+		ID:        req.PaymentIntentID,
 		ProjectID: req.ProjectID,
 	})
 	if err != nil {
@@ -265,12 +265,12 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 
 	if session.InvoiceID != req.InvoiceID {
 		return nil, &SessionInvoiceMismatchError{
-			SessionID: req.PaymentSessionID.String(),
+			SessionID: req.PaymentIntentID.String(),
 			InvoiceID: req.InvoiceID.String(),
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, domain.PaymentSessionStatusAuthenticated); err != nil {
+	if err := ValidateSessionTransition(session.Status, domain.PaymentIntentStatusAuthenticated); err != nil {
 		return nil, err
 	}
 
@@ -295,12 +295,12 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("previous transaction not successful")
 	}
 
-	account, err := s.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	account, err := s.queries.GetGatewayAccountByPaymentIntentID(ctx, session.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	project, err := s.queries.GetProjectByPaymentSessionID(ctx, session.ID)
+	project, err := s.queries.GetProjectByPaymentIntentID(ctx, session.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	}
 
 	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
+		PaymentIntentID:      session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
 		TransactionType:      domain.TransactionTypeAuthenticatePayer,
@@ -383,9 +383,9 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	}
 
 	if status == domain.TransactionStatusSuccess {
-		if err := s.queries.UpdatePaymentSessionStatus(ctx, store.UpdatePaymentSessionStatusParams{
+		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentSessionStatusAuthenticated,
+			Status: domain.PaymentIntentStatusAuthenticated,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -406,8 +406,8 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 }
 
 func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentRequest) (*FinalizePaymentResult, error) {
-	session, err := s.queries.GetPaymentSessionByIDAndProject(ctx, store.GetPaymentSessionByIDAndProjectParams{
-		ID:        req.PaymentSessionID,
+	session, err := s.queries.GetPaymentIntentByIDAndProject(ctx, store.GetPaymentIntentByIDAndProjectParams{
+		ID:        req.PaymentIntentID,
 		ProjectID: req.ProjectID,
 	})
 	if err != nil {
@@ -419,12 +419,12 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 	if session.InvoiceID != req.InvoiceID {
 		return nil, &SessionInvoiceMismatchError{
-			SessionID: req.PaymentSessionID.String(),
+			SessionID: req.PaymentIntentID.String(),
 			InvoiceID: req.InvoiceID.String(),
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, domain.PaymentSessionStatusPaying); err != nil {
+	if err := ValidateSessionTransition(session.Status, domain.PaymentIntentStatusPaying); err != nil {
 		return nil, err
 	}
 
@@ -447,7 +447,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, &InvoiceAlreadyPaidError{InvoiceID: invoice.ID.String()}
 	}
 
-	existingTx, err := s.queries.GetPayTransactionBySessionID(ctx, session.ID)
+	existingTx, err := s.queries.GetPayTransactionByPaymentIntentID(ctx, session.ID)
 	if err == nil && existingTx.Status == domain.TransactionStatusSuccess {
 		return &FinalizePaymentResult{
 			Success:     true,
@@ -461,7 +461,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, fmt.Errorf("authentication missing: %w", err)
 	}
 
-	account, err := s.queries.GetGatewayAccountByPaymentSessionID(ctx, session.ID)
+	account, err := s.queries.GetGatewayAccountByPaymentIntentID(ctx, session.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +495,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 	}
 
 	dbTx, err := s.queries.CreateTransaction(ctx, store.CreateTransactionParams{
-		PaymentSessionID:     session.ID,
+		PaymentIntentID:      session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
 		TransactionType:      domain.TransactionTypePay,
@@ -545,9 +545,9 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		result.Success = true
 		result.ResultCode = ResultSuccess
 
-		if err := qtx.UpdatePaymentSessionStatus(ctx, store.UpdatePaymentSessionStatusParams{
+		if err := qtx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentSessionStatusCompleted,
+			Status: domain.PaymentIntentStatusCompleted,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -567,9 +567,9 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 			return nil, fmt.Errorf("failed to mark invoice as failed: %w", err)
 		}
 
-		if err := qtx.UpdatePaymentSessionStatus(ctx, store.UpdatePaymentSessionStatusParams{
+		if err := qtx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentSessionStatusFailed,
+			Status: domain.PaymentIntentStatusFailed,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}

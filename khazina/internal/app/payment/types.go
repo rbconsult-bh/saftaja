@@ -16,14 +16,14 @@ type InitiateSessionRequest struct {
 }
 
 type InitiateSessionResult struct {
-	PaymentSessionID uuid.UUID
+	PaymentIntentID  uuid.UUID
 	GatewaySessionID string
 }
 
 type InitiateAuthRequest struct {
-	ProjectID        uuid.UUID
-	InvoiceID        uuid.UUID
-	PaymentSessionID uuid.UUID
+	ProjectID       uuid.UUID
+	InvoiceID       uuid.UUID
+	PaymentIntentID uuid.UUID
 }
 
 type InitiateAuthResult struct {
@@ -43,13 +43,13 @@ type BrowserDetails struct {
 }
 
 type ProcessAuthRequest struct {
-	ProjectID        uuid.UUID
-	InvoiceID        uuid.UUID
-	PaymentSessionID uuid.UUID
-	BrowserDetails   BrowserDetails
-	PayerIP          string
-	UserAgent        string
-	AcceptHeaders    string
+	ProjectID       uuid.UUID
+	InvoiceID       uuid.UUID
+	PaymentIntentID uuid.UUID
+	BrowserDetails  BrowserDetails
+	PayerIP         string
+	UserAgent       string
+	AcceptHeaders   string
 }
 
 type ProcessAuthResult struct {
@@ -58,9 +58,9 @@ type ProcessAuthResult struct {
 }
 
 type FinalizePaymentRequest struct {
-	ProjectID        uuid.UUID
-	InvoiceID        uuid.UUID
-	PaymentSessionID uuid.UUID
+	ProjectID       uuid.UUID
+	InvoiceID       uuid.UUID
+	PaymentIntentID uuid.UUID
 }
 
 type PaymentResultCode string

@@ -49,12 +49,12 @@ sql:
               import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "InvoiceStatus"
 
-          - column: "payment_sessions.status"
+          - column: "payment_intents.status"
             go_type:
               import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
-              type: "PaymentSessionStatus"
+              type: "PaymentIntentStatus"
 
-          - column: "payment_sessions.payment_method"
+          - column: "payment_intents.payment_method"
             go_type:
               import: "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
               type: "PaymentMethod"
