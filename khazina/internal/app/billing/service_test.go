@@ -85,3 +85,15 @@ func TestGetInvoice_NotFound_WhenInvoiceIDNotExists(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrNotFound)
 }
+
+func TestGetInvoice_NotFound_WhenNoItems(t *testing.T) {
+	testEnv := setupTestEnv(t)
+
+	// Invoice 001001 exists but has zero invoice_items — JOIN drops it.
+	resp, err := testEnv.svc.GetInvoice(testEnv.ctx, GetInvoiceRequest{
+		InvoiceID: uuid.MustParse("00000000-0000-0000-0000-000000001001"),
+		ProjectID: uuid.MustParse("00000000-0000-0000-0000-000000000100"),
+	})
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrNotFound)
+}

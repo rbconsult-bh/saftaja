@@ -3,8 +3,6 @@ package billing
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -44,9 +42,6 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 	}
 
 	for _, r := range rows {
-		if r.InvoiceItem.ID == uuid.Nil {
-			continue // LEFT JOIN on empty invoice_items
-		}
 		item := InvoiceItem{
 			ID:          r.InvoiceItem.ID,
 			InvoiceID:   r.InvoiceItem.InvoiceID,
