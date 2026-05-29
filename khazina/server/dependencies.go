@@ -55,7 +55,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBDatabase)
 
 	log.Info().Msg("running database migrations...")
-	if err := runMigrations(dsn); err != nil {
+	if err := RunMigrations(dsn); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 	log.Info().Msg("migrations completed")

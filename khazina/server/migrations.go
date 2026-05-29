@@ -12,7 +12,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
-func runMigrations(dsn string) error {
+func RunMigrations(dsn string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return fmt.Errorf("cannot connect to database: %w", err)

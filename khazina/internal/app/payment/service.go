@@ -66,7 +66,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 			// Session already exists, return it
 			return &InitiateSessionResult{
 				PaymentIntentID:  existingSession.ID,
-				GatewaySessionID: existingSession.GatewaySessionID,
+				GatewaySessionID: existingSession.GatewaySessionID.String,
 			}, nil
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -107,7 +107,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		InvoiceID:        invoice.ID,
 		ProjectID:        invoice.ProjectID,
 		GatewayAccountID: account.ID,
-		GatewaySessionID: resp.Data.Session.ID,
+		GatewaySessionID: pgtype.Text{String: resp.Data.Session.ID, Valid: true},
 		PaymentMethod:    req.PaymentMethod,
 		PayerIp:          pgtype.Text{String: req.PayerIP, Valid: true},
 		PayerUserAgent:   pgtype.Text{String: req.PayerUserAgent, Valid: req.PayerUserAgent != ""},
@@ -188,7 +188,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 			Channel: mpgsclient.ChannelPayerBrowser,
 		},
 		Order:   mpgsclient.InitiateAuthenticationOrder{Currency: invoice.Currency},
-		Session: mpgsclient.InitiateAuthenticationSession{ID: session.GatewaySessionID},
+		Session: mpgsclient.InitiateAuthenticationSession{ID: session.GatewaySessionID.String},
 	}
 
 	rawReq, err := json.Marshal(mpgsReq)
@@ -341,7 +341,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 			Currency: invoice.Currency,
 		},
 		Session: mpgsclient.AuthenticatePayerReqSession{
-			ID: session.GatewaySessionID,
+			ID: session.GatewaySessionID.String,
 		},
 	}
 
@@ -485,7 +485,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 			Reference: invoice.ID.String(),
 		},
 		Session: mpgsclient.ExecutePayReqSession{
-			ID: session.GatewaySessionID,
+			ID: session.GatewaySessionID.String,
 		},
 	}
 

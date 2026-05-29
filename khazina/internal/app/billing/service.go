@@ -19,6 +19,11 @@ func New(queries store.TransactionQuerier) Service {
 }
 
 func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error) {
+	if err := r.Validate(); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("validation failed")
+		return nil, err
+	}
+
 	invoices, err := s.queries.GetInvoiceWithItemsByIDAndProjectID(ctx, store.GetInvoiceWithItemsByIDAndProjectIDParams{
 		ID:        r.InvoiceID,
 		ProjectID: r.ProjectID,

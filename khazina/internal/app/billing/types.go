@@ -2,11 +2,15 @@ package billing
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
+
+var ErrInvalidArgument = errors.New("invalid argument")
 
 type Service interface {
 	GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error)
@@ -66,6 +70,17 @@ type (
 		Invoice Invoice
 	}
 )
+
+func (r *GetInvoiceRequest) Validate() error {
+	if r.InvoiceID == uuid.Nil {
+		return fmt.Errorf("%w: InvoiceID is required", ErrInvalidArgument)
+	}
+	if r.ProjectID == uuid.Nil {
+		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
+	}
+
+	return nil
+}
 
 type (
 	ListPaymentOptionsRequest  struct{}
