@@ -72,7 +72,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if checkoutData.Invoice.PaidAt != nil {
+	if checkoutData.Invoice.Status == billing.InvoiceStatusPaid {
 		data := templfiles.CheckoutPageData{
 			Invoice: templfiles.CheckoutInvoice{
 				ID:            checkoutData.Invoice.ID.String(),
