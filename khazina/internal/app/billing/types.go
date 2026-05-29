@@ -10,7 +10,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var ErrInvalidArgument = errors.New("invalid argument")
+var (
+	ErrInvalidArgument = errors.New("invalid argument")
+	ErrNotFound        = errors.New("not found")
+)
 
 type Service interface {
 	GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error)

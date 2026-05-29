@@ -63,3 +63,25 @@ func TestGetInvoice_Success(t *testing.T) {
 	assert.Equal(t, uuid.MustParse("00000000-0000-0000-0000-000000001000"), resp.Invoice.ID)
 	assert.Len(t, resp.Invoice.Items, 1)
 }
+
+func TestGetInvoice_NotFound_WhenProjectIDWrong(t *testing.T) {
+	testEnv := setupTestEnv(t)
+
+	resp, err := testEnv.svc.GetInvoice(testEnv.ctx, GetInvoiceRequest{
+		InvoiceID: uuid.MustParse("00000000-0000-0000-0000-000000001000"),
+		ProjectID: uuid.MustParse("00000000-0000-0000-0000-000000000200"),
+	})
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestGetInvoice_NotFound_WhenInvoiceIDNotExists(t *testing.T) {
+	testEnv := setupTestEnv(t)
+
+	resp, err := testEnv.svc.GetInvoice(testEnv.ctx, GetInvoiceRequest{
+		InvoiceID: uuid.MustParse("00000000-0000-0000-0000-000000002222"),
+		ProjectID: uuid.MustParse("00000000-0000-0000-0000-000000000100"),
+	})
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrNotFound)
+}

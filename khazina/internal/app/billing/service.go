@@ -24,7 +24,7 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 		return nil, err
 	}
 
-	invoices, err := s.queries.GetInvoiceWithItemsByIDAndProjectID(ctx, store.GetInvoiceWithItemsByIDAndProjectIDParams{
+	rows, err := s.queries.GetInvoiceWithItemsByIDAndProjectID(ctx, store.GetInvoiceWithItemsByIDAndProjectIDParams{
 		ID:        r.InvoiceID,
 		ProjectID: r.ProjectID,
 	})
@@ -33,8 +33,13 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 		return nil, fmt.Errorf("failed to get invoice: %w", err)
 	}
 
+	if len(rows) == 0 {
+		log.Ctx(ctx).Info().Msg("invoice does not exist or belong to project")
+		return nil, ErrNotFound
+	}
+
 	return &GetInvoiceResponse{
-		Invoice: mapStoreInvoiceRowsToInvoice(invoices),
+		Invoice: mapStoreInvoiceRowsToInvoice(rows),
 	}, nil
 }
 
