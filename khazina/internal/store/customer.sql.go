@@ -19,7 +19,7 @@ WITH upserted AS (
   ON CONFLICT (email) DO UPDATE SET email = customer.email
   RETURNING id, name, email, created_at, updated_at, deleted_at
 )
-SELECT 
+SELECT
   upserted.id, upserted.name, upserted.email, upserted.created_at, upserted.updated_at, upserted.deleted_at,
   NOT EXISTS (
     SELECT 1 FROM organization_customer 

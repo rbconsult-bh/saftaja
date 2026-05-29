@@ -1,0 +1,8 @@
+- id: 709efda6-5cb0-4ed4-be65-0a09dcfcb82b
+  invoice_id: e7543086-71e8-4ce0-abeb-db4327235a8c
+  name: "test item"
+  description: "really cool test item"
+  quantity: 1
+  unit_price: 15.000
+  amount: 15.000
+  created_at: "2026-05-29 10:00:00Z"

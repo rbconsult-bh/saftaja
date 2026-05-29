@@ -1,0 +1,13 @@
+- id: e7543086-71e8-4ce0-abeb-db4327235a8c
+  project_id: 0c48fe1f-d469-4182-8b63-415bfa59a743
+  amount: 15.000
+  currency: BHD
+  status: pending
+  external_id: null
+  customer_email: testcustomer@saftaja.com
+  customer_name: "test customer"
+  description: "a really cool invoice :D"
+  paid_at: null
+  created_at: "2026-05-29 10:00:00Z"
+  updated_at: "2026-05-29 10:00:00Z"
+  deleted_at: null

@@ -5,7 +5,7 @@ WITH upserted AS (
   ON CONFLICT (email) DO UPDATE SET email = customer.email
   RETURNING *
 )
-SELECT 
+SELECT
   upserted.*,
   NOT EXISTS (
     SELECT 1 FROM organization_customer 

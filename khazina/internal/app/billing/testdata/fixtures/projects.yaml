@@ -1,0 +1,8 @@
+- id: 0c48fe1f-d469-4182-8b63-415bfa59a743
+  organization_id: 6ab8114a-8eb1-444c-b3dc-6675e34a22e3
+  name: test proj
+  environment: sandbox
+  custom_domain: test.saftaja.com
+  created_at: "2026-05-29 10:00:00Z"
+  updated_at: "2026-05-29 10:00:00Z"
+  deleted_at: null
