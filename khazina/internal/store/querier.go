@@ -29,6 +29,7 @@ type Querier interface {
 	GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error)
 	GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceByIDAndProjectParams) (Invoice, error)
 	GetInvoiceItems(ctx context.Context, invoiceID uuid.UUID) ([]InvoiceItem, error)
+	GetInvoiceWithItemsByIDAndProjectID(ctx context.Context, arg GetInvoiceWithItemsByIDAndProjectIDParams) ([]GetInvoiceWithItemsByIDAndProjectIDRow, error)
 	GetLatestPaymentIntent(ctx context.Context, invoiceID uuid.UUID) (PaymentIntent, error)
 	GetLatestTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
 	GetPayTransactionByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)

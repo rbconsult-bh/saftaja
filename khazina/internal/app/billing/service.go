@@ -1,0 +1,54 @@
+package billing
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+	"github.com/rs/zerolog/log"
+)
+
+type service struct {
+	queries store.TransactionQuerier
+}
+
+func New(queries store.TransactionQuerier) Service {
+	return &service{
+		queries: queries,
+	}
+}
+
+func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error) {
+	invoices, err := s.queries.GetInvoiceWithItemsByIDAndProjectID(ctx, store.GetInvoiceWithItemsByIDAndProjectIDParams{
+		ID:        r.InvoiceID,
+		ProjectID: r.ProjectID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed calling GetInvoiceWithItemsByIDAndProjectID")
+		return nil, fmt.Errorf("failed to get invoice: %w", err)
+	}
+
+	return &GetInvoiceResponse{
+		Invoice: mapStoreInvoiceRowsToInvoice(invoices),
+	}, nil
+}
+
+func (s *service) ListPaymentOptions(ctx context.Context, r ListPaymentOptionsRequest) (*ListPaymentOptionsResponse, error) {
+	return &ListPaymentOptionsResponse{}, nil
+}
+
+func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error) {
+	return &StartPaymentResponse{}, nil
+}
+
+func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error) {
+	return &VerifyCardResponse{}, nil
+}
+
+func (s *service) ChallengeCard(ctx context.Context, r ChallengeCardRequest) (*ChallengeCardResponse, error) {
+	return &ChallengeCardResponse{}, nil
+}
+
+func (s *service) CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error) {
+	return &CapturePaymentResponse{}, nil
+}

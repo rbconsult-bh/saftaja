@@ -110,6 +110,65 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 	return i, err
 }
 
+const getInvoiceWithItemsByIDAndProjectID = `-- name: GetInvoiceWithItemsByIDAndProjectID :many
+SELECT i.id, i.project_id, i.amount, i.currency, i.status, i.external_id, i.customer_email, i.customer_name, i.description, i.paid_at, i.created_at, i.updated_at, i.deleted_at, ii.id, ii.invoice_id, ii.name, ii.description, ii.quantity, ii.unit_price, ii.amount, ii.created_at
+FROM invoices i
+JOIN invoice_items ii ON ii.invoice_id = i.id
+WHERE i.id = $1 AND i.project_id = $2
+`
+
+type GetInvoiceWithItemsByIDAndProjectIDParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+type GetInvoiceWithItemsByIDAndProjectIDRow struct {
+	Invoice     Invoice
+	InvoiceItem InvoiceItem
+}
+
+func (q *Queries) GetInvoiceWithItemsByIDAndProjectID(ctx context.Context, arg GetInvoiceWithItemsByIDAndProjectIDParams) ([]GetInvoiceWithItemsByIDAndProjectIDRow, error) {
+	rows, err := q.db.Query(ctx, getInvoiceWithItemsByIDAndProjectID, arg.ID, arg.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetInvoiceWithItemsByIDAndProjectIDRow
+	for rows.Next() {
+		var i GetInvoiceWithItemsByIDAndProjectIDRow
+		if err := rows.Scan(
+			&i.Invoice.ID,
+			&i.Invoice.ProjectID,
+			&i.Invoice.Amount,
+			&i.Invoice.Currency,
+			&i.Invoice.Status,
+			&i.Invoice.ExternalID,
+			&i.Invoice.CustomerEmail,
+			&i.Invoice.CustomerName,
+			&i.Invoice.Description,
+			&i.Invoice.PaidAt,
+			&i.Invoice.CreatedAt,
+			&i.Invoice.UpdatedAt,
+			&i.Invoice.DeletedAt,
+			&i.InvoiceItem.ID,
+			&i.InvoiceItem.InvoiceID,
+			&i.InvoiceItem.Name,
+			&i.InvoiceItem.Description,
+			&i.InvoiceItem.Quantity,
+			&i.InvoiceItem.UnitPrice,
+			&i.InvoiceItem.Amount,
+			&i.InvoiceItem.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markInvoiceFailed = `-- name: MarkInvoiceFailed :exec
 UPDATE invoices SET status = 'failed' WHERE id = $1
 `
