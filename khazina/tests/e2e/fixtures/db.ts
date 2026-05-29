@@ -85,8 +85,8 @@ export async function seedDb(): Promise<SeedIds> {
     `, [invoicePendingId]);
 
     const paidResult = await client.query(`
-      INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status)
-      VALUES ($1, '25.000', 'BHD', 'test@example.com', 'Test User', 'Paid Invoice', 'paid') RETURNING id
+      INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status, paid_at)
+      VALUES ($1, '25.000', 'BHD', 'test@example.com', 'Test User', 'Paid Invoice', 'paid', NOW()) RETURNING id
     `, [projectId]);
     const invoicePaidId = paidResult.rows[0].id;
 

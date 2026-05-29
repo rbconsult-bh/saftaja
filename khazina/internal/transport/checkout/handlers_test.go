@@ -206,6 +206,7 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 			Amount:        decimal.NewFromInt(100),
 			Currency:      "BHD",
 			CustomerEmail: "test@example.com",
+			Status:        billing.InvoiceStatusPaid,
 			PaidAt:        &now,
 		},
 	}, nil)
