@@ -56,10 +56,10 @@ func TestGetInvoice_Success(t *testing.T) {
 	testEnv := setupTestEnv(t)
 
 	resp, err := testEnv.svc.GetInvoice(testEnv.ctx, GetInvoiceRequest{
-		InvoiceID: uuid.MustParse("e7543086-71e8-4ce0-abeb-db4327235a8c"),
-		ProjectID: uuid.MustParse("0c48fe1f-d469-4182-8b63-415bfa59a743"),
+		InvoiceID: uuid.MustParse("00000000-0000-0000-0000-000000001000"),
+		ProjectID: uuid.MustParse("00000000-0000-0000-0000-000000000100"),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, uuid.MustParse("e7543086-71e8-4ce0-abeb-db4327235a8c"), resp.Invoice.ID)
+	assert.Equal(t, uuid.MustParse("00000000-0000-0000-0000-000000001000"), resp.Invoice.ID)
 	assert.Len(t, resp.Invoice.Items, 1)
 }
