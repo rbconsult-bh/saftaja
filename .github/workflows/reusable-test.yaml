@@ -6,9 +6,6 @@ on:
 jobs:
   test:
     runs-on: blacksmith-4vcpu-ubuntu-2204
-    defaults:
-      run:
-        working-directory: ./khazina
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
@@ -20,6 +17,7 @@ jobs:
         run: docker compose -f compose.test.yaml up -d --wait testdb
 
       - name: Run tests
+        working-directory: ./khazina
         run: go test ./... -count=1 -race
 
       - name: Stop test Postgres
