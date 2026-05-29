@@ -7,23 +7,4 @@ on:
 
 jobs:
   test:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
-    defaults:
-      run:
-        working-directory: ./khazina
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-
-      - name: Start test Postgres
-        run: docker compose -f compose.test.yaml up -d --wait testdb
-
-      - name: Run tests
-        run: go test ./... -count=1 -race
-
-      - name: Stop test Postgres
-        if: always()
-        run: docker compose -f compose.test.yaml down
+    uses: ./.github/workflows/reusable-test.yaml
