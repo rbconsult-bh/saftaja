@@ -1,15 +1,9 @@
-name: Build Khazina
+name: CI Khazina
 
 on:
-  push:
-    branches: [main]
+  pull_request:
     paths:
       - 'khazina/**'
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: write
 
 jobs:
   test:
@@ -33,16 +27,3 @@ jobs:
       - name: Stop test Postgres
         if: always()
         run: docker compose -f compose.test.yaml down
-
-  build:
-    needs: test
-    uses: ./.github/workflows/reusable-build.yaml
-    secrets: inherit
-    with:
-      image_name: khazina
-      context_path: ./khazina
-
-  deploy:
-    needs: build
-    uses: ./.github/workflows/deploy.yaml
-    secrets: inherit
