@@ -58,20 +58,18 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		ProjectID: project.ID,
 	})
 	if err != nil {
-		if err != nil {
-			switch {
-			case errors.Is(err, billing.ErrInvalidArgument):
-				log.Ctx(ctx).Error().Err(err).Msg("invalid argument")
-				http.Error(w, "invalid argument", http.StatusBadRequest)
-			case errors.Is(err, billing.ErrNotFound):
-				log.Ctx(ctx).Info().Msg("invoice not found")
-				http.Error(w, "invoice not found", http.StatusNotFound)
-			default:
-				log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice data")
-				http.Error(w, "internal error", http.StatusInternalServerError)
-			}
-			return
+		switch {
+		case errors.Is(err, billing.ErrInvalidArgument):
+			log.Ctx(ctx).Error().Err(err).Msg("invalid argument")
+			http.Error(w, "invalid argument", http.StatusBadRequest)
+		case errors.Is(err, billing.ErrNotFound):
+			log.Ctx(ctx).Info().Msg("invoice not found")
+			http.Error(w, "invoice not found", http.StatusNotFound)
+		default:
+			log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice data")
+			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
+		return
 	}
 
 	if checkoutData.Invoice.PaidAt != nil {

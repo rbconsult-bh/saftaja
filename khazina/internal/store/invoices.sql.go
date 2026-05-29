@@ -113,7 +113,7 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 const getInvoiceWithItemsByIDAndProjectID = `-- name: GetInvoiceWithItemsByIDAndProjectID :many
 SELECT i.id, i.project_id, i.amount, i.currency, i.status, i.external_id, i.customer_email, i.customer_name, i.description, i.paid_at, i.created_at, i.updated_at, i.deleted_at, ii.id, ii.invoice_id, ii.name, ii.description, ii.quantity, ii.unit_price, ii.amount, ii.created_at
 FROM invoices i
-JOIN invoice_items ii ON ii.invoice_id = i.id
+LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
 WHERE i.id = $1 AND i.project_id = $2
 `
 
