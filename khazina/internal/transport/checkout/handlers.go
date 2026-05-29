@@ -2,7 +2,6 @@ package checkout
 
 import (
 	"crypto/subtle"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
@@ -21,16 +20,16 @@ import (
 )
 
 type handlers struct {
+	billing            billing.Service
 	paymentService     payment.Service
-	invoiceService     invoice.Service
 	gatewayService     gateway.Service
 	verifyDomainSecret string
 }
 
-func New(paymentService payment.Service, invoiceService invoice.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
+func New(billing billing.Service, paymentService payment.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
 	return &handlers{
+		billing:            billing,
 		paymentService:     paymentService,
-		invoiceService:     invoiceService,
 		gatewayService:     gatewayService,
 		verifyDomainSecret: verifyDomainSecret,
 	}
@@ -54,23 +53,32 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutData, err := h.invoiceService.GetByID(ctx, invoiceID, project.ID)
+	checkoutData, err := h.billing.GetInvoice(ctx, billing.GetInvoiceRequest{
+		InvoiceID: invoiceID,
+		ProjectID: project.ID,
+	})
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Ctx(ctx).Info().Msg("invoice not found")
-			http.Error(w, "invoice not found", http.StatusNotFound)
+		if err != nil {
+			switch {
+			case errors.Is(err, billing.ErrInvalidArgument):
+				log.Ctx(ctx).Error().Err(err).Msg("invalid argument")
+				http.Error(w, "invalid argument", http.StatusBadRequest)
+			case errors.Is(err, billing.ErrNotFound):
+				log.Ctx(ctx).Info().Msg("invoice not found")
+				http.Error(w, "invoice not found", http.StatusNotFound)
+			default:
+				log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice data")
+				http.Error(w, "internal error", http.StatusInternalServerError)
+			}
 			return
 		}
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice data")
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
 	}
 
-	if checkoutData.IsPaid {
+	if checkoutData.Invoice.PaidAt != nil {
 		data := templfiles.CheckoutPageData{
 			Invoice: templfiles.CheckoutInvoice{
 				ID:            checkoutData.Invoice.ID.String(),
-				Amount:        checkoutData.Invoice.Amount,
+				Amount:        checkoutData.Invoice.Amount.String(),
 				Currency:      checkoutData.Invoice.Currency,
 				CustomerEmail: checkoutData.Invoice.CustomerEmail,
 			},
@@ -90,13 +98,13 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutItems := make([]templfiles.CheckoutItem, len(checkoutData.Items))
-	for i, item := range checkoutData.Items {
+	checkoutItems := make([]templfiles.CheckoutItem, len(checkoutData.Invoice.Items))
+	for i, item := range checkoutData.Invoice.Items {
 		checkoutItems[i] = templfiles.CheckoutItem{
 			Name:      item.Name,
 			Quantity:  item.Quantity,
-			UnitPrice: item.UnitPrice,
-			Amount:    item.Amount,
+			UnitPrice: item.UnitPrice.String(),
+			Amount:    item.Amount.String(),
 		}
 	}
 
@@ -122,7 +130,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		MPGSMerchantID: mpgsMerchantID,
 		Invoice: templfiles.CheckoutInvoice{
 			ID:            checkoutData.Invoice.ID.String(),
-			Amount:        checkoutData.Invoice.Amount,
+			Amount:        checkoutData.Invoice.Amount.String(),
 			Currency:      checkoutData.Invoice.Currency,
 			Description:   checkoutData.Invoice.Description,
 			CustomerEmail: checkoutData.Invoice.CustomerEmail,

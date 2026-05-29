@@ -1,4 +1,4 @@
-package server
+package store
 
 import (
 	"database/sql"
@@ -8,8 +8,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
-
-	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
 func RunMigrations(dsn string) error {
@@ -24,7 +22,7 @@ func RunMigrations(dsn string) error {
 		return fmt.Errorf("cannot create postgres driver: %w", err)
 	}
 
-	source, err := iofs.New(store.MigrationsFS, "migrations")
+	source, err := iofs.New(MigrationsFS, "migrations")
 	if err != nil {
 		return fmt.Errorf("cannot create iofs source: %w", err)
 	}

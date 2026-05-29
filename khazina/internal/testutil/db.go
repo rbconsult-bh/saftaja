@@ -10,7 +10,7 @@ import (
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rbconsult-bh/saftaja/khazina/server"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -45,7 +45,7 @@ func SetupIsolatedDB(t *testing.T) TestDB {
 
 	schemaDSN := baseDSN + "&search_path=" + schemaName
 
-	err = server.RunMigrations(schemaDSN)
+	err = store.RunMigrations(schemaDSN)
 	require.NoError(t, err)
 
 	testConfig, err := pgxpool.ParseConfig(baseDSN)

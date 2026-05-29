@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
@@ -32,7 +32,7 @@ type dependencies struct {
 	dbPool                *pgxpool.Pool
 	tenantSvc             tenant.Service
 	paymentSvc            payment.Service
-	invoiceSvc            invoice.Service
+	billingSvc            billing.Service
 	gatewaySvc            gateway.Service
 	authSvc               auth.AuthService
 	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
@@ -55,7 +55,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBDatabase)
 
 	log.Info().Msg("running database migrations...")
-	if err := RunMigrations(dsn); err != nil {
+	if err := store.RunMigrations(dsn); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 	log.Info().Msg("migrations completed")
@@ -79,7 +79,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 
 	tenantSvc := tenant.NewService(queries)
 	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
-	invoiceSvc := invoice.New(queries)
+	billingSvc := billing.New(queries)
 	gatewaySvc := gateway.New(queries, encryptionKey)
 
 	emailer, err := initEmailer(cfg)
@@ -107,7 +107,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		dbPool:                dbPool,
 		tenantSvc:             tenantSvc,
 		paymentSvc:            paymentSvc,
-		invoiceSvc:            invoiceSvc,
+		billingSvc:            billingSvc,
 		gatewaySvc:            gatewaySvc,
 		authSvc:               authSvc,
 		dashboardAuthSvc:      dashboardAuthSvc,

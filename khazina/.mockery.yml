@@ -8,11 +8,11 @@ packages:
           pkgname: mocks
           structname: MockService
           filename: mock_Service.go
-  github.com/rbconsult-bh/saftaja/khazina/internal/app/invoice:
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/billing:
     interfaces:
       Service:
         config:
-          dir: internal/app/invoice/mocks
+          dir: internal/app/billing/mocks
           pkgname: mocks
           structname: MockService
           filename: mock_Service.go
