@@ -174,3 +174,71 @@ func (_c *MockService_ListActiveByProject_Call) RunAndReturn(run func(ctx contex
 	_c.Call.Return(run)
 	return _c
 }
+
+// ListPaymentMethods provides a mock function for the type MockService
+func (_mock *MockService) ListPaymentMethods(ctx context.Context, projectID uuid.UUID) ([]gateway.PaymentMethod, error) {
+	ret := _mock.Called(ctx, projectID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPaymentMethods")
+	}
+
+	var r0 []gateway.PaymentMethod
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]gateway.PaymentMethod, error)); ok {
+		return returnFunc(ctx, projectID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) []gateway.PaymentMethod); ok {
+		r0 = returnFunc(ctx, projectID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]gateway.PaymentMethod)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, projectID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockService_ListPaymentMethods_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaymentMethods'
+type MockService_ListPaymentMethods_Call struct {
+	*mock.Call
+}
+
+// ListPaymentMethods is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+func (_e *MockService_Expecter) ListPaymentMethods(ctx interface{}, projectID interface{}) *MockService_ListPaymentMethods_Call {
+	return &MockService_ListPaymentMethods_Call{Call: _e.mock.On("ListPaymentMethods", ctx, projectID)}
+}
+
+func (_c *MockService_ListPaymentMethods_Call) Run(run func(ctx context.Context, projectID uuid.UUID)) *MockService_ListPaymentMethods_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_ListPaymentMethods_Call) Return(paymentMethods []gateway.PaymentMethod, err error) *MockService_ListPaymentMethods_Call {
+	_c.Call.Return(paymentMethods, err)
+	return _c
+}
+
+func (_c *MockService_ListPaymentMethods_Call) RunAndReturn(run func(ctx context.Context, projectID uuid.UUID) ([]gateway.PaymentMethod, error)) *MockService_ListPaymentMethods_Call {
+	_c.Call.Return(run)
+	return _c
+}

@@ -134,14 +134,13 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		},
 	}, nil)
 
-	f.Gateway.EXPECT().ListActiveByProject(mock.Anything, projectID).Return([]gateway.GatewayCredentials{
+	f.Gateway.EXPECT().ListPaymentMethods(mock.Anything, projectID).Return([]gateway.PaymentMethod{
 		{
+			Type:             gateway.PaymentMethodTypeCard,
 			GatewayAccountID: gatewayID,
-			ConnectorType:    domain.ConnectorTypeMPGS,
-			BaseURL:          "https://test.gateway.mastercard.com",
-			MerchantID:       "TESTMERCHANT",
-			APIPassword:      "test-password",
-			PaymentMethods:   []string{"card"},
+			MPGSBaseURL:      "https://test.gateway.mastercard.com",
+			MPGSMerchantID:   "TESTMERCHANT",
+			MPGSApiVersion:   "100",
 		},
 	}, nil)
 

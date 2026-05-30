@@ -83,17 +83,16 @@ type CustomerSession struct {
 }
 
 type GatewayAccount struct {
-	ID             uuid.UUID
-	ProjectID      uuid.UUID
-	ConnectorType  domain.ConnectorType
-	AccountName    string
-	Settings       []byte
-	PaymentMethods []byte
-	IsActive       bool
-	CreatedAt      pgtype.Timestamptz
-	UpdatedAt      pgtype.Timestamptz
-	DeletedAt      pgtype.Timestamptz
-	Credentials    []byte
+	ID            uuid.UUID
+	ProjectID     uuid.UUID
+	ConnectorType domain.ConnectorType
+	AccountName   string
+	Config        []byte
+	IsActive      bool
+	CreatedAt     pgtype.Timestamptz
+	UpdatedAt     pgtype.Timestamptz
+	DeletedAt     pgtype.Timestamptz
+	Secret        []byte
 }
 
 type Invoice struct {

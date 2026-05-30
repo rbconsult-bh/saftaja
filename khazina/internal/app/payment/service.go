@@ -82,12 +82,16 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		return nil, fmt.Errorf("invalid gateway account: %w", err)
 	}
 
-	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	cfg, err := mpgsclient.ParseConfig(account.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gateway config: %w", err)
+	}
+	sec, err := mpgsclient.DecryptSecret(account.Secret, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+	mpgsCli := mpgsclient.New(cfg.BaseURL, cfg.MerchantID, sec.APIPassword)
 
 	resp, err := mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
@@ -174,12 +178,16 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, err
 	}
 
-	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	cfg, err := mpgsclient.ParseConfig(account.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gateway config: %w", err)
+	}
+	sec, err := mpgsclient.DecryptSecret(account.Secret, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+	mpgsCli := mpgsclient.New(cfg.BaseURL, cfg.MerchantID, sec.APIPassword)
 	gatewayTxID := uuid.New()
 
 	mpgsReq := &mpgsclient.InitiateAuthenticationRequest{
@@ -310,12 +318,16 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("custom domain not configured")
 	}
 
-	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	cfg, err := mpgsclient.ParseConfig(account.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gateway config: %w", err)
+	}
+	sec, err := mpgsclient.DecryptSecret(account.Secret, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+	mpgsCli := mpgsclient.New(cfg.BaseURL, cfg.MerchantID, sec.APIPassword)
 
 	mpgsReq := &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
@@ -466,12 +478,16 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, err
 	}
 
-	creds, err := mpgsclient.ParseEncryptedCredentials(account.Credentials, s.encryptionKey)
+	cfg, err := mpgsclient.ParseConfig(account.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gateway config: %w", err)
+	}
+	sec, err := mpgsclient.DecryptSecret(account.Secret, s.encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gateway credentials: %w", err)
 	}
 
-	mpgsCli := mpgsclient.New(creds.BaseURL, creds.MerchantID, creds.APIPassword)
+	mpgsCli := mpgsclient.New(cfg.BaseURL, cfg.MerchantID, sec.APIPassword)
 	gatewayTxID := uuid.New()
 
 	mpgsReq := &mpgsclient.ExecutePayRequest{

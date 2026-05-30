@@ -42,12 +42,14 @@ export async function seedDb(): Promise<SeedIds> {
   const encryptionKey = process.env.KHAZINA_TEST_ENCRYPTION_KEY;
   if (!encryptionKey) throw new Error('KHAZINA_TEST_ENCRYPTION_KEY not set (global-setup must run first)');
 
-  const credentialsJSON = JSON.stringify({
+  const configJSON = JSON.stringify({
     merchant_id: mpgsMerchantId,
-    api_password: mpgsApiPassword,
     base_url: mpgsBaseUrl,
   });
-  const encryptedCredentials = encryptAES256GCM(credentialsJSON, encryptionKey);
+  const secretJSON = JSON.stringify({
+    api_password: mpgsApiPassword,
+  });
+  const encryptedSecret = encryptAES256GCM(secretJSON, encryptionKey);
 
   const client = new Client({ connectionString });
   await client.connect();
@@ -68,9 +70,9 @@ export async function seedDb(): Promise<SeedIds> {
     const projectId = projectResult.rows[0].id;
 
     const gwResult = await client.query(`
-      INSERT INTO gateway_accounts (project_id, connector_type, account_name, credentials, settings, payment_methods, is_active)
-      VALUES ($1, 'mpgs', 'Test MPGS', $2, '{}', '["card"]', true) RETURNING id
-    `, [projectId, encryptedCredentials]);
+      INSERT INTO gateway_accounts (project_id, connector_type, account_name, secret, config, is_active)
+      VALUES ($1, 'mpgs', 'Test MPGS', $2, $3, true) RETURNING id
+    `, [projectId, encryptedSecret, configJSON]);
     const gatewayAccountId = gwResult.rows[0].id;
 
     const pendingResult = await client.query(`
@@ -126,7 +128,7 @@ export async function dumpDb(): Promise<void> {
         console.log(`\n📋 ${table} (${result.rows.length} rows):`);
         for (const row of result.rows) {
           const safe = { ...row };
-          if ('credentials' in safe) safe.credentials = '[encrypted]';
+          if ('secret' in safe) safe.secret = '[encrypted]';
           console.log(JSON.stringify(safe, null, 2));
         }
       }

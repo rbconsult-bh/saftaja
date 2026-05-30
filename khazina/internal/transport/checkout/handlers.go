@@ -89,9 +89,9 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gateways, err := h.gatewayService.ListActiveByProject(ctx, project.ID)
+	paymentMethods, err := h.gatewayService.ListPaymentMethods(ctx, project.ID)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to list gateway credentials")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to list payment methods")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -109,17 +109,15 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	var options []templfiles.PaymentOption
 	var mpgsBaseURL, mpgsMerchantID string
 
-	for _, gw := range gateways {
-		mpgsBaseURL = gw.BaseURL
-		mpgsMerchantID = gw.MerchantID
+	for _, pm := range paymentMethods {
+		mpgsBaseURL = pm.MPGSBaseURL
+		mpgsMerchantID = pm.MPGSMerchantID
 
-		for _, method := range gw.PaymentMethods {
-			options = append(options, templfiles.PaymentOption{
-				ID:    gw.GatewayAccountID.String(),
-				Label: paymentMethodLabel(method),
-				Type:  method,
-			})
-		}
+		options = append(options, templfiles.PaymentOption{
+			ID:    pm.GatewayAccountID.String(),
+			Label: paymentMethodLabel(string(pm.Type)),
+			Type:  string(pm.Type),
+		})
 	}
 
 	data := templfiles.CheckoutPageData{

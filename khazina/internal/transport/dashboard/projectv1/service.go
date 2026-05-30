@@ -55,11 +55,10 @@ func (s *service) ListGateways(ctx context.Context, r *connect.Request[projectpb
 	var pbGateways []*projectpbv1.Gateway
 	for _, gw := range gateways {
 		pbGateways = append(pbGateways, &projectpbv1.Gateway{
-			Id:             gw.GatewayAccountID.String(),
-			AccountName:    gw.AccountName,
-			ConnectorType:  mapConnectorType(gw.ConnectorType),
-			IsActive:       true,
-			PaymentMethods: gw.PaymentMethods,
+			Id:            gw.GatewayAccountID.String(),
+			AccountName:   gw.AccountName,
+			ConnectorType: mapConnectorType(gw.ConnectorType),
+			IsActive:      true,
 		})
 	}
 
@@ -84,17 +83,18 @@ func (s *service) CreateGateway(ctx context.Context, r *connect.Request[projectp
 	}
 
 	gwReq := gateway.CreateGatewayRequest{
-		ProjectID:      projectID,
-		AccountName:    r.Msg.AccountName,
-		ConnectorType:  domain.ConnectorTypeMPGS,
-		PaymentMethods: []string{"card"},
+		ProjectID:     projectID,
+		AccountName:   r.Msg.AccountName,
+		ConnectorType: domain.ConnectorTypeMPGS,
 	}
 
 	switch creds := r.Msg.Credentials.(type) {
 	case *projectpbv1.CreateGatewayRequest_Mpgs:
-		gwReq.Credentials = &mpgsclient.Credentials{
-			MerchantID:  creds.Mpgs.MerchantId,
-			BaseURL:     creds.Mpgs.BaseUrl,
+		gwReq.Config = &mpgsclient.Config{
+			MerchantID: creds.Mpgs.MerchantId,
+			BaseURL:    creds.Mpgs.BaseUrl,
+		}
+		gwReq.Secret = &mpgsclient.Secret{
 			APIPassword: creds.Mpgs.ApiPassword,
 		}
 	default:

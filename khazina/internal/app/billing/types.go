@@ -17,7 +17,6 @@ var (
 
 type Service interface {
 	GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error)
-	ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRequest) (*ListPaymentMethodsResponse, error)
 
 	StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error)
 	VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error)
@@ -83,26 +82,6 @@ func (r *GetInvoiceRequest) Validate() error {
 
 	return nil
 }
-
-type PaymentMethodType string
-
-const (
-	PaymentMethodTypeCard     PaymentMethodType = "card"
-	PaymentMethodTypeApplePay PaymentMethodType = "apple_pay"
-)
-
-type PaymentMethod struct {
-	Type PaymentMethodType
-}
-
-type (
-	ListPaymentMethodsRequest struct {
-		ProjectID uuid.UUID
-	}
-	ListPaymentMethodsResponse struct {
-		PaymentMethods []PaymentMethod
-	}
-)
 
 type (
 	StartPaymentRequest  struct{}

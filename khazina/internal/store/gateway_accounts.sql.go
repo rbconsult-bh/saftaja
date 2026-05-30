@@ -14,17 +14,16 @@ import (
 )
 
 const createGatewayAccount = `-- name: CreateGatewayAccount :one
-INSERT INTO gateway_accounts (project_id, connector_type, account_name, credentials, settings, payment_methods, is_active)
-VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials
+INSERT INTO gateway_accounts (project_id, connector_type, account_name, secret, config, is_active)
+VALUES ($1, $2, $3, $4, $5, true) RETURNING id, project_id, connector_type, account_name, config, is_active, created_at, updated_at, deleted_at, secret
 `
 
 type CreateGatewayAccountParams struct {
-	ProjectID      uuid.UUID
-	ConnectorType  domain.ConnectorType
-	AccountName    string
-	Credentials    []byte
-	Settings       []byte
-	PaymentMethods []byte
+	ProjectID     uuid.UUID
+	ConnectorType domain.ConnectorType
+	AccountName   string
+	Secret        []byte
+	Config        []byte
 }
 
 func (q *Queries) CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error) {
@@ -32,9 +31,8 @@ func (q *Queries) CreateGatewayAccount(ctx context.Context, arg CreateGatewayAcc
 		arg.ProjectID,
 		arg.ConnectorType,
 		arg.AccountName,
-		arg.Credentials,
-		arg.Settings,
-		arg.PaymentMethods,
+		arg.Secret,
+		arg.Config,
 	)
 	var i GatewayAccount
 	err := row.Scan(
@@ -42,19 +40,18 @@ func (q *Queries) CreateGatewayAccount(ctx context.Context, arg CreateGatewayAcc
 		&i.ProjectID,
 		&i.ConnectorType,
 		&i.AccountName,
-		&i.Settings,
-		&i.PaymentMethods,
+		&i.Config,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.Credentials,
+		&i.Secret,
 	)
 	return i, err
 }
 
 const getGatewayAccount = `-- name: GetGatewayAccount :one
-SELECT id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials FROM gateway_accounts
+SELECT id, project_id, connector_type, account_name, config, is_active, created_at, updated_at, deleted_at, secret FROM gateway_accounts
 WHERE id = $1 LIMIT 1
 `
 
@@ -66,19 +63,18 @@ func (q *Queries) GetGatewayAccount(ctx context.Context, id uuid.UUID) (GatewayA
 		&i.ProjectID,
 		&i.ConnectorType,
 		&i.AccountName,
-		&i.Settings,
-		&i.PaymentMethods,
+		&i.Config,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.Credentials,
+		&i.Secret,
 	)
 	return i, err
 }
 
 const getGatewayAccountByIDAndProject = `-- name: GetGatewayAccountByIDAndProject :one
-SELECT id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials FROM gateway_accounts
+SELECT id, project_id, connector_type, account_name, config, is_active, created_at, updated_at, deleted_at, secret FROM gateway_accounts
 WHERE id = $1 AND project_id = $2 LIMIT 1
 `
 
@@ -95,19 +91,18 @@ func (q *Queries) GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGa
 		&i.ProjectID,
 		&i.ConnectorType,
 		&i.AccountName,
-		&i.Settings,
-		&i.PaymentMethods,
+		&i.Config,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.Credentials,
+		&i.Secret,
 	)
 	return i, err
 }
 
 const getGatewayAccountByPaymentIntentID = `-- name: GetGatewayAccountByPaymentIntentID :one
-SELECT ga.id, ga.project_id, connector_type, account_name, settings, payment_methods, is_active, ga.created_at, ga.updated_at, ga.deleted_at, credentials, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM gateway_accounts ga
+SELECT ga.id, ga.project_id, connector_type, account_name, config, is_active, ga.created_at, ga.updated_at, ga.deleted_at, secret, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM gateway_accounts ga
 JOIN payment_intents pi ON ga.id = pi.gateway_account_id
 WHERE pi.id = $1
 `
@@ -117,13 +112,12 @@ type GetGatewayAccountByPaymentIntentIDRow struct {
 	ProjectID        uuid.UUID
 	ConnectorType    domain.ConnectorType
 	AccountName      string
-	Settings         []byte
-	PaymentMethods   []byte
+	Config           []byte
 	IsActive         bool
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
 	DeletedAt        pgtype.Timestamptz
-	Credentials      []byte
+	Secret           []byte
 	ID_2             uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID_2      uuid.UUID
@@ -148,13 +142,12 @@ func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uui
 		&i.ProjectID,
 		&i.ConnectorType,
 		&i.AccountName,
-		&i.Settings,
-		&i.PaymentMethods,
+		&i.Config,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.Credentials,
+		&i.Secret,
 		&i.ID_2,
 		&i.InvoiceID,
 		&i.ProjectID_2,
@@ -174,7 +167,7 @@ func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uui
 }
 
 const listActiveGatewayAccounts = `-- name: ListActiveGatewayAccounts :many
-SELECT id, project_id, connector_type, account_name, settings, payment_methods, is_active, created_at, updated_at, deleted_at, credentials FROM gateway_accounts
+SELECT id, project_id, connector_type, account_name, config, is_active, created_at, updated_at, deleted_at, secret FROM gateway_accounts
 WHERE project_id = $1
 AND is_active = true
 AND deleted_at IS NULL
@@ -194,13 +187,12 @@ func (q *Queries) ListActiveGatewayAccounts(ctx context.Context, projectID uuid.
 			&i.ProjectID,
 			&i.ConnectorType,
 			&i.AccountName,
-			&i.Settings,
-			&i.PaymentMethods,
+			&i.Config,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
-			&i.Credentials,
+			&i.Secret,
 		); err != nil {
 			return nil, err
 		}

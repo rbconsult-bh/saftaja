@@ -43,10 +43,6 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 	}, nil
 }
 
-func (s *service) ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRequest) (*ListPaymentMethodsResponse, error) {
-	return &ListPaymentMethodsResponse{}, nil
-}
-
 func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error) {
 	return &StartPaymentResponse{}, nil
 }

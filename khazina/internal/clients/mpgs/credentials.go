@@ -8,33 +8,42 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 )
 
-type Credentials struct {
-	MerchantID  string `json:"merchant_id"`
-	BaseURL     string `json:"base_url"`
+// Config holds public gateway configuration stored in the config column (JSONB, plain text).
+type Config struct {
+	BaseURL    string `json:"base_url"`
+	MerchantID string `json:"merchant_id"`
+}
+
+// Secret holds encrypted gateway credentials stored in the secret column (bytea, encrypted at rest).
+type Secret struct {
 	APIPassword string `json:"api_password"`
 }
 
-func ParseCredentials(data []byte) (*Credentials, error) {
-	var c Credentials
+func ParseConfig(data []byte) (*Config, error) {
+	var c Config
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, err
 	}
 	if c.MerchantID == "" {
-		return nil, errors.New("missing merchant_id in MPGS credentials")
+		return nil, errors.New("missing merchant_id in MPGS config")
 	}
 	if c.BaseURL == "" {
-		return nil, errors.New("missing base_url in MPGS credentials")
-	}
-	if c.APIPassword == "" {
-		return nil, errors.New("missing api_password in MPGS credentials")
+		return nil, errors.New("missing base_url in MPGS config")
 	}
 	return &c, nil
 }
 
-func ParseEncryptedCredentials(encrypted []byte, key []byte) (*Credentials, error) {
+func DecryptSecret(encrypted []byte, key []byte) (*Secret, error) {
 	decrypted, err := crypto.Decrypt(encrypted, key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt credentials: %w", err)
+		return nil, fmt.Errorf("failed to decrypt secret: %w", err)
 	}
-	return ParseCredentials(decrypted)
+	var s Secret
+	if err := json.Unmarshal(decrypted, &s); err != nil {
+		return nil, fmt.Errorf("failed to parse secret: %w", err)
+	}
+	if s.APIPassword == "" {
+		return nil, errors.New("missing api_password in MPGS secret")
+	}
+	return &s, nil
 }

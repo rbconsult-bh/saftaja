@@ -6,14 +6,15 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
 type Service interface {
 	ListActiveByProject(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error)
+	ListPaymentMethods(ctx context.Context, projectID uuid.UUID) ([]PaymentMethod, error)
 	Create(ctx context.Context, req CreateGatewayRequest) (*GatewayAccount, error)
 }
 
@@ -34,70 +35,94 @@ func (s *service) ListActiveByProject(ctx context.Context, projectID uuid.UUID) 
 
 	var result []GatewayCredentials
 	for _, acc := range accounts {
-		if acc.ConnectorType == domain.ConnectorTypeMPGS {
-			creds, err := mpgsclient.ParseEncryptedCredentials(acc.Credentials, s.encryptionKey)
+		switch acc.ConnectorType {
+		case domain.ConnectorTypeMPGS:
+			cfg, err := mpgsclient.ParseConfig(acc.Config)
 			if err != nil {
-				return nil, fmt.Errorf("invalid gateway credentials: %w", err)
+				return nil, fmt.Errorf("invalid gateway config for %s: %w", acc.ID, err)
 			}
-
-			var methods []string
-			if len(acc.PaymentMethods) > 0 {
-				if err := json.Unmarshal(acc.PaymentMethods, &methods); err != nil {
-					return nil, fmt.Errorf("invalid payment methods JSON: %w", err)
-				}
-			}
-
 			result = append(result, GatewayCredentials{
 				GatewayAccountID: acc.ID,
 				AccountName:      acc.AccountName,
 				ConnectorType:    acc.ConnectorType,
-				BaseURL:          creds.BaseURL,
-				MerchantID:       creds.MerchantID,
-				APIPassword:      creds.APIPassword,
-				PaymentMethods:   methods,
+				BaseURL:          cfg.BaseURL,
+				MerchantID:       cfg.MerchantID,
 			})
+		default:
+			continue
 		}
 	}
 
 	return result, nil
 }
 
+func (s *service) ListPaymentMethods(ctx context.Context, projectID uuid.UUID) ([]PaymentMethod, error) {
+	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list gateway accounts: %w", err)
+	}
+
+	var methods []PaymentMethod
+	for _, acc := range accounts {
+		switch acc.ConnectorType {
+		case domain.ConnectorTypeMPGS:
+			cfg, err := mpgsclient.ParseConfig(acc.Config)
+			if err != nil {
+				continue
+			}
+			// TODO: replace with MPGS Payment Options Inquiry API call
+			for _, pm := range []PaymentMethodType{
+				PaymentMethodTypeCard,
+				// PaymentMethodTypeApplePay,
+			} {
+				methods = append(methods, PaymentMethod{
+					Type:             pm,
+					GatewayAccountID: acc.ID,
+					MPGSBaseURL:      cfg.BaseURL,
+					MPGSMerchantID:   cfg.MerchantID,
+					MPGSApiVersion:   mpgsclient.APIVersion,
+				})
+			}
+		default:
+			continue
+		}
+	}
+
+	return methods, nil
+}
+
 func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*GatewayAccount, error) {
-	credsJSON, err := json.Marshal(req.Credentials)
+	configJSON, err := json.Marshal(req.Config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal credentials: %w", err)
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	encrypted, err := crypto.Encrypt(credsJSON, s.encryptionKey)
+	secretJSON, err := json.Marshal(req.Secret)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt credentials: %w", err)
+		return nil, fmt.Errorf("failed to marshal secret: %w", err)
 	}
 
-	methodsJSON, err := json.Marshal(req.PaymentMethods)
+	encrypted, err := crypto.Encrypt(secretJSON, s.encryptionKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal payment methods: %w", err)
-	}
-	if req.PaymentMethods == nil {
-		methodsJSON = []byte("[]")
+		return nil, fmt.Errorf("failed to encrypt secret: %w", err)
 	}
 
 	acc, err := s.queries.CreateGatewayAccount(ctx, store.CreateGatewayAccountParams{
-		ProjectID:      req.ProjectID,
-		ConnectorType:  req.ConnectorType,
-		AccountName:    req.AccountName,
-		Credentials:    encrypted,
-		Settings:       []byte("{}"),
-		PaymentMethods: methodsJSON,
+		ProjectID:     req.ProjectID,
+		ConnectorType: req.ConnectorType,
+		AccountName:   req.AccountName,
+		Secret:        encrypted,
+		Config:        configJSON,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway account: %w", err)
 	}
 
 	return &GatewayAccount{
-		ID:             acc.ID,
-		ProjectID:      acc.ProjectID,
-		AccountName:    acc.AccountName,
-		ConnectorType:  acc.ConnectorType,
-		IsActive:       acc.IsActive,
+		ID:            acc.ID,
+		ProjectID:     acc.ProjectID,
+		AccountName:   acc.AccountName,
+		ConnectorType: acc.ConnectorType,
+		IsActive:      acc.IsActive,
 	}, nil
 }

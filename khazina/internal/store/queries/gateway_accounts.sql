@@ -18,5 +18,5 @@ JOIN payment_intents pi ON ga.id = pi.gateway_account_id
 WHERE pi.id = $1;
 
 -- name: CreateGatewayAccount :one
-INSERT INTO gateway_accounts (project_id, connector_type, account_name, credentials, settings, payment_methods, is_active)
-VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *;
+INSERT INTO gateway_accounts (project_id, connector_type, account_name, secret, config, is_active)
+VALUES ($1, $2, $3, $4, $5, true) RETURNING *;
