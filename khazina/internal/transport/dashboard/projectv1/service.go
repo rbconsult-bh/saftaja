@@ -11,7 +11,6 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	projectpbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/project/v1/projectpbv1connect"
@@ -87,7 +86,7 @@ func (s *service) CreateGateway(ctx context.Context, r *connect.Request[projectp
 	gwReq := gateway.CreateGatewayRequest{
 		ProjectID:     projectID,
 		AccountName:   r.Msg.AccountName,
-		ConnectorType: domain.ConnectorTypeMPGS,
+		ConnectorType: gateway.ConnectorTypeMPGS,
 	}
 
 	switch creds := r.Msg.Credentials.(type) {

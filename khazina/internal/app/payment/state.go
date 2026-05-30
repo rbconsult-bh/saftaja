@@ -1,15 +1,14 @@
 package payment
 
-import "github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 
-var validSessionTransitions = map[domain.PaymentIntentStatus][]domain.PaymentIntentStatus{
-	domain.PaymentIntentStatusCreated:        {domain.PaymentIntentStatusAuthenticating, domain.PaymentIntentStatusFailed},
-	domain.PaymentIntentStatusAuthenticating: {domain.PaymentIntentStatusAuthenticated, domain.PaymentIntentStatusFailed},
-	domain.PaymentIntentStatusAuthenticated:  {domain.PaymentIntentStatusPaying},
-	domain.PaymentIntentStatusPaying:         {domain.PaymentIntentStatusCompleted, domain.PaymentIntentStatusFailed},
+var validSessionTransitions = map[PaymentIntentStatus][]PaymentIntentStatus{
+	PaymentIntentStatusCreated:        {PaymentIntentStatusAuthenticating, PaymentIntentStatusFailed},
+	PaymentIntentStatusAuthenticating: {PaymentIntentStatusAuthenticated, PaymentIntentStatusFailed},
+	PaymentIntentStatusAuthenticated:  {PaymentIntentStatusPaying},
+	PaymentIntentStatusPaying:         {PaymentIntentStatusCompleted, PaymentIntentStatusFailed},
 }
 
-func ValidateSessionTransition(from, to domain.PaymentIntentStatus) error {
+func ValidateSessionTransition(from, to PaymentIntentStatus) error {
 	allowed, ok := validSessionTransitions[from]
 	if !ok {
 		return &InvalidStateTransitionError{Entity: EntitySession, From: string(from), To: string(to)}
@@ -22,11 +21,11 @@ func ValidateSessionTransition(from, to domain.PaymentIntentStatus) error {
 	return &InvalidStateTransitionError{Entity: EntitySession, From: string(from), To: string(to)}
 }
 
-var validInvoiceTransitions = map[domain.InvoiceStatus][]domain.InvoiceStatus{
-	domain.InvoiceStatusPending: {domain.InvoiceStatusPaid, domain.InvoiceStatusFailed},
+var validInvoiceTransitions = map[InvoiceStatus][]InvoiceStatus{
+	InvoiceStatusPending: {InvoiceStatusPaid, InvoiceStatusFailed},
 }
 
-func ValidateInvoiceTransition(from, to domain.InvoiceStatus) error {
+func ValidateInvoiceTransition(from, to InvoiceStatus) error {
 	allowed, ok := validInvoiceTransitions[from]
 	if !ok {
 		return &InvalidStateTransitionError{Entity: EntityInvoice, From: string(from), To: string(to)}
@@ -39,10 +38,10 @@ func ValidateInvoiceTransition(from, to domain.InvoiceStatus) error {
 	return &InvalidStateTransitionError{Entity: EntityInvoice, From: string(from), To: string(to)}
 }
 
-func IsTerminalSessionStatus(s domain.PaymentIntentStatus) bool {
-	return s == domain.PaymentIntentStatusCompleted || s == domain.PaymentIntentStatusFailed
+func IsTerminalSessionStatus(s PaymentIntentStatus) bool {
+	return s == PaymentIntentStatusCompleted || s == PaymentIntentStatusFailed
 }
 
-func IsTerminalInvoiceStatus(s domain.InvoiceStatus) bool {
-	return s == domain.InvoiceStatusPaid || s == domain.InvoiceStatusFailed
+func IsTerminalInvoiceStatus(s InvoiceStatus) bool {
+	return s == InvoiceStatusPaid || s == InvoiceStatusFailed
 }

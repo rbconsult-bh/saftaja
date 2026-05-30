@@ -3,26 +3,25 @@ package payment
 import (
 	"testing"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 func TestValidateSessionTransition(t *testing.T) {
 	tests := []struct {
 		name string
-		from domain.PaymentIntentStatus
-		to   domain.PaymentIntentStatus
+		from PaymentIntentStatus
+		to   PaymentIntentStatus
 		err  bool
 	}{
-		{"created to authenticating", domain.PaymentIntentStatusCreated, domain.PaymentIntentStatusAuthenticating, false},
-		{"created to failed", domain.PaymentIntentStatusCreated, domain.PaymentIntentStatusFailed, false},
-		{"created to completed", domain.PaymentIntentStatusCreated, domain.PaymentIntentStatusCompleted, true},
-		{"authenticating to authenticated", domain.PaymentIntentStatusAuthenticating, domain.PaymentIntentStatusAuthenticated, false},
-		{"authenticating to failed", domain.PaymentIntentStatusAuthenticating, domain.PaymentIntentStatusFailed, false},
-		{"authenticated to paying", domain.PaymentIntentStatusAuthenticated, domain.PaymentIntentStatusPaying, false},
-		{"paying to completed", domain.PaymentIntentStatusPaying, domain.PaymentIntentStatusCompleted, false},
-		{"paying to failed", domain.PaymentIntentStatusPaying, domain.PaymentIntentStatusFailed, false},
-		{"completed to anything", domain.PaymentIntentStatusCompleted, domain.PaymentIntentStatusAuthenticating, true},
-		{"failed to anything", domain.PaymentIntentStatusFailed, domain.PaymentIntentStatusCreated, true},
+		{"created to authenticating", PaymentIntentStatusCreated, PaymentIntentStatusAuthenticating, false},
+		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
+		{"created to completed", PaymentIntentStatusCreated, PaymentIntentStatusCompleted, true},
+		{"authenticating to authenticated", PaymentIntentStatusAuthenticating, PaymentIntentStatusAuthenticated, false},
+		{"authenticating to failed", PaymentIntentStatusAuthenticating, PaymentIntentStatusFailed, false},
+		{"authenticated to paying", PaymentIntentStatusAuthenticated, PaymentIntentStatusPaying, false},
+		{"paying to completed", PaymentIntentStatusPaying, PaymentIntentStatusCompleted, false},
+		{"paying to failed", PaymentIntentStatusPaying, PaymentIntentStatusFailed, false},
+		{"completed to anything", PaymentIntentStatusCompleted, PaymentIntentStatusAuthenticating, true},
+		{"failed to anything", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
 	}
 
 	for _, tt := range tests {
@@ -38,14 +37,14 @@ func TestValidateSessionTransition(t *testing.T) {
 func TestValidateInvoiceTransition(t *testing.T) {
 	tests := []struct {
 		name string
-		from domain.InvoiceStatus
-		to   domain.InvoiceStatus
+		from InvoiceStatus
+		to   InvoiceStatus
 		err  bool
 	}{
-		{"pending to paid", domain.InvoiceStatusPending, domain.InvoiceStatusPaid, false},
-		{"pending to failed", domain.InvoiceStatusPending, domain.InvoiceStatusFailed, false},
-		{"paid to anything", domain.InvoiceStatusPaid, domain.InvoiceStatusPending, true},
-		{"failed to anything", domain.InvoiceStatusFailed, domain.InvoiceStatusPaid, true},
+		{"pending to paid", InvoiceStatusPending, InvoiceStatusPaid, false},
+		{"pending to failed", InvoiceStatusPending, InvoiceStatusFailed, false},
+		{"paid to anything", InvoiceStatusPaid, InvoiceStatusPending, true},
+		{"failed to anything", InvoiceStatusFailed, InvoiceStatusPaid, true},
 	}
 
 	for _, tt := range tests {
@@ -59,25 +58,25 @@ func TestValidateInvoiceTransition(t *testing.T) {
 }
 
 func TestIsTerminalSessionStatus(t *testing.T) {
-	if !IsTerminalSessionStatus(domain.PaymentIntentStatusCompleted) {
+	if !IsTerminalSessionStatus(PaymentIntentStatusCompleted) {
 		t.Error("completed should be terminal")
 	}
-	if !IsTerminalSessionStatus(domain.PaymentIntentStatusFailed) {
+	if !IsTerminalSessionStatus(PaymentIntentStatusFailed) {
 		t.Error("failed should be terminal")
 	}
-	if IsTerminalSessionStatus(domain.PaymentIntentStatusAuthenticating) {
+	if IsTerminalSessionStatus(PaymentIntentStatusAuthenticating) {
 		t.Error("authenticating should not be terminal")
 	}
 }
 
 func TestIsTerminalInvoiceStatus(t *testing.T) {
-	if !IsTerminalInvoiceStatus(domain.InvoiceStatusPaid) {
+	if !IsTerminalInvoiceStatus(InvoiceStatusPaid) {
 		t.Error("paid should be terminal")
 	}
-	if !IsTerminalInvoiceStatus(domain.InvoiceStatusFailed) {
+	if !IsTerminalInvoiceStatus(InvoiceStatusFailed) {
 		t.Error("failed should be terminal")
 	}
-	if IsTerminalInvoiceStatus(domain.InvoiceStatusPending) {
+	if IsTerminalInvoiceStatus(InvoiceStatusPending) {
 		t.Error("pending should not be terminal")
 	}
 }

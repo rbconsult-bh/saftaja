@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 const createProjectForOrganization = `-- name: CreateProjectForOrganization :one
@@ -22,7 +21,7 @@ RETURNING id
 type CreateProjectForOrganizationParams struct {
 	OrganizationID uuid.UUID
 	Name           string
-	Environment    domain.ProjectEnvironment
+	Environment    ProjectEnvironment
 	CustomDomain   pgtype.Text
 }
 
@@ -71,7 +70,7 @@ type GetProjectByPaymentIntentIDRow struct {
 	ID               uuid.UUID
 	OrganizationID   uuid.UUID
 	Name             string
-	Environment      domain.ProjectEnvironment
+	Environment      ProjectEnvironment
 	CustomDomain     pgtype.Text
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
@@ -81,8 +80,8 @@ type GetProjectByPaymentIntentIDRow struct {
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID pgtype.Text
-	Status           domain.PaymentIntentStatus
-	PaymentMethod    domain.PaymentMethod
+	Status           PaymentIntentStatus
+	PaymentMethod    PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	ExpiresAt        pgtype.Timestamptz

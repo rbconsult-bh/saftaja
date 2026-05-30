@@ -27,7 +27,7 @@ type Service interface {
 type InvoiceStatus string
 
 const (
-	InvoiceStatusUnkown  InvoiceStatus = "unknown"
+	InvoiceStatusUnknown  InvoiceStatus = "unknown"
 	InvoiceStatusPending InvoiceStatus = "pending"
 	InvoiceStatusPaid    InvoiceStatus = "paid"
 	InvoiceStatusFailed  InvoiceStatus = "failed"

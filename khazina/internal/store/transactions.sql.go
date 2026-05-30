@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,7 +25,7 @@ type CreateTransactionParams struct {
 	PaymentIntentID      uuid.UUID
 	InvoiceID            uuid.UUID
 	ProjectID            uuid.UUID
-	TransactionType      domain.TransactionType
+	TransactionType      TransactionType
 	GatewayTransactionID string
 	Amount               decimal.Decimal
 	Currency             string
@@ -162,7 +161,7 @@ WHERE id = $1
 
 type UpdateTransactionStatusParams struct {
 	ID          uuid.UUID
-	Status      domain.TransactionStatus
+	Status      TransactionStatus
 	RawResponse []byte
 }
 

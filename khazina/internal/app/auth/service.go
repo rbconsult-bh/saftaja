@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/jwt"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -128,7 +127,7 @@ func (s *service) CompleteAuth(ctx context.Context, r CompleteAuthRequest) (*Com
 		_, err = queriesWithTx.CreateProjectForOrganization(ctx, store.CreateProjectForOrganizationParams{
 			OrganizationID: orgID,
 			Name:           "Default Project",
-			Environment:    domain.ProjectEnvironmentSandbox,
+			Environment:    store.ProjectEnvironmentSandbox,
 			// TODO: we need to pass slug, this way it uses our domain as default and custom_domain is extra user can set later.
 			CustomDomain: pgtype.Text{},
 		})

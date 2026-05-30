@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 const createOrganizationForCustomer = `-- name: CreateOrganizationForCustomer :one
@@ -59,7 +58,7 @@ type ListOrganizationsWithProjectsForCustomerRow struct {
 	Role        OrganizationRole
 	ProjectID   uuid.UUID
 	ProjectName pgtype.Text
-	Environment domain.ProjectEnvironment
+	Environment ProjectEnvironment
 }
 
 func (q *Queries) ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error) {

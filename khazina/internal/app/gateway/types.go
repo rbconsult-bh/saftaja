@@ -8,10 +8,16 @@ import (
 	"github.com/google/uuid"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 var ErrInvalidArgument = errors.New("invalid argument")
+
+type ConnectorType string
+
+const (
+	ConnectorTypeMPGS    ConnectorType = "mpgs"
+	ConnectorTypeUnknown ConnectorType = "unknown"
+)
 
 type Service interface {
 	ListActiveByProject(ctx context.Context, r ListActiveByProjectRequest) (*ListActiveByProjectResponse, error)
@@ -60,7 +66,7 @@ type ListActiveByProjectResponse struct {
 type GatewayCredentials struct {
 	GatewayAccountID uuid.UUID
 	AccountName      string
-	ConnectorType    domain.ConnectorType
+	ConnectorType    ConnectorType
 	BaseURL          string
 	MerchantID       string
 }
@@ -68,7 +74,7 @@ type GatewayCredentials struct {
 type CreateGatewayRequest struct {
 	ProjectID     uuid.UUID
 	AccountName   string
-	ConnectorType domain.ConnectorType
+	ConnectorType ConnectorType
 	Config        *mpgsclient.Config
 	Secret        *mpgsclient.Secret
 }
@@ -77,6 +83,6 @@ type GatewayAccount struct {
 	ID            uuid.UUID
 	ProjectID     uuid.UUID
 	AccountName   string
-	ConnectorType domain.ConnectorType
+	ConnectorType ConnectorType
 	IsActive      bool
 }

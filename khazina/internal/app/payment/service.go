@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -52,7 +51,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 		return nil, err
 	}
 
-	if invoice.Status == domain.InvoiceStatusPaid {
+	if invoice.Status == InvoiceStatusPaid {
 		return nil, &InvoiceAlreadyPaidError{InvoiceID: req.InvoiceID.String()}
 	}
 
@@ -157,7 +156,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, domain.PaymentIntentStatusAuthenticating); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusAuthenticating); err != nil {
 		return nil, err
 	}
 
@@ -208,7 +207,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		PaymentIntentID:      session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypeInitiateAuth,
+		TransactionType:      TransactionTypeInitiateAuth,
 		GatewayTransactionID: gatewayTxID.String(),
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
@@ -223,9 +222,9 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
 
-	status := domain.TransactionStatusFailed
+	status := TransactionStatusFailed
 	if resp.Data.Result == mpgsclient.ResultSuccess {
-		status = domain.TransactionStatusSuccess
+		status = TransactionStatusSuccess
 	}
 
 	if err := s.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
@@ -236,10 +235,10 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, fmt.Errorf("failed to update transaction: %w", err)
 	}
 
-	if status == domain.TransactionStatusSuccess {
+	if status == TransactionStatusSuccess {
 		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentIntentStatusAuthenticating,
+			Status: PaymentIntentStatusAuthenticating,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -278,7 +277,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, domain.PaymentIntentStatusAuthenticated); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusAuthenticated); err != nil {
 		return nil, err
 	}
 
@@ -299,7 +298,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("no transaction found: %w", err)
 	}
 
-	if lastTx.Status != domain.TransactionStatusSuccess {
+	if lastTx.Status != TransactionStatusSuccess {
 		return nil, fmt.Errorf("previous transaction not successful")
 	}
 
@@ -366,7 +365,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		PaymentIntentID:      session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypeAuthenticatePayer,
+		TransactionType:      TransactionTypeAuthenticatePayer,
 		GatewayTransactionID: lastTx.GatewayTransactionID,
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
@@ -381,9 +380,9 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
 
-	status := domain.TransactionStatusFailed
+	status := TransactionStatusFailed
 	if resp.Data.Result == mpgsclient.ResultPending || resp.Data.Result == mpgsclient.ResultSuccess {
-		status = domain.TransactionStatusSuccess
+		status = TransactionStatusSuccess
 	}
 
 	if err := s.queries.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
@@ -394,10 +393,10 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("failed to update transaction: %w", err)
 	}
 
-	if status == domain.TransactionStatusSuccess {
+	if status == TransactionStatusSuccess {
 		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentIntentStatusAuthenticated,
+			Status: PaymentIntentStatusAuthenticated,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -436,7 +435,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, domain.PaymentIntentStatusPaying); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusPaying); err != nil {
 		return nil, err
 	}
 
@@ -455,12 +454,12 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, err
 	}
 
-	if invoice.Status == domain.InvoiceStatusPaid {
+	if invoice.Status == InvoiceStatusPaid {
 		return nil, &InvoiceAlreadyPaidError{InvoiceID: invoice.ID.String()}
 	}
 
 	existingTx, err := s.queries.GetPayTransactionByPaymentIntentID(ctx, session.ID)
-	if err == nil && existingTx.Status == domain.TransactionStatusSuccess {
+	if err == nil && existingTx.Status == TransactionStatusSuccess {
 		return &FinalizePaymentResult{
 			Success:     true,
 			ResultCode:  ResultSuccess,
@@ -514,7 +513,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		PaymentIntentID:      session.ID,
 		InvoiceID:            invoice.ID,
 		ProjectID:            invoice.ProjectID,
-		TransactionType:      domain.TransactionTypePay,
+		TransactionType:      TransactionTypePay,
 		GatewayTransactionID: gatewayTxID.String(),
 		Amount:               invoice.Amount,
 		Currency:             invoice.Currency,
@@ -542,13 +541,13 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 	}
 
 	if resp.Data.Response.GatewayCode == mpgsclient.CodeApproved {
-		if err := ValidateInvoiceTransition(invoice.Status, domain.InvoiceStatusPaid); err != nil {
+		if err := ValidateInvoiceTransition(invoice.Status, InvoiceStatusPaid); err != nil {
 			return nil, err
 		}
 
 		if err := qtx.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
-			Status:      domain.TransactionStatusSuccess,
+			Status:      TransactionStatusSuccess,
 			RawResponse: resp.RawBody,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update transaction: %w", err)
@@ -563,14 +562,14 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 		if err := qtx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentIntentStatusCompleted,
+			Status: PaymentIntentStatusCompleted,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
 	} else {
 		if err := qtx.UpdateTransactionStatus(ctx, store.UpdateTransactionStatusParams{
 			ID:          dbTx.ID,
-			Status:      domain.TransactionStatusFailed,
+			Status:      TransactionStatusFailed,
 			RawResponse: resp.RawBody,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update transaction: %w", err)
@@ -585,7 +584,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 		if err := qtx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: domain.PaymentIntentStatusFailed,
+			Status: PaymentIntentStatusFailed,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}

@@ -2,14 +2,40 @@ package payment
 
 import (
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+)
+
+type PaymentMethod = store.PaymentMethod
+type InvoiceStatus = store.InvoiceStatus
+type PaymentIntentStatus = store.PaymentIntentStatus
+type TransactionType = store.TransactionType
+type TransactionStatus = store.TransactionStatus
+
+const (
+	PaymentMethodCard     = store.PaymentMethodCard
+	PaymentMethodApplePay = store.PaymentMethodApplePay
+	InvoiceStatusPending  = store.InvoiceStatusPending
+	InvoiceStatusPaid     = store.InvoiceStatusPaid
+	InvoiceStatusFailed   = store.InvoiceStatusFailed
+	PaymentIntentStatusCreated        = store.PaymentIntentStatusCreated
+	PaymentIntentStatusAuthenticating = store.PaymentIntentStatusAuthenticating
+	PaymentIntentStatusAuthenticated  = store.PaymentIntentStatusAuthenticated
+	PaymentIntentStatusPaying         = store.PaymentIntentStatusPaying
+	PaymentIntentStatusCompleted      = store.PaymentIntentStatusCompleted
+	PaymentIntentStatusFailed         = store.PaymentIntentStatusFailed
+	TransactionTypeInitiateAuth       = store.TransactionTypeInitiateAuth
+	TransactionTypeAuthenticatePayer  = store.TransactionTypeAuthenticatePayer
+	TransactionTypePay                = store.TransactionTypePay
+	TransactionStatusPending          = store.TransactionStatusPending
+	TransactionStatusSuccess          = store.TransactionStatusSuccess
+	TransactionStatusFailed           = store.TransactionStatusFailed
 )
 
 type InitiateSessionRequest struct {
 	ProjectID        uuid.UUID
 	InvoiceID        uuid.UUID
 	GatewayAccountID uuid.UUID
-	PaymentMethod    domain.PaymentMethod
+	PaymentMethod    PaymentMethod
 	PayerIP          string
 	PayerUserAgent   string
 	IdempotencyKey   string

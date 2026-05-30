@@ -1,4 +1,4 @@
-package domain
+package store
 
 type ProjectEnvironment string
 

@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 const createGatewayAccount = `-- name: CreateGatewayAccount :one
@@ -20,7 +19,7 @@ VALUES ($1, $2, $3, $4, $5, true) RETURNING id, project_id, connector_type, acco
 
 type CreateGatewayAccountParams struct {
 	ProjectID     uuid.UUID
-	ConnectorType domain.ConnectorType
+	ConnectorType ConnectorType
 	AccountName   string
 	Secret        []byte
 	Config        []byte
@@ -110,7 +109,7 @@ WHERE pi.id = $1
 type GetGatewayAccountByPaymentIntentIDRow struct {
 	ID               uuid.UUID
 	ProjectID        uuid.UUID
-	ConnectorType    domain.ConnectorType
+	ConnectorType    ConnectorType
 	AccountName      string
 	Config           []byte
 	IsActive         bool
@@ -123,8 +122,8 @@ type GetGatewayAccountByPaymentIntentIDRow struct {
 	ProjectID_2      uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID pgtype.Text
-	Status           domain.PaymentIntentStatus
-	PaymentMethod    domain.PaymentMethod
+	Status           PaymentIntentStatus
+	PaymentMethod    PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	ExpiresAt        pgtype.Timestamptz

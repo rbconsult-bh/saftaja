@@ -2,8 +2,15 @@ package membership
 
 import (
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
+)
+
+type ProjectEnvironment string
+
+const (
+	EnvironmentSandbox    ProjectEnvironment = "sandbox"
+	EnvironmentProduction ProjectEnvironment = "production"
+	EnvironmentUnknown    ProjectEnvironment = "unknown"
 )
 
 type (
@@ -25,5 +32,5 @@ type OrganizationWithProjects struct {
 type Project struct {
 	ID          uuid.UUID
 	Name        string
-	Environment domain.ProjectEnvironment
+	Environment ProjectEnvironment
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -29,7 +28,7 @@ func (s *service) ListActiveByProject(ctx context.Context, r ListActiveByProject
 	var gateways []GatewayCredentials
 	for _, acc := range accounts {
 		switch acc.ConnectorType {
-		case domain.ConnectorTypeMPGS:
+		case store.ConnectorTypeMPGS:
 			cfg, err := mpgsclient.ParseConfig(acc.Config)
 			if err != nil {
 				return nil, fmt.Errorf("invalid gateway config for %s: %w", acc.ID, err)
@@ -37,7 +36,7 @@ func (s *service) ListActiveByProject(ctx context.Context, r ListActiveByProject
 			gateways = append(gateways, GatewayCredentials{
 				GatewayAccountID: acc.ID,
 				AccountName:      acc.AccountName,
-				ConnectorType:    acc.ConnectorType,
+				ConnectorType:    mapConnectorTypeFromStore(acc.ConnectorType),
 				BaseURL:          cfg.BaseURL,
 				MerchantID:       cfg.MerchantID,
 			})
@@ -62,7 +61,7 @@ func (s *service) ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRe
 	var methods []PaymentMethod
 	for _, acc := range accounts {
 		switch acc.ConnectorType {
-		case domain.ConnectorTypeMPGS:
+		case store.ConnectorTypeMPGS:
 			cfg, err := mpgsclient.ParseConfig(acc.Config)
 			if err != nil {
 				continue
@@ -104,7 +103,7 @@ func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*Gatewa
 
 	acc, err := s.queries.CreateGatewayAccount(ctx, store.CreateGatewayAccountParams{
 		ProjectID:     req.ProjectID,
-		ConnectorType: req.ConnectorType,
+		ConnectorType: mapConnectorTypeToStore(req.ConnectorType),
 		AccountName:   req.AccountName,
 		Secret:        encrypted,
 		Config:        configJSON,
@@ -117,7 +116,7 @@ func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*Gatewa
 		ID:            acc.ID,
 		ProjectID:     acc.ProjectID,
 		AccountName:   acc.AccountName,
-		ConnectorType: acc.ConnectorType,
+		ConnectorType: mapConnectorTypeFromStore(acc.ConnectorType),
 		IsActive:      acc.IsActive,
 	}, nil
 }

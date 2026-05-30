@@ -14,7 +14,6 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
@@ -173,7 +172,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 
 	var req struct {
 		GatewayAccountID uuid.UUID            `json:"gateway_account_id"`
-		PaymentMethod    domain.PaymentMethod `json:"payment_method"`
+		PaymentMethod    string `json:"payment_method"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
@@ -191,7 +190,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		ProjectID:        project.ID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: req.GatewayAccountID,
-		PaymentMethod:    req.PaymentMethod,
+		PaymentMethod:    payment.PaymentMethod(req.PaymentMethod),
 		PayerIP:          payerIP,
 		PayerUserAgent:   r.Header.Get("User-Agent"),
 		IdempotencyKey:   r.Header.Get("Idempotency-Key"),

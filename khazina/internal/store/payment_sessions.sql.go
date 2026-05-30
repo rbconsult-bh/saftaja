@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
 
 const createPaymentIntent = `-- name: CreatePaymentIntent :one
@@ -24,7 +23,7 @@ type CreatePaymentIntentParams struct {
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID pgtype.Text
-	PaymentMethod    domain.PaymentMethod
+	PaymentMethod    PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	IdempotencyKey   pgtype.Text
@@ -192,7 +191,7 @@ WHERE id = $1
 
 type UpdatePaymentIntentStatusParams struct {
 	ID     uuid.UUID
-	Status domain.PaymentIntentStatus
+	Status PaymentIntentStatus
 }
 
 func (q *Queries) UpdatePaymentIntentStatus(ctx context.Context, arg UpdatePaymentIntentStatusParams) error {

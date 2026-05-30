@@ -20,7 +20,6 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
@@ -236,7 +235,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    domain.PaymentMethodCard,
+		PaymentMethod:    "card",
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
@@ -296,7 +295,7 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    domain.PaymentMethodCard,
+		PaymentMethod:    "card",
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "",
 		IdempotencyKey:   "",

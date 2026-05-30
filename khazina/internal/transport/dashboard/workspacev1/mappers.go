@@ -1,7 +1,6 @@
 package workspacev1
 
 import (
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	workspacepbv1 "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/workspace/v1"
@@ -42,11 +41,11 @@ func mapMembershipProjectToProto(project membership.Project) *workspacepbv1.Proj
 	}
 }
 
-func mapProjectEnvironmentToProto(projEnv domain.ProjectEnvironment) workspacepbv1.Project_Environment {
+func mapProjectEnvironmentToProto(projEnv membership.ProjectEnvironment) workspacepbv1.Project_Environment {
 	switch projEnv {
-	case domain.ProjectEnvironmentSandbox:
+	case membership.EnvironmentSandbox:
 		return workspacepbv1.Project_ENVIRONMENT_SANDBOX
-	case domain.ProjectEnvironmentProduction:
+	case membership.EnvironmentProduction:
 		return workspacepbv1.Project_ENVIRONMENT_PRODUCTION
 	default:
 		return workspacepbv1.Project_ENVIRONMENT_UNSPECIFIED

@@ -3,7 +3,6 @@ package billing
 import (
 	"time"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
@@ -60,15 +59,15 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 }
 
 // TODO: use store type once you make it.
-func mapStoreInvoiceStatusToInvoiceStatus(is domain.InvoiceStatus) InvoiceStatus {
+func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) InvoiceStatus {
 	switch is {
-	case domain.InvoiceStatusPending:
+	case store.InvoiceStatusPending:
 		return InvoiceStatusPending
-	case domain.InvoiceStatusPaid:
+	case store.InvoiceStatusPaid:
 		return InvoiceStatusPaid
-	case domain.InvoiceStatusFailed:
+	case store.InvoiceStatusFailed:
 		return InvoiceStatusFailed
 	default:
-		return InvoiceStatusUnkown
+		return InvoiceStatusUnknown
 	}
 }

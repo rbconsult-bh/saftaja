@@ -56,7 +56,7 @@ func (s *service) GetForCustomer(ctx context.Context, r GetForCustomerRequest) (
 		org.Projects = append(org.Projects, Project{
 			ID:          row.ProjectID,
 			Name:        row.ProjectName.String,
-			Environment: row.Environment,
+			Environment: mapEnvironmentFromStore(row.Environment),
 		})
 		orgMap[row.OrgID] = org
 	}

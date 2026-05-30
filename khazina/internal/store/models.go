@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/shopspring/decimal"
 )
 
@@ -85,7 +84,7 @@ type CustomerSession struct {
 type GatewayAccount struct {
 	ID            uuid.UUID
 	ProjectID     uuid.UUID
-	ConnectorType domain.ConnectorType
+	ConnectorType ConnectorType
 	AccountName   string
 	Config        []byte
 	IsActive      bool
@@ -100,7 +99,7 @@ type Invoice struct {
 	ProjectID     uuid.UUID
 	Amount        decimal.Decimal
 	Currency      string
-	Status        domain.InvoiceStatus
+	Status        InvoiceStatus
 	ExternalID    pgtype.Text
 	CustomerEmail pgtype.Text
 	CustomerName  pgtype.Text
@@ -143,8 +142,8 @@ type PaymentIntent struct {
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
 	GatewaySessionID pgtype.Text
-	Status           domain.PaymentIntentStatus
-	PaymentMethod    domain.PaymentMethod
+	Status           PaymentIntentStatus
+	PaymentMethod    PaymentMethod
 	PayerIp          pgtype.Text
 	PayerUserAgent   pgtype.Text
 	ExpiresAt        pgtype.Timestamptz
@@ -158,7 +157,7 @@ type Project struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID
 	Name           string
-	Environment    domain.ProjectEnvironment
+	Environment    ProjectEnvironment
 	CustomDomain   pgtype.Text
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
@@ -170,11 +169,11 @@ type Transaction struct {
 	PaymentIntentID      uuid.UUID
 	InvoiceID            uuid.UUID
 	ProjectID            uuid.UUID
-	TransactionType      domain.TransactionType
+	TransactionType      TransactionType
 	GatewayTransactionID string
 	Amount               decimal.Decimal
 	Currency             string
-	Status               domain.TransactionStatus
+	Status               TransactionStatus
 	RawRequest           []byte
 	RawResponse          []byte
 	CreatedAt            pgtype.Timestamptz
