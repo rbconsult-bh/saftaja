@@ -242,27 +242,27 @@ func (_c *MockService_GetInvoice_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
-// ListPaymentOptions provides a mock function for the type MockService
-func (_mock *MockService) ListPaymentOptions(ctx context.Context, r billing.ListPaymentOptionsRequest) (*billing.ListPaymentOptionsResponse, error) {
+// ListPaymentMethods provides a mock function for the type MockService
+func (_mock *MockService) ListPaymentMethods(ctx context.Context, r billing.ListPaymentMethodsRequest) (*billing.ListPaymentMethodsResponse, error) {
 	ret := _mock.Called(ctx, r)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ListPaymentOptions")
+		panic("no return value specified for ListPaymentMethods")
 	}
 
-	var r0 *billing.ListPaymentOptionsResponse
+	var r0 *billing.ListPaymentMethodsResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.ListPaymentOptionsRequest) (*billing.ListPaymentOptionsResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.ListPaymentMethodsRequest) (*billing.ListPaymentMethodsResponse, error)); ok {
 		return returnFunc(ctx, r)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.ListPaymentOptionsRequest) *billing.ListPaymentOptionsResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.ListPaymentMethodsRequest) *billing.ListPaymentMethodsResponse); ok {
 		r0 = returnFunc(ctx, r)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.ListPaymentOptionsResponse)
+			r0 = ret.Get(0).(*billing.ListPaymentMethodsResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, billing.ListPaymentOptionsRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, billing.ListPaymentMethodsRequest) error); ok {
 		r1 = returnFunc(ctx, r)
 	} else {
 		r1 = ret.Error(1)
@@ -270,27 +270,27 @@ func (_mock *MockService) ListPaymentOptions(ctx context.Context, r billing.List
 	return r0, r1
 }
 
-// MockService_ListPaymentOptions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaymentOptions'
-type MockService_ListPaymentOptions_Call struct {
+// MockService_ListPaymentMethods_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPaymentMethods'
+type MockService_ListPaymentMethods_Call struct {
 	*mock.Call
 }
 
-// ListPaymentOptions is a helper method to define mock.On call
+// ListPaymentMethods is a helper method to define mock.On call
 //   - ctx context.Context
-//   - r billing.ListPaymentOptionsRequest
-func (_e *MockService_Expecter) ListPaymentOptions(ctx interface{}, r interface{}) *MockService_ListPaymentOptions_Call {
-	return &MockService_ListPaymentOptions_Call{Call: _e.mock.On("ListPaymentOptions", ctx, r)}
+//   - r billing.ListPaymentMethodsRequest
+func (_e *MockService_Expecter) ListPaymentMethods(ctx interface{}, r interface{}) *MockService_ListPaymentMethods_Call {
+	return &MockService_ListPaymentMethods_Call{Call: _e.mock.On("ListPaymentMethods", ctx, r)}
 }
 
-func (_c *MockService_ListPaymentOptions_Call) Run(run func(ctx context.Context, r billing.ListPaymentOptionsRequest)) *MockService_ListPaymentOptions_Call {
+func (_c *MockService_ListPaymentMethods_Call) Run(run func(ctx context.Context, r billing.ListPaymentMethodsRequest)) *MockService_ListPaymentMethods_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 billing.ListPaymentOptionsRequest
+		var arg1 billing.ListPaymentMethodsRequest
 		if args[1] != nil {
-			arg1 = args[1].(billing.ListPaymentOptionsRequest)
+			arg1 = args[1].(billing.ListPaymentMethodsRequest)
 		}
 		run(
 			arg0,
@@ -300,12 +300,12 @@ func (_c *MockService_ListPaymentOptions_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockService_ListPaymentOptions_Call) Return(listPaymentOptionsResponse *billing.ListPaymentOptionsResponse, err error) *MockService_ListPaymentOptions_Call {
-	_c.Call.Return(listPaymentOptionsResponse, err)
+func (_c *MockService_ListPaymentMethods_Call) Return(listPaymentMethodsResponse *billing.ListPaymentMethodsResponse, err error) *MockService_ListPaymentMethods_Call {
+	_c.Call.Return(listPaymentMethodsResponse, err)
 	return _c
 }
 
-func (_c *MockService_ListPaymentOptions_Call) RunAndReturn(run func(ctx context.Context, r billing.ListPaymentOptionsRequest) (*billing.ListPaymentOptionsResponse, error)) *MockService_ListPaymentOptions_Call {
+func (_c *MockService_ListPaymentMethods_Call) RunAndReturn(run func(ctx context.Context, r billing.ListPaymentMethodsRequest) (*billing.ListPaymentMethodsResponse, error)) *MockService_ListPaymentMethods_Call {
 	_c.Call.Return(run)
 	return _c
 }

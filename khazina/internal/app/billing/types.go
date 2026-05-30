@@ -17,7 +17,7 @@ var (
 
 type Service interface {
 	GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error)
-	ListPaymentOptions(ctx context.Context, r ListPaymentOptionsRequest) (*ListPaymentOptionsResponse, error)
+	ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRequest) (*ListPaymentMethodsResponse, error)
 
 	StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error)
 	VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error)
@@ -61,7 +61,6 @@ type (
 		Amount      decimal.Decimal
 		CreatedAt   time.Time
 	}
-	PaymentOption struct{}
 )
 
 type (
@@ -85,9 +84,24 @@ func (r *GetInvoiceRequest) Validate() error {
 	return nil
 }
 
+type PaymentMethodType string
+
+const (
+	PaymentMethodTypeCard     PaymentMethodType = "card"
+	PaymentMethodTypeApplePay PaymentMethodType = "apple_pay"
+)
+
+type PaymentMethod struct {
+	Type PaymentMethodType
+}
+
 type (
-	ListPaymentOptionsRequest  struct{}
-	ListPaymentOptionsResponse struct{}
+	ListPaymentMethodsRequest struct {
+		ProjectID uuid.UUID
+	}
+	ListPaymentMethodsResponse struct {
+		PaymentMethods []PaymentMethod
+	}
 )
 
 type (
