@@ -89,7 +89,9 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	paymentMethods, err := h.gatewayService.ListPaymentMethods(ctx, project.ID)
+	paymentMethodsResp, err := h.gatewayService.ListPaymentMethods(ctx, gateway.ListPaymentMethodsRequest{
+		ProjectID: project.ID,
+	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to list payment methods")
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -109,7 +111,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 	var options []templfiles.PaymentOption
 	var mpgsBaseURL, mpgsMerchantID string
 
-	for _, pm := range paymentMethods {
+	for _, pm := range paymentMethodsResp.PaymentMethods {
 		mpgsBaseURL = pm.MPGSBaseURL
 		mpgsMerchantID = pm.MPGSMerchantID
 

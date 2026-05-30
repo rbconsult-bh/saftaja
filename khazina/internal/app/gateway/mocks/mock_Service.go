@@ -7,7 +7,6 @@ package mocks
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -108,27 +107,27 @@ func (_c *MockService_Create_Call) RunAndReturn(run func(ctx context.Context, re
 }
 
 // ListActiveByProject provides a mock function for the type MockService
-func (_mock *MockService) ListActiveByProject(ctx context.Context, projectID uuid.UUID) ([]gateway.GatewayCredentials, error) {
-	ret := _mock.Called(ctx, projectID)
+func (_mock *MockService) ListActiveByProject(ctx context.Context, r gateway.ListActiveByProjectRequest) (*gateway.ListActiveByProjectResponse, error) {
+	ret := _mock.Called(ctx, r)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListActiveByProject")
 	}
 
-	var r0 []gateway.GatewayCredentials
+	var r0 *gateway.ListActiveByProjectResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]gateway.GatewayCredentials, error)); ok {
-		return returnFunc(ctx, projectID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, gateway.ListActiveByProjectRequest) (*gateway.ListActiveByProjectResponse, error)); ok {
+		return returnFunc(ctx, r)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) []gateway.GatewayCredentials); ok {
-		r0 = returnFunc(ctx, projectID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, gateway.ListActiveByProjectRequest) *gateway.ListActiveByProjectResponse); ok {
+		r0 = returnFunc(ctx, r)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]gateway.GatewayCredentials)
+			r0 = ret.Get(0).(*gateway.ListActiveByProjectResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = returnFunc(ctx, projectID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, gateway.ListActiveByProjectRequest) error); ok {
+		r1 = returnFunc(ctx, r)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -142,20 +141,20 @@ type MockService_ListActiveByProject_Call struct {
 
 // ListActiveByProject is a helper method to define mock.On call
 //   - ctx context.Context
-//   - projectID uuid.UUID
-func (_e *MockService_Expecter) ListActiveByProject(ctx interface{}, projectID interface{}) *MockService_ListActiveByProject_Call {
-	return &MockService_ListActiveByProject_Call{Call: _e.mock.On("ListActiveByProject", ctx, projectID)}
+//   - r gateway.ListActiveByProjectRequest
+func (_e *MockService_Expecter) ListActiveByProject(ctx interface{}, r interface{}) *MockService_ListActiveByProject_Call {
+	return &MockService_ListActiveByProject_Call{Call: _e.mock.On("ListActiveByProject", ctx, r)}
 }
 
-func (_c *MockService_ListActiveByProject_Call) Run(run func(ctx context.Context, projectID uuid.UUID)) *MockService_ListActiveByProject_Call {
+func (_c *MockService_ListActiveByProject_Call) Run(run func(ctx context.Context, r gateway.ListActiveByProjectRequest)) *MockService_ListActiveByProject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 uuid.UUID
+		var arg1 gateway.ListActiveByProjectRequest
 		if args[1] != nil {
-			arg1 = args[1].(uuid.UUID)
+			arg1 = args[1].(gateway.ListActiveByProjectRequest)
 		}
 		run(
 			arg0,
@@ -165,38 +164,38 @@ func (_c *MockService_ListActiveByProject_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockService_ListActiveByProject_Call) Return(gatewayCredentialss []gateway.GatewayCredentials, err error) *MockService_ListActiveByProject_Call {
-	_c.Call.Return(gatewayCredentialss, err)
+func (_c *MockService_ListActiveByProject_Call) Return(listActiveByProjectResponse *gateway.ListActiveByProjectResponse, err error) *MockService_ListActiveByProject_Call {
+	_c.Call.Return(listActiveByProjectResponse, err)
 	return _c
 }
 
-func (_c *MockService_ListActiveByProject_Call) RunAndReturn(run func(ctx context.Context, projectID uuid.UUID) ([]gateway.GatewayCredentials, error)) *MockService_ListActiveByProject_Call {
+func (_c *MockService_ListActiveByProject_Call) RunAndReturn(run func(ctx context.Context, r gateway.ListActiveByProjectRequest) (*gateway.ListActiveByProjectResponse, error)) *MockService_ListActiveByProject_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ListPaymentMethods provides a mock function for the type MockService
-func (_mock *MockService) ListPaymentMethods(ctx context.Context, projectID uuid.UUID) ([]gateway.PaymentMethod, error) {
-	ret := _mock.Called(ctx, projectID)
+func (_mock *MockService) ListPaymentMethods(ctx context.Context, r gateway.ListPaymentMethodsRequest) (*gateway.ListPaymentMethodsResponse, error) {
+	ret := _mock.Called(ctx, r)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListPaymentMethods")
 	}
 
-	var r0 []gateway.PaymentMethod
+	var r0 *gateway.ListPaymentMethodsResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]gateway.PaymentMethod, error)); ok {
-		return returnFunc(ctx, projectID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, gateway.ListPaymentMethodsRequest) (*gateway.ListPaymentMethodsResponse, error)); ok {
+		return returnFunc(ctx, r)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) []gateway.PaymentMethod); ok {
-		r0 = returnFunc(ctx, projectID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, gateway.ListPaymentMethodsRequest) *gateway.ListPaymentMethodsResponse); ok {
+		r0 = returnFunc(ctx, r)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]gateway.PaymentMethod)
+			r0 = ret.Get(0).(*gateway.ListPaymentMethodsResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = returnFunc(ctx, projectID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, gateway.ListPaymentMethodsRequest) error); ok {
+		r1 = returnFunc(ctx, r)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -210,20 +209,20 @@ type MockService_ListPaymentMethods_Call struct {
 
 // ListPaymentMethods is a helper method to define mock.On call
 //   - ctx context.Context
-//   - projectID uuid.UUID
-func (_e *MockService_Expecter) ListPaymentMethods(ctx interface{}, projectID interface{}) *MockService_ListPaymentMethods_Call {
-	return &MockService_ListPaymentMethods_Call{Call: _e.mock.On("ListPaymentMethods", ctx, projectID)}
+//   - r gateway.ListPaymentMethodsRequest
+func (_e *MockService_Expecter) ListPaymentMethods(ctx interface{}, r interface{}) *MockService_ListPaymentMethods_Call {
+	return &MockService_ListPaymentMethods_Call{Call: _e.mock.On("ListPaymentMethods", ctx, r)}
 }
 
-func (_c *MockService_ListPaymentMethods_Call) Run(run func(ctx context.Context, projectID uuid.UUID)) *MockService_ListPaymentMethods_Call {
+func (_c *MockService_ListPaymentMethods_Call) Run(run func(ctx context.Context, r gateway.ListPaymentMethodsRequest)) *MockService_ListPaymentMethods_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 uuid.UUID
+		var arg1 gateway.ListPaymentMethodsRequest
 		if args[1] != nil {
-			arg1 = args[1].(uuid.UUID)
+			arg1 = args[1].(gateway.ListPaymentMethodsRequest)
 		}
 		run(
 			arg0,
@@ -233,12 +232,12 @@ func (_c *MockService_ListPaymentMethods_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockService_ListPaymentMethods_Call) Return(paymentMethods []gateway.PaymentMethod, err error) *MockService_ListPaymentMethods_Call {
-	_c.Call.Return(paymentMethods, err)
+func (_c *MockService_ListPaymentMethods_Call) Return(listPaymentMethodsResponse *gateway.ListPaymentMethodsResponse, err error) *MockService_ListPaymentMethods_Call {
+	_c.Call.Return(listPaymentMethodsResponse, err)
 	return _c
 }
 
-func (_c *MockService_ListPaymentMethods_Call) RunAndReturn(run func(ctx context.Context, projectID uuid.UUID) ([]gateway.PaymentMethod, error)) *MockService_ListPaymentMethods_Call {
+func (_c *MockService_ListPaymentMethods_Call) RunAndReturn(run func(ctx context.Context, r gateway.ListPaymentMethodsRequest) (*gateway.ListPaymentMethodsResponse, error)) *MockService_ListPaymentMethods_Call {
 	_c.Call.Return(run)
 	return _c
 }

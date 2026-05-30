@@ -134,7 +134,10 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		},
 	}, nil)
 
-	f.Gateway.EXPECT().ListPaymentMethods(mock.Anything, projectID).Return([]gateway.PaymentMethod{
+	f.Gateway.EXPECT().ListPaymentMethods(mock.Anything, gateway.ListPaymentMethodsRequest{
+		ProjectID: projectID,
+	}).Return(&gateway.ListPaymentMethodsResponse{
+		PaymentMethods: []gateway.PaymentMethod{
 		{
 			Type:             gateway.PaymentMethodTypeCard,
 			GatewayAccountID: gatewayID,
@@ -142,7 +145,8 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 			MPGSMerchantID:   "TESTMERCHANT",
 			MPGSApiVersion:   "100",
 		},
-	}, nil)
+	},
+		}, nil)
 
 	w := f.getWithProject("/checkout/"+invoiceID.String(), project)
 

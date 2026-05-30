@@ -46,14 +46,16 @@ func (s *service) ListGateways(ctx context.Context, r *connect.Request[projectpb
 		return nil, connect.NewError(connect.CodePermissionDenied, nil)
 	}
 
-	gateways, err := s.gateway.ListActiveByProject(ctx, projectID)
+	gatewaysResp, err := s.gateway.ListActiveByProject(ctx, gateway.ListActiveByProjectRequest{
+		ProjectID: projectID,
+	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to list gateways")
 		return nil, errInternal
 	}
 
 	var pbGateways []*projectpbv1.Gateway
-	for _, gw := range gateways {
+	for _, gw := range gatewaysResp.Gateways {
 		pbGateways = append(pbGateways, &projectpbv1.Gateway{
 			Id:            gw.GatewayAccountID.String(),
 			AccountName:   gw.AccountName,

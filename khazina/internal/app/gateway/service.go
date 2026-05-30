@@ -5,18 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
-
-type Service interface {
-	ListActiveByProject(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error)
-	ListPaymentMethods(ctx context.Context, projectID uuid.UUID) ([]PaymentMethod, error)
-	Create(ctx context.Context, req CreateGatewayRequest) (*GatewayAccount, error)
-}
 
 type service struct {
 	queries       store.TransactionQuerier
@@ -27,13 +20,13 @@ func New(queries store.TransactionQuerier, encryptionKey []byte) Service {
 	return &service{queries: queries, encryptionKey: encryptionKey}
 }
 
-func (s *service) ListActiveByProject(ctx context.Context, projectID uuid.UUID) ([]GatewayCredentials, error) {
-	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, projectID)
+func (s *service) ListActiveByProject(ctx context.Context, r ListActiveByProjectRequest) (*ListActiveByProjectResponse, error) {
+	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, r.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list gateway accounts: %w", err)
 	}
 
-	var result []GatewayCredentials
+	var gateways []GatewayCredentials
 	for _, acc := range accounts {
 		switch acc.ConnectorType {
 		case domain.ConnectorTypeMPGS:
@@ -41,7 +34,7 @@ func (s *service) ListActiveByProject(ctx context.Context, projectID uuid.UUID) 
 			if err != nil {
 				return nil, fmt.Errorf("invalid gateway config for %s: %w", acc.ID, err)
 			}
-			result = append(result, GatewayCredentials{
+			gateways = append(gateways, GatewayCredentials{
 				GatewayAccountID: acc.ID,
 				AccountName:      acc.AccountName,
 				ConnectorType:    acc.ConnectorType,
@@ -53,11 +46,15 @@ func (s *service) ListActiveByProject(ctx context.Context, projectID uuid.UUID) 
 		}
 	}
 
-	return result, nil
+	return &ListActiveByProjectResponse{Gateways: gateways}, nil
 }
 
-func (s *service) ListPaymentMethods(ctx context.Context, projectID uuid.UUID) ([]PaymentMethod, error) {
-	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, projectID)
+func (s *service) ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRequest) (*ListPaymentMethodsResponse, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+
+	accounts, err := s.queries.ListActiveGatewayAccounts(ctx, r.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list gateway accounts: %w", err)
 	}
@@ -70,10 +67,8 @@ func (s *service) ListPaymentMethods(ctx context.Context, projectID uuid.UUID) (
 			if err != nil {
 				continue
 			}
-			// TODO: replace with MPGS Payment Options Inquiry API call
 			for _, pm := range []PaymentMethodType{
 				PaymentMethodTypeCard,
-				// PaymentMethodTypeApplePay,
 			} {
 				methods = append(methods, PaymentMethod{
 					Type:             pm,
@@ -88,7 +83,7 @@ func (s *service) ListPaymentMethods(ctx context.Context, projectID uuid.UUID) (
 		}
 	}
 
-	return methods, nil
+	return &ListPaymentMethodsResponse{PaymentMethods: methods}, nil
 }
 
 func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*GatewayAccount, error) {

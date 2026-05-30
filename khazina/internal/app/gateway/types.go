@@ -1,11 +1,23 @@
 package gateway
 
 import (
+	"context"
+	"errors"
+	"fmt"
+
 	"github.com/google/uuid"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/domain"
 )
+
+var ErrInvalidArgument = errors.New("invalid argument")
+
+type Service interface {
+	ListActiveByProject(ctx context.Context, r ListActiveByProjectRequest) (*ListActiveByProjectResponse, error)
+	ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRequest) (*ListPaymentMethodsResponse, error)
+	Create(ctx context.Context, req CreateGatewayRequest) (*GatewayAccount, error)
+}
 
 type PaymentMethodType string
 
@@ -20,6 +32,29 @@ type PaymentMethod struct {
 	MPGSBaseURL      string
 	MPGSMerchantID   string
 	MPGSApiVersion   string
+}
+
+type ListPaymentMethodsRequest struct {
+	ProjectID uuid.UUID
+}
+
+func (r *ListPaymentMethodsRequest) Validate() error {
+	if r.ProjectID == uuid.Nil {
+		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
+	}
+	return nil
+}
+
+type ListPaymentMethodsResponse struct {
+	PaymentMethods []PaymentMethod
+}
+
+type ListActiveByProjectRequest struct {
+	ProjectID uuid.UUID
+}
+
+type ListActiveByProjectResponse struct {
+	Gateways []GatewayCredentials
 }
 
 type GatewayCredentials struct {
