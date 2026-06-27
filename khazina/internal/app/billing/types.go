@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	ErrInvalidArgument = errors.New("invalid argument")
-	ErrNotFound        = errors.New("not found")
+	ErrInvalidArgument          = errors.New("invalid argument")
+	ErrNotFound                 = errors.New("not found")
+	ErrUnsupportedPaymentMethod = errors.New("unsupported payment method")
 )
 
 type Service interface {
@@ -24,10 +25,18 @@ type Service interface {
 	CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error)
 }
 
+type PaymentMethod string
+
+const (
+	PaymentMethodUnkown   PaymentMethod = "unknown"
+	PaymentMethodCard     PaymentMethod = "card"
+	PaymentMethodApplePay PaymentMethod = "apple_pay"
+)
+
 type InvoiceStatus string
 
 const (
-	InvoiceStatusUnknown  InvoiceStatus = "unknown"
+	InvoiceStatusUnknown InvoiceStatus = "unknown"
 	InvoiceStatusPending InvoiceStatus = "pending"
 	InvoiceStatusPaid    InvoiceStatus = "paid"
 	InvoiceStatusFailed  InvoiceStatus = "failed"
@@ -84,9 +93,48 @@ func (r *GetInvoiceRequest) Validate() error {
 }
 
 type (
-	StartPaymentRequest  struct{}
-	StartPaymentResponse struct{}
+	StartPaymentRequest struct {
+		InvoiceID        uuid.UUID
+		ProjectID        uuid.UUID
+		IdempotencyKey   string
+		GatewayAccountID uuid.UUID
+		PaymentMethod    PaymentMethod
+		PayerIP          string
+		PayerUserAgent   string
+	}
+	StartPaymentResponse struct {
+		PaymentIntentID  string
+		GatewaySessionID *string
+	}
 )
+
+func (r *StartPaymentRequest) Validate() error {
+	if r.InvoiceID == uuid.Nil {
+		return fmt.Errorf("%w: InvoiceID is required", ErrInvalidArgument)
+	}
+	if r.ProjectID == uuid.Nil {
+		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
+	}
+	if r.IdempotencyKey == "" {
+		return fmt.Errorf("%w: IdempotencyKey is required", ErrInvalidArgument)
+	}
+	if r.GatewayAccountID == uuid.Nil {
+		return fmt.Errorf("%w: GatewayAccountID is required", ErrInvalidArgument)
+	}
+	switch r.PaymentMethod {
+	case PaymentMethodCard, PaymentMethodApplePay:
+	default:
+		return fmt.Errorf("%w: unsupported PaymentMethod '%s'", ErrInvalidArgument, r.PaymentMethod)
+	}
+	if r.PayerIP == "" {
+		return fmt.Errorf("%w: PayerIP is required", ErrInvalidArgument)
+	}
+	if r.PayerUserAgent == "" {
+		return fmt.Errorf("%w: PayerUserAgent is required", ErrInvalidArgument)
+	}
+
+	return nil
+}
 
 type (
 	VerifyCardRequest  struct{}

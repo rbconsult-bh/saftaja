@@ -44,7 +44,31 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 }
 
 func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error) {
-	return &StartPaymentResponse{}, nil
+	if err := r.Validate(); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("validation failed")
+		return nil, err
+	}
+
+	// TODO: validate invoice exists and status is pending
+	// TODO: validate gateway account belongs to this project (could be implicit if possible by fetching with two matchers)
+	// TODO: check if existing payment intent exists by idempotency key.
+
+	var gatewaySessionID *string
+	switch r.PaymentMethod {
+	case PaymentMethodCard:
+		// TODO: create mpgs session
+	case PaymentMethodApplePay:
+		// apple pay through does not need external services before we get the token from the user.
+	default:
+		return nil, ErrUnsupportedPaymentMethod
+	}
+
+	// TODO: create payment intent
+
+	return &StartPaymentResponse{
+		PaymentIntentID:  "",
+		GatewaySessionID: gatewaySessionID,
+	}, nil
 }
 
 func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error) {
