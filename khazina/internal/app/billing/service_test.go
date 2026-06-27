@@ -34,22 +34,34 @@ func setupTestEnv(t *testing.T) billingTestEnv {
 
 // --- Test: GetInvoice
 
-func TestGetInvoice_NilInvoiceID_InvalidArgument(t *testing.T) {
+func TestGetInvoice_Validation(t *testing.T) {
 	testEnv := setupTestEnv(t)
+	validUUID := uuid.MustParse("00000000-0000-0000-0000-000000001000")
 
-	resp, err := testEnv.svc.GetInvoice(testEnv.ctx, GetInvoiceRequest{})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrInvalidArgument)
-}
+	tests := []struct {
+		name string
+		req  GetInvoiceRequest
+		err  error
+	}{
+		{
+			name: "missing invoice ID",
+			req:  GetInvoiceRequest{ProjectID: validUUID},
+			err:  ErrInvalidArgument,
+		},
+		{
+			name: "missing project ID",
+			req:  GetInvoiceRequest{InvoiceID: validUUID},
+			err:  ErrInvalidArgument,
+		},
+	}
 
-func TestGetInvoice_NilProjectID_InvalidArgument(t *testing.T) {
-	testEnv := setupTestEnv(t)
-
-	resp, err := testEnv.svc.GetInvoice(testEnv.ctx, GetInvoiceRequest{
-		InvoiceID: uuid.New(),
-	})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrInvalidArgument)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := testEnv.svc.GetInvoice(testEnv.ctx, tt.req)
+			assert.Nil(t, resp)
+			assert.ErrorIs(t, err, tt.err)
+		})
+	}
 }
 
 func TestGetInvoice_Success(t *testing.T) {
