@@ -64,6 +64,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	switch r.PaymentMethod {
 	case PaymentMethodCard:
 		createPaymentIntentParams.PaymentMethod = store.PaymentMethodCard
+		createPaymentIntentParams.GatewaySessionID = new(string)
 		// TODO: create mpgs session
 	case PaymentMethodApplePay:
 		createPaymentIntentParams.PaymentMethod = store.PaymentMethodApplePay
@@ -81,7 +82,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	}
 
 	return &StartPaymentResponse{
-		PaymentIntentID:  "",
+		PaymentIntentID:  resp.ID.String(),
 		GatewaySessionID: resp.GatewaySessionID,
 	}, nil
 }
