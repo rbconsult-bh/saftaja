@@ -68,6 +68,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	case PaymentMethodApplePay:
 		createPaymentIntentParams.PaymentMethod = store.PaymentMethodApplePay
 		// apple pay through does not need external services before we get the token from the user.
+		// TODO: handle apple pay
+		return nil, fmt.Errorf("%w: Apply Pay not yet supported", ErrUnsupportedPaymentMethod)
 	default:
 		return nil, ErrUnsupportedPaymentMethod
 	}
