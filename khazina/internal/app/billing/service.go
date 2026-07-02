@@ -72,9 +72,10 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, ErrUnsupportedPaymentMethod
 	}
 
-	// TODO: create payment intent
 	resp, err := s.queries.CreatePaymentIntent(ctx, createPaymentIntentParams)
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create payment intent")
+		return nil, err
 	}
 
 	return &StartPaymentResponse{
