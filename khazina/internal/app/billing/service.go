@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rs/zerolog/log"
 )
@@ -49,11 +50,18 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, err
 	}
 
+	// TODO: do idempotency checks
+
 	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
 		ID:        r.InvoiceID,
 		ProjectID: r.ProjectID,
 	})
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Ctx(ctx).Info().Msg("invoice is not found")
+			return nil, ErrInvoiceNotFound
+		}
+
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id and project")
 		return nil, err
 	}
@@ -71,8 +79,19 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, fmt.Errorf("un-payable invoice status: %s", invoice.Status)
 	}
 
-	// TODO: validate gateway account belongs to this project (could be implicit if possible by fetching with two matchers)
-	// TODO: check if existing payment intent exists by idempotency key.
+	_, err = s.queries.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
+		ID:        r.GatewayAccountID,
+		ProjectID: r.ProjectID,
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Ctx(ctx).Info().Msg("gatewat account is not found")
+			return nil, ErrGatewayAccountNotFound
+		}
+
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get gateway account by id and project")
+		return nil, err
+	}
 
 	createPaymentIntentParams := store.CreatePaymentIntentParams{
 		InvoiceID:        r.InvoiceID,

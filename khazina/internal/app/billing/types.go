@@ -14,8 +14,10 @@ var (
 	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrNotFound                 = errors.New("not found")
 	ErrUnsupportedPaymentMethod = errors.New("unsupported payment method")
-	ErrInvoiceAlreadyPaid       = errors.New("invoice is already paid")
-	ErrInvoiceCancelled         = errors.New("invoice is cancelled")
+	ErrInvoiceAlreadyPaid       = errors.New("invoice already paid")
+	ErrInvoiceCancelled         = errors.New("invoice cancelled")
+	ErrInvoiceNotFound          = errors.New("invoice not found")
+	ErrGatewayAccountNotFound   = errors.New("gateway account not found")
 )
 
 type Service interface {
