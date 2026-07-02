@@ -23,7 +23,7 @@ func setupTestEnv(t *testing.T) billingTestEnv {
 	)
 
 	queries := store.NewTransactionQuerier(db.Pool)
-	svc := New(queries)
+	svc := New(queries, []byte{})
 
 	return billingTestEnv{
 		ctx:     t.Context(),

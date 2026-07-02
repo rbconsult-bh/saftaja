@@ -12,12 +12,14 @@ import (
 )
 
 type service struct {
-	queries store.TransactionQuerier
+	queries       store.TransactionQuerier
+	encryptionKey []byte
 }
 
-func New(queries store.TransactionQuerier) Service {
+func New(queries store.TransactionQuerier, encryptionKey []byte) Service {
 	return &service{
-		queries: queries,
+		queries:       queries,
+		encryptionKey: encryptionKey,
 	}
 }
 
