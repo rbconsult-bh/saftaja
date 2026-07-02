@@ -3,6 +3,7 @@ package billing
 import (
 	"time"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
@@ -29,10 +30,10 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 		Amount:        first.Amount,
 		Currency:      first.Currency,
 		Status:        mapStoreInvoiceStatusToInvoiceStatus(first.Status),
-		ExternalID:    first.ExternalID.String,
-		CustomerEmail: first.CustomerEmail.String,
-		CustomerName:  first.CustomerName.String,
-		Description:   first.Description.String,
+		ExternalID:    ptr.Deref(first.ExternalID),
+		CustomerEmail: ptr.Deref(first.CustomerEmail),
+		CustomerName:  ptr.Deref(first.CustomerName),
+		Description:   ptr.Deref(first.Description),
 		PaidAt:        paidAt,
 		CreatedAt:     first.CreatedAt.Time,
 		UpdatedAt:     first.UpdatedAt.Time,
@@ -45,7 +46,7 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 			ID:          r.InvoiceItem.ID,
 			InvoiceID:   r.InvoiceItem.InvoiceID,
 			Name:        r.InvoiceItem.Name,
-			Description: r.InvoiceItem.Description.String,
+			Description: ptr.Deref(r.InvoiceItem.Description),
 			Quantity:    r.InvoiceItem.Quantity,
 			UnitPrice:   r.InvoiceItem.UnitPrice,
 			Amount:      r.InvoiceItem.Amount,

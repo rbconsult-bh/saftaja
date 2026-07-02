@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
@@ -59,13 +58,13 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 	if req.IdempotencyKey != "" {
 		existingSession, err := s.queries.GetPaymentIntentByIdempotencyKey(ctx, store.GetPaymentIntentByIdempotencyKeyParams{
 			InvoiceID:      req.InvoiceID,
-			IdempotencyKey: pgtype.Text{String: req.IdempotencyKey, Valid: true},
+			IdempotencyKey: req.IdempotencyKey,
 		})
 		if err == nil {
 			// Session already exists, return it
 			return &InitiateSessionResult{
 				PaymentIntentID:  existingSession.ID,
-				GatewaySessionID: existingSession.GatewaySessionID.String,
+				GatewaySessionID: ptr.Deref(existingSession.GatewaySessionID),
 			}, nil
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -94,27 +93,22 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 
 	resp, err := mpgsCli.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
-			AuthenticationLimit: ptr.Ptr[int32](25),
+			AuthenticationLimit: ptr.To[int32](25),
 		},
 	})
 	if err != nil {
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
 
-	var idempotencyKey pgtype.Text
-	if req.IdempotencyKey != "" {
-		idempotencyKey = pgtype.Text{String: req.IdempotencyKey, Valid: true}
-	}
-
 	dbSession, err := s.queries.CreatePaymentIntent(ctx, store.CreatePaymentIntentParams{
 		InvoiceID:        invoice.ID,
 		ProjectID:        invoice.ProjectID,
 		GatewayAccountID: account.ID,
-		GatewaySessionID: pgtype.Text{String: resp.Data.Session.ID, Valid: true},
+		GatewaySessionID: &resp.Data.Session.ID,
 		PaymentMethod:    req.PaymentMethod,
-		PayerIp:          pgtype.Text{String: req.PayerIP, Valid: true},
-		PayerUserAgent:   pgtype.Text{String: req.PayerUserAgent, Valid: req.PayerUserAgent != ""},
-		IdempotencyKey:   idempotencyKey,
+		PayerIp:          req.PayerIP,
+		PayerUserAgent:   req.PayerUserAgent,
+		IdempotencyKey:   req.IdempotencyKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create payment session: %w", err)
@@ -195,7 +189,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 			Channel: mpgsclient.ChannelPayerBrowser,
 		},
 		Order:   mpgsclient.InitiateAuthenticationOrder{Currency: invoice.Currency},
-		Session: mpgsclient.InitiateAuthenticationSession{ID: session.GatewaySessionID.String},
+		Session: mpgsclient.InitiateAuthenticationSession{ID: ptr.Deref(session.GatewaySessionID)},
 	}
 
 	rawReq, err := json.Marshal(mpgsReq)
@@ -312,8 +306,8 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, err
 	}
 
-	customDomain := project.CustomDomain.String
-	if !project.CustomDomain.Valid || customDomain == "" {
+	customDomain := project.CustomDomain
+	if customDomain == nil {
 		return nil, fmt.Errorf("custom domain not configured")
 	}
 
@@ -331,7 +325,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	mpgsReq := &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
-			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", customDomain, req.InvoiceID, session.ID),
+			RedirectResponseURL: fmt.Sprintf("https://%s/checkout/%s/pay/card/%s/finalize", *customDomain, req.InvoiceID, session.ID),
 		},
 		Device: mpgsclient.AuthenticatePayerReqDevice{
 			Browser: req.UserAgent,
@@ -352,7 +346,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 			Currency: invoice.Currency,
 		},
 		Session: mpgsclient.AuthenticatePayerReqSession{
-			ID: session.GatewaySessionID.String,
+			ID: ptr.Deref(session.GatewaySessionID),
 		},
 	}
 
@@ -500,7 +494,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 			Reference: invoice.ID.String(),
 		},
 		Session: mpgsclient.ExecutePayReqSession{
-			ID: session.GatewaySessionID.String,
+			ID: ptr.Deref(session.GatewaySessionID),
 		},
 	}
 
@@ -598,7 +592,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 }
 
 func (s *service) VerifyDomain(ctx context.Context, domain string) (bool, error) {
-	_, err := s.queries.GetProjectByCustomDomain(ctx, pgtype.Text{String: domain, Valid: true})
+	_, err := s.queries.GetProjectByCustomDomain(ctx, domain)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil

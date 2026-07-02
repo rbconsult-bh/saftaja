@@ -22,7 +22,7 @@ type CreateProjectForOrganizationParams struct {
 	OrganizationID uuid.UUID
 	Name           string
 	Environment    ProjectEnvironment
-	CustomDomain   pgtype.Text
+	CustomDomain   *string
 }
 
 func (q *Queries) CreateProjectForOrganization(ctx context.Context, arg CreateProjectForOrganizationParams) (uuid.UUID, error) {
@@ -39,12 +39,12 @@ func (q *Queries) CreateProjectForOrganization(ctx context.Context, arg CreatePr
 
 const getProjectByCustomDomain = `-- name: GetProjectByCustomDomain :one
 SELECT id, organization_id, name, environment, custom_domain, created_at, updated_at, deleted_at FROM projects
-WHERE custom_domain = $1
+WHERE custom_domain = $1::text
 AND deleted_at IS NULL
 LIMIT 1
 `
 
-func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain pgtype.Text) (Project, error) {
+func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error) {
 	row := q.db.QueryRow(ctx, getProjectByCustomDomain, customDomain)
 	var i Project
 	err := row.Scan(
@@ -71,7 +71,7 @@ type GetProjectByPaymentIntentIDRow struct {
 	OrganizationID   uuid.UUID
 	Name             string
 	Environment      ProjectEnvironment
-	CustomDomain     pgtype.Text
+	CustomDomain     *string
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
 	DeletedAt        pgtype.Timestamptz
@@ -79,16 +79,16 @@ type GetProjectByPaymentIntentIDRow struct {
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID pgtype.Text
+	GatewaySessionID *string
 	Status           PaymentIntentStatus
 	PaymentMethod    PaymentMethod
-	PayerIp          pgtype.Text
-	PayerUserAgent   pgtype.Text
+	PayerIp          string
+	PayerUserAgent   string
 	ExpiresAt        pgtype.Timestamptz
 	CreatedAt_2      pgtype.Timestamptz
 	UpdatedAt_2      pgtype.Timestamptz
 	DeletedAt_2      pgtype.Timestamptz
-	IdempotencyKey   pgtype.Text
+	IdempotencyKey   string
 }
 
 func (q *Queries) GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error) {

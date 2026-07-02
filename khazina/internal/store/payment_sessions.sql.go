@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPaymentIntent = `-- name: CreatePaymentIntent :one
@@ -22,11 +21,11 @@ type CreatePaymentIntentParams struct {
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID pgtype.Text
+	GatewaySessionID *string
 	PaymentMethod    PaymentMethod
-	PayerIp          pgtype.Text
-	PayerUserAgent   pgtype.Text
-	IdempotencyKey   pgtype.Text
+	PayerIp          string
+	PayerUserAgent   string
+	IdempotencyKey   string
 }
 
 func (q *Queries) CreatePaymentIntent(ctx context.Context, arg CreatePaymentIntentParams) (PaymentIntent, error) {
@@ -158,7 +157,7 @@ LIMIT 1
 
 type GetPaymentIntentByIdempotencyKeyParams struct {
 	InvoiceID      uuid.UUID
-	IdempotencyKey pgtype.Text
+	IdempotencyKey string
 }
 
 func (q *Queries) GetPaymentIntentByIdempotencyKey(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyParams) (PaymentIntent, error) {
@@ -207,7 +206,7 @@ WHERE id = $1
 
 type UpdatePaymentIntentsGatewayIDParams struct {
 	ID               uuid.UUID
-	GatewaySessionID pgtype.Text
+	GatewaySessionID *string
 }
 
 func (q *Queries) UpdatePaymentIntentsGatewayID(ctx context.Context, arg UpdatePaymentIntentsGatewayIDParams) error {

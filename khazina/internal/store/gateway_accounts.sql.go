@@ -121,16 +121,16 @@ type GetGatewayAccountByPaymentIntentIDRow struct {
 	InvoiceID        uuid.UUID
 	ProjectID_2      uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID pgtype.Text
+	GatewaySessionID *string
 	Status           PaymentIntentStatus
 	PaymentMethod    PaymentMethod
-	PayerIp          pgtype.Text
-	PayerUserAgent   pgtype.Text
+	PayerIp          string
+	PayerUserAgent   string
 	ExpiresAt        pgtype.Timestamptz
 	CreatedAt_2      pgtype.Timestamptz
 	UpdatedAt_2      pgtype.Timestamptz
 	DeletedAt_2      pgtype.Timestamptz
-	IdempotencyKey   pgtype.Text
+	IdempotencyKey   string
 }
 
 func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentIntentIDRow, error) {

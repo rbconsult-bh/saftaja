@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -36,7 +35,7 @@ type Querier interface {
 	GetPaymentIntentByID(ctx context.Context, id uuid.UUID) (PaymentIntent, error)
 	GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPaymentIntentByIDAndProjectParams) (PaymentIntent, error)
 	GetPaymentIntentByIdempotencyKey(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyParams) (PaymentIntent, error)
-	GetProjectByCustomDomain(ctx context.Context, customDomain pgtype.Text) (Project, error)
+	GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error)
 	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)
 	GetSuccessfulAuthTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)

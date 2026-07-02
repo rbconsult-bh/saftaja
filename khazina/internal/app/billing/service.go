@@ -53,21 +53,33 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	// TODO: validate gateway account belongs to this project (could be implicit if possible by fetching with two matchers)
 	// TODO: check if existing payment intent exists by idempotency key.
 
-	var gatewaySessionID *string
+	createPaymentIntentParams := store.CreatePaymentIntentParams{
+		InvoiceID:        r.InvoiceID,
+		ProjectID:        r.ProjectID,
+		GatewayAccountID: r.GatewayAccountID,
+		PayerIp:          r.PayerIP,
+		PayerUserAgent:   r.PayerUserAgent,
+		IdempotencyKey:   r.IdempotencyKey,
+	}
 	switch r.PaymentMethod {
 	case PaymentMethodCard:
+		createPaymentIntentParams.PaymentMethod = store.PaymentMethodCard
 		// TODO: create mpgs session
 	case PaymentMethodApplePay:
+		createPaymentIntentParams.PaymentMethod = store.PaymentMethodApplePay
 		// apple pay through does not need external services before we get the token from the user.
 	default:
 		return nil, ErrUnsupportedPaymentMethod
 	}
 
 	// TODO: create payment intent
+	resp, err := s.queries.CreatePaymentIntent(ctx, createPaymentIntentParams)
+	if err != nil {
+	}
 
 	return &StartPaymentResponse{
 		PaymentIntentID:  "",
-		GatewaySessionID: gatewaySessionID,
+		GatewaySessionID: resp.GatewaySessionID,
 	}, nil
 }
 

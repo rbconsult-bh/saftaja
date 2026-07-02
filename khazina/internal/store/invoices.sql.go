@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -22,9 +21,9 @@ type CreateInvoiceParams struct {
 	ProjectID     uuid.UUID
 	Amount        decimal.Decimal
 	Currency      string
-	CustomerEmail pgtype.Text
-	CustomerName  pgtype.Text
-	Description   pgtype.Text
+	CustomerEmail *string
+	CustomerName  *string
+	Description   *string
 }
 
 func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {

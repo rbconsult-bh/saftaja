@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createOrganizationForCustomer = `-- name: CreateOrganizationForCustomer :one
@@ -57,7 +56,7 @@ type ListOrganizationsWithProjectsForCustomerRow struct {
 	OrgName     string
 	Role        OrganizationRole
 	ProjectID   uuid.UUID
-	ProjectName pgtype.Text
+	ProjectName *string
 	Environment ProjectEnvironment
 }
 

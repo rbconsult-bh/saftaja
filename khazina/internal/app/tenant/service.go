@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
@@ -31,21 +31,19 @@ func NewService(queries store.TransactionQuerier) Service {
 }
 
 func (s *service) GetProjectByDomain(ctx context.Context, domain string) (*Project, error) {
-	sp, err := s.queries.GetProjectByCustomDomain(ctx,
-		pgtype.Text{String: domain, Valid: true})
+	sp, err := s.queries.GetProjectByCustomDomain(ctx, domain)
 	if err != nil {
 		return nil, err
 	}
 	return &Project{
 		ID:           sp.ID,
 		Name:         sp.Name,
-		CustomDomain: sp.CustomDomain.String,
+		CustomDomain: ptr.Deref(sp.CustomDomain),
 	}, nil
 }
 
 func (s *service) IsDomainValid(ctx context.Context, domain string) (bool, error) {
-	_, err := s.queries.GetProjectByCustomDomain(ctx,
-		pgtype.Text{String: domain, Valid: true})
+	_, err := s.queries.GetProjectByCustomDomain(ctx, domain)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil

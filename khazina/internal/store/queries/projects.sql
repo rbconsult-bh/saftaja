@@ -10,6 +10,6 @@ WHERE pi.id = $1;
 
 -- name: GetProjectByCustomDomain :one
 SELECT * FROM projects
-WHERE custom_domain = $1
+WHERE custom_domain = sqlc.arg(custom_domain)::text
 AND deleted_at IS NULL
 LIMIT 1;

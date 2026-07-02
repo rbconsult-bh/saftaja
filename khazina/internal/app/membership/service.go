@@ -52,13 +52,15 @@ func (s *service) GetForCustomer(ctx context.Context, r GetForCustomerRequest) (
 			}
 		}
 
-		org := orgMap[row.OrgID]
-		org.Projects = append(org.Projects, Project{
-			ID:          row.ProjectID,
-			Name:        row.ProjectName.String,
-			Environment: mapEnvironmentFromStore(row.Environment),
-		})
-		orgMap[row.OrgID] = org
+		if row.ProjectID != uuid.Nil && row.ProjectName != nil {
+			org := orgMap[row.OrgID]
+			org.Projects = append(org.Projects, Project{
+				ID:          row.ProjectID,
+				Name:        *row.ProjectName,
+				Environment: mapEnvironmentFromStore(row.Environment),
+			})
+			orgMap[row.OrgID] = org
+		}
 	}
 
 	result := make([]OrganizationWithProjects, 0, len(orderedOrgIDs))

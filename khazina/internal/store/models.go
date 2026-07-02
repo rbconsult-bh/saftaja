@@ -100,10 +100,10 @@ type Invoice struct {
 	Amount        decimal.Decimal
 	Currency      string
 	Status        InvoiceStatus
-	ExternalID    pgtype.Text
-	CustomerEmail pgtype.Text
-	CustomerName  pgtype.Text
-	Description   pgtype.Text
+	ExternalID    *string
+	CustomerEmail *string
+	CustomerName  *string
+	Description   *string
 	PaidAt        pgtype.Timestamptz
 	CreatedAt     pgtype.Timestamptz
 	UpdatedAt     pgtype.Timestamptz
@@ -114,7 +114,7 @@ type InvoiceItem struct {
 	ID          uuid.UUID
 	InvoiceID   uuid.UUID
 	Name        string
-	Description pgtype.Text
+	Description *string
 	Quantity    int32
 	UnitPrice   decimal.Decimal
 	Amount      decimal.Decimal
@@ -141,16 +141,16 @@ type PaymentIntent struct {
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
 	GatewayAccountID uuid.UUID
-	GatewaySessionID pgtype.Text
+	GatewaySessionID *string
 	Status           PaymentIntentStatus
 	PaymentMethod    PaymentMethod
-	PayerIp          pgtype.Text
-	PayerUserAgent   pgtype.Text
+	PayerIp          string
+	PayerUserAgent   string
 	ExpiresAt        pgtype.Timestamptz
 	CreatedAt        pgtype.Timestamptz
 	UpdatedAt        pgtype.Timestamptz
 	DeletedAt        pgtype.Timestamptz
-	IdempotencyKey   pgtype.Text
+	IdempotencyKey   string
 }
 
 type Project struct {
@@ -158,7 +158,7 @@ type Project struct {
 	OrganizationID uuid.UUID
 	Name           string
 	Environment    ProjectEnvironment
-	CustomDomain   pgtype.Text
+	CustomDomain   *string
 	CreatedAt      pgtype.Timestamptz
 	UpdatedAt      pgtype.Timestamptz
 	DeletedAt      pgtype.Timestamptz
