@@ -5,18 +5,20 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
-type PaymentMethod = store.PaymentMethod
-type InvoiceStatus = store.InvoiceStatus
-type PaymentIntentStatus = store.PaymentIntentStatus
-type TransactionType = store.TransactionType
-type TransactionStatus = store.TransactionStatus
+type (
+	PaymentMethod       = store.PaymentMethod
+	InvoiceStatus       = store.InvoiceStatus
+	PaymentIntentStatus = store.PaymentIntentStatus
+	TransactionType     = store.TransactionType
+	TransactionStatus   = store.TransactionStatus
+)
 
 const (
-	PaymentMethodCard     = store.PaymentMethodCard
-	PaymentMethodApplePay = store.PaymentMethodApplePay
-	InvoiceStatusPending  = store.InvoiceStatusPending
-	InvoiceStatusPaid     = store.InvoiceStatusPaid
-	InvoiceStatusFailed   = store.InvoiceStatusFailed
+	PaymentMethodCard                 = store.PaymentMethodCard
+	PaymentMethodApplePay             = store.PaymentMethodApplePay
+	InvoiceStatusPending              = store.InvoiceStatusPending
+	InvoiceStatusPaid                 = store.InvoiceStatusPaid
+	InvoiceStatusFailed               = store.InvoiceStatusCancelled
 	PaymentIntentStatusCreated        = store.PaymentIntentStatusCreated
 	PaymentIntentStatusAuthenticating = store.PaymentIntentStatusAuthenticating
 	PaymentIntentStatusAuthenticated  = store.PaymentIntentStatusAuthenticated

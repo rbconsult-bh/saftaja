@@ -49,7 +49,28 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, err
 	}
 
-	// TODO: validate invoice exists and status is pending
+	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        r.InvoiceID,
+		ProjectID: r.ProjectID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id and project")
+		return nil, err
+	}
+
+	switch invoice.Status {
+	case store.InvoiceStatusPending:
+		// we are good :)
+	case store.InvoiceStatusPaid:
+		log.Ctx(ctx).Info().Msg("attempted to pay an already paid invoice")
+		return nil, ErrInvoiceAlreadyPaid
+	case store.InvoiceStatusCancelled:
+		log.Ctx(ctx).Info().Msg("cannot pay cancelled invoice")
+		return nil, ErrInvoiceCancelled
+	default:
+		return nil, fmt.Errorf("un-payable invoice status: %s", invoice.Status)
+	}
+
 	// TODO: validate gateway account belongs to this project (could be implicit if possible by fetching with two matchers)
 	// TODO: check if existing payment intent exists by idempotency key.
 

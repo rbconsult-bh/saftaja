@@ -14,6 +14,8 @@ var (
 	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrNotFound                 = errors.New("not found")
 	ErrUnsupportedPaymentMethod = errors.New("unsupported payment method")
+	ErrInvoiceAlreadyPaid       = errors.New("invoice is already paid")
+	ErrInvoiceCancelled         = errors.New("invoice is cancelled")
 )
 
 type Service interface {
@@ -36,10 +38,10 @@ const (
 type InvoiceStatus string
 
 const (
-	InvoiceStatusUnknown InvoiceStatus = "unknown"
-	InvoiceStatusPending InvoiceStatus = "pending"
-	InvoiceStatusPaid    InvoiceStatus = "paid"
-	InvoiceStatusFailed  InvoiceStatus = "failed"
+	InvoiceStatusUnknown   InvoiceStatus = "unknown"
+	InvoiceStatusPending   InvoiceStatus = "pending"
+	InvoiceStatusPaid      InvoiceStatus = "paid"
+	InvoiceStatusCancelled InvoiceStatus = "cancelled"
 )
 
 type (

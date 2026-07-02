@@ -16,9 +16,9 @@ const (
 type InvoiceStatus string
 
 const (
-	InvoiceStatusPending InvoiceStatus = "pending"
-	InvoiceStatusPaid    InvoiceStatus = "paid"
-	InvoiceStatusFailed  InvoiceStatus = "failed"
+	InvoiceStatusPending   InvoiceStatus = "pending"
+	InvoiceStatusPaid      InvoiceStatus = "paid"
+	InvoiceStatusCancelled InvoiceStatus = "cancelled"
 )
 
 type PaymentIntentStatus string

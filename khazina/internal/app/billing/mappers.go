@@ -66,8 +66,8 @@ func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) InvoiceStatus 
 		return InvoiceStatusPending
 	case store.InvoiceStatusPaid:
 		return InvoiceStatusPaid
-	case store.InvoiceStatusFailed:
-		return InvoiceStatusFailed
+	case store.InvoiceStatusCancelled:
+		return InvoiceStatusCancelled
 	default:
 		return InvoiceStatusUnknown
 	}
