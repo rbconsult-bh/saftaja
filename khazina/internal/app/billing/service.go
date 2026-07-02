@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -55,20 +56,30 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		InvoiceID:      r.InvoiceID,
 		IdempotencyKey: r.IdempotencyKey,
 	})
-	if err == nil {
-		if existingIntent.InvoiceID != r.InvoiceID || existingIntent.GatewayAccountID != r.GatewayAccountID {
-			log.Ctx(ctx).Error().Err(err).Msg("idempotency key collision with different parameters")
+	switch {
+	case err == nil:
+		if existingIntent.InvoiceID != r.InvoiceID ||
+			existingIntent.GatewayAccountID != r.GatewayAccountID ||
+			mapStorePaymentMethodToPaymentMethod(existingIntent.PaymentMethod) != r.PaymentMethod {
+			log.Ctx(ctx).Error().Msg("idempotency key collision with different parameters")
 			return nil, ErrIdempotencyMismatch
 		}
 
 		if time.Now().After(existingIntent.ExpiresAt) {
+			log.Ctx(ctx).Error().Msg("payment intent already expired")
 			return nil, ErrPaymentIntentExpired
 		}
 
+		log.Ctx(ctx).Info().Msg("returning idempotent response")
 		return &StartPaymentResponse{
 			PaymentIntentID:  existingIntent.ID,
 			GatewaySessionID: existingIntent.GatewaySessionID,
 		}, nil
+	case errors.Is(err, pgx.ErrNoRows):
+		// we are good :)
+	default:
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment intent by idempotency key")
+		return nil, err
 	}
 
 	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
@@ -76,7 +87,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		ProjectID: r.ProjectID,
 	})
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("invoice is not found")
 			return nil, ErrInvoiceNotFound
 		}
@@ -103,7 +114,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		ProjectID: r.ProjectID,
 	})
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			log.Ctx(ctx).Info().Msg("gatewat account is not found")
 			return nil, ErrGatewayAccountNotFound
 		}

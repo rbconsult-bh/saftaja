@@ -59,3 +59,14 @@ func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) InvoiceStatus 
 		return InvoiceStatusUnknown
 	}
 }
+
+func mapStorePaymentMethodToPaymentMethod(spm store.PaymentMethod) PaymentMethod {
+	switch spm {
+	case store.PaymentMethodCard:
+		return PaymentMethodCard
+	case store.PaymentMethodApplePay:
+		return PaymentMethodApplePay
+	default:
+		return PaymentMethodUnkown
+	}
+}
