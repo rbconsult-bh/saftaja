@@ -62,3 +62,16 @@ sql:
           - column: "transactions.status"
             go_type:
               type: "TransactionStatus"
+
+          - db_type: "timestamptz"
+            nullable: false
+            go_type:
+              import: "time"
+              type: "Time"
+
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true

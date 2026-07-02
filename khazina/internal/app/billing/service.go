@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -50,7 +51,25 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, err
 	}
 
-	// TODO: do idempotency checks
+	existingIntent, err := s.queries.GetPaymentIntentByIdempotencyKey(ctx, store.GetPaymentIntentByIdempotencyKeyParams{
+		InvoiceID:      r.InvoiceID,
+		IdempotencyKey: r.IdempotencyKey,
+	})
+	if err == nil {
+		if existingIntent.InvoiceID != r.InvoiceID || existingIntent.GatewayAccountID != r.GatewayAccountID {
+			log.Ctx(ctx).Error().Err(err).Msg("idempotency key collision with different parameters")
+			return nil, ErrIdempotencyMismatch
+		}
+
+		if time.Now().After(existingIntent.ExpiresAt) {
+			return nil, ErrPaymentIntentExpired
+		}
+
+		return &StartPaymentResponse{
+			PaymentIntentID:  existingIntent.ID,
+			GatewaySessionID: existingIntent.GatewaySessionID,
+		}, nil
+	}
 
 	invoice, err := s.queries.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
 		ID:        r.InvoiceID,
@@ -122,7 +141,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	}
 
 	return &StartPaymentResponse{
-		PaymentIntentID:  resp.ID.String(),
+		PaymentIntentID:  resp.ID,
 		GatewaySessionID: resp.GatewaySessionID,
 	}, nil
 }

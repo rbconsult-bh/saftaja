@@ -7,9 +7,9 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createGatewayAccount = `-- name: CreateGatewayAccount :one
@@ -113,9 +113,9 @@ type GetGatewayAccountByPaymentIntentIDRow struct {
 	AccountName      string
 	Config           []byte
 	IsActive         bool
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	DeletedAt        pgtype.Timestamptz
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
 	Secret           []byte
 	ID_2             uuid.UUID
 	InvoiceID        uuid.UUID
@@ -126,10 +126,10 @@ type GetGatewayAccountByPaymentIntentIDRow struct {
 	PaymentMethod    PaymentMethod
 	PayerIp          string
 	PayerUserAgent   string
-	ExpiresAt        pgtype.Timestamptz
-	CreatedAt_2      pgtype.Timestamptz
-	UpdatedAt_2      pgtype.Timestamptz
-	DeletedAt_2      pgtype.Timestamptz
+	ExpiresAt        time.Time
+	CreatedAt_2      time.Time
+	UpdatedAt_2      time.Time
+	DeletedAt_2      *time.Time
 	IdempotencyKey   string
 }
 

@@ -18,6 +18,8 @@ var (
 	ErrInvoiceCancelled         = errors.New("invoice cancelled")
 	ErrInvoiceNotFound          = errors.New("invoice not found")
 	ErrGatewayAccountNotFound   = errors.New("gateway account not found")
+	ErrIdempotencyMismatch      = errors.New("idempotency key already used with different parameters")
+	ErrPaymentIntentExpired     = errors.New("payment intent expired")
 )
 
 type Service interface {
@@ -107,7 +109,7 @@ type (
 		PayerUserAgent   string
 	}
 	StartPaymentResponse struct {
-		PaymentIntentID  string
+		PaymentIntentID  uuid.UUID
 		GatewaySessionID *string
 	}
 )

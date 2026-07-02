@@ -7,9 +7,9 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createCustomerIfNotExists = `-- name: CreateCustomerIfNotExists :one
@@ -37,9 +37,9 @@ type CreateCustomerIfNotExistsRow struct {
 	ID              uuid.UUID
 	Name            string
 	Email           string
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
-	DeletedAt       pgtype.Timestamptz
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time
 	NeedsDefaultOrg bool
 }
 

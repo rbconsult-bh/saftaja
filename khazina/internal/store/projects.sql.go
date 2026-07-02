@@ -7,9 +7,9 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createProjectForOrganization = `-- name: CreateProjectForOrganization :one
@@ -72,9 +72,9 @@ type GetProjectByPaymentIntentIDRow struct {
 	Name             string
 	Environment      ProjectEnvironment
 	CustomDomain     *string
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	DeletedAt        pgtype.Timestamptz
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
 	ID_2             uuid.UUID
 	InvoiceID        uuid.UUID
 	ProjectID        uuid.UUID
@@ -84,10 +84,10 @@ type GetProjectByPaymentIntentIDRow struct {
 	PaymentMethod    PaymentMethod
 	PayerIp          string
 	PayerUserAgent   string
-	ExpiresAt        pgtype.Timestamptz
-	CreatedAt_2      pgtype.Timestamptz
-	UpdatedAt_2      pgtype.Timestamptz
-	DeletedAt_2      pgtype.Timestamptz
+	ExpiresAt        time.Time
+	CreatedAt_2      time.Time
+	UpdatedAt_2      time.Time
+	DeletedAt_2      *time.Time
 	IdempotencyKey   string
 }
 

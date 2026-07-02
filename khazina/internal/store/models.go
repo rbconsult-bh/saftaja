@@ -7,9 +7,9 @@ package store
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -60,25 +60,25 @@ type AuthIntent struct {
 	ID        uuid.UUID
 	Email     string
 	TokenHash []byte
-	ExpiresAt pgtype.Timestamptz
-	CreatedAt pgtype.Timestamptz
+	ExpiresAt time.Time
+	CreatedAt time.Time
 }
 
 type Customer struct {
 	ID        uuid.UUID
 	Name      string
 	Email     string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	DeletedAt pgtype.Timestamptz
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
 type CustomerSession struct {
 	ID             uuid.UUID
 	CustomerID     uuid.UUID
 	CurrentJtiHash []byte
-	ExpiresAt      pgtype.Timestamptz
-	CreatedAt      pgtype.Timestamptz
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
 }
 
 type GatewayAccount struct {
@@ -88,9 +88,9 @@ type GatewayAccount struct {
 	AccountName   string
 	Config        []byte
 	IsActive      bool
-	CreatedAt     pgtype.Timestamptz
-	UpdatedAt     pgtype.Timestamptz
-	DeletedAt     pgtype.Timestamptz
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
 	Secret        []byte
 }
 
@@ -104,10 +104,10 @@ type Invoice struct {
 	CustomerEmail *string
 	CustomerName  *string
 	Description   *string
-	PaidAt        pgtype.Timestamptz
-	CreatedAt     pgtype.Timestamptz
-	UpdatedAt     pgtype.Timestamptz
-	DeletedAt     pgtype.Timestamptz
+	PaidAt        *time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
 }
 
 type InvoiceItem struct {
@@ -118,22 +118,22 @@ type InvoiceItem struct {
 	Quantity    int32
 	UnitPrice   decimal.Decimal
 	Amount      decimal.Decimal
-	CreatedAt   pgtype.Timestamptz
+	CreatedAt   time.Time
 }
 
 type Organization struct {
 	ID        uuid.UUID
 	Name      string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	DeletedAt pgtype.Timestamptz
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
 type OrganizationCustomer struct {
 	OrganizationID uuid.UUID
 	CustomerID     uuid.UUID
 	Role           OrganizationRole
-	CreatedAt      pgtype.Timestamptz
+	CreatedAt      time.Time
 }
 
 type PaymentIntent struct {
@@ -146,10 +146,10 @@ type PaymentIntent struct {
 	PaymentMethod    PaymentMethod
 	PayerIp          string
 	PayerUserAgent   string
-	ExpiresAt        pgtype.Timestamptz
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	DeletedAt        pgtype.Timestamptz
+	ExpiresAt        time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
 	IdempotencyKey   string
 }
 
@@ -159,9 +159,9 @@ type Project struct {
 	Name           string
 	Environment    ProjectEnvironment
 	CustomDomain   *string
-	CreatedAt      pgtype.Timestamptz
-	UpdatedAt      pgtype.Timestamptz
-	DeletedAt      pgtype.Timestamptz
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      *time.Time
 }
 
 type Transaction struct {
@@ -176,7 +176,7 @@ type Transaction struct {
 	Status               TransactionStatus
 	RawRequest           []byte
 	RawResponse          []byte
-	CreatedAt            pgtype.Timestamptz
-	UpdatedAt            pgtype.Timestamptz
-	DeletedAt            pgtype.Timestamptz
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	DeletedAt            *time.Time
 }

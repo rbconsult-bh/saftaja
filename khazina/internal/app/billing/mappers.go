@@ -1,8 +1,6 @@
 package billing
 
 import (
-	"time"
-
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -14,16 +12,6 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 
 	first := rows[0].Invoice
 
-	var paidAt *time.Time
-	if first.PaidAt.Valid {
-		paidAt = &first.PaidAt.Time
-	}
-
-	var deletedAt *time.Time
-	if first.DeletedAt.Valid {
-		deletedAt = &first.DeletedAt.Time
-	}
-
 	invoice := Invoice{
 		ID:            first.ID,
 		ProjectID:     first.ProjectID,
@@ -34,10 +22,10 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 		CustomerEmail: ptr.Deref(first.CustomerEmail),
 		CustomerName:  ptr.Deref(first.CustomerName),
 		Description:   ptr.Deref(first.Description),
-		PaidAt:        paidAt,
-		CreatedAt:     first.CreatedAt.Time,
-		UpdatedAt:     first.UpdatedAt.Time,
-		DeletedAt:     deletedAt,
+		PaidAt:        first.PaidAt,
+		CreatedAt:     first.CreatedAt,
+		UpdatedAt:     first.UpdatedAt,
+		DeletedAt:     first.DeletedAt,
 		Items:         make([]InvoiceItem, 0, len(rows)),
 	}
 
@@ -50,7 +38,7 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 			Quantity:    r.InvoiceItem.Quantity,
 			UnitPrice:   r.InvoiceItem.UnitPrice,
 			Amount:      r.InvoiceItem.Amount,
-			CreatedAt:   r.InvoiceItem.CreatedAt.Time,
+			CreatedAt:   r.InvoiceItem.CreatedAt,
 		}
 
 		invoice.Items = append(invoice.Items, item)
@@ -59,7 +47,6 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 	return invoice
 }
 
-// TODO: use store type once you make it.
 func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) InvoiceStatus {
 	switch is {
 	case store.InvoiceStatusPending:

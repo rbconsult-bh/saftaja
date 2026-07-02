@@ -154,7 +154,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		return nil, err
 	}
 
-	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
+	if time.Now().After(session.ExpiresAt) {
 		return nil, &SessionExpiredError{SessionID: session.ID.String()}
 	}
 
@@ -275,7 +275,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, err
 	}
 
-	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
+	if time.Now().After(session.ExpiresAt) {
 		return nil, &SessionExpiredError{SessionID: session.ID.String()}
 	}
 
@@ -433,7 +433,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, err
 	}
 
-	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
+	if time.Now().After(session.ExpiresAt) {
 		return nil, &SessionExpiredError{SessionID: session.ID.String()}
 	}
 
