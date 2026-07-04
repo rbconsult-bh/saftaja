@@ -44,6 +44,9 @@ func (mcg *mpgsCardGateway) CreateSession(ctx context.Context, r CreateSessionRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mpgs session: %w", err)
 	}
+	if createSessionResp == nil || createSessionResp.Data.Session == nil || createSessionResp.Data.Session.ID == "" {
+		return nil, fmt.Errorf("failed to create mpgs session: missing session id")
+	}
 
 	_, err = mcg.client.UpdateSession(ctx, createSessionResp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
 		Order: mpgsclient.UpdateSessionOrder{

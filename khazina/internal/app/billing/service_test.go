@@ -371,6 +371,29 @@ func TestStartPayment_DoesNotCreateIntentWhenCardGatewayFails(t *testing.T) {
 	assert.Equal(t, 1, env.cardGateway.calls)
 }
 
+func TestStartPayment_RejectsUnsupportedCardGateway(t *testing.T) {
+	env := setupTestEnv(t)
+	env.gatewayResolver.err = ErrUnsupportedGateway
+
+	req := validStartPaymentRequest("key-unsupported-gateway")
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
+	assert.Equal(t, 1, env.gatewayResolver.calls)
+	assert.Equal(t, 0, env.cardGateway.calls)
+}
+
+func TestStartPayment_ReturnsGatewayResolverError(t *testing.T) {
+	env := setupTestEnv(t)
+	errResolver := errors.New("resolver failed")
+	env.gatewayResolver.err = errResolver
+
+	req := validStartPaymentRequest("key-resolver-error")
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, errResolver)
+	assert.Equal(t, 1, env.gatewayResolver.calls)
+	assert.Equal(t, 0, env.cardGateway.calls)
+}
+
 func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
 	env := setupTestEnv(t)
 	req := validStartPaymentRequest("key-apple-pay")

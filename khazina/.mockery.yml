@@ -32,3 +32,11 @@ packages:
           pkgname: mocks
           structname: MockService
           filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs:
+    interfaces:
+      Client:
+        config:
+          dir: internal/clients/mpgs/mocks
+          pkgname: mocks
+          structname: MockClient
+          filename: mock_Client.go
