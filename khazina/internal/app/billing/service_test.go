@@ -402,6 +402,41 @@ func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
 	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
 }
 
+func TestVerifyCard_RejectsInvalidRequest(t *testing.T) {
+	env := setupTestEnv(t)
+
+	tests := []struct {
+		name string
+		req  VerifyCardRequest
+		err  error
+	}{
+		{
+			name: "missing_project_ID",
+			req:  VerifyCardRequest{InvoiceID: uuidInvoice},
+			err:  ErrInvalidArgument,
+		},
+		{
+			name: "missing_invoice_ID",
+			req:  VerifyCardRequest{ProjectID: uuidProject},
+			err:  ErrInvalidArgument,
+		},
+		{
+			name: "missing_payment_intent_ID",
+			req:  VerifyCardRequest{InvoiceID: uuidInvoice, ProjectID: uuidProject},
+			err:  ErrInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := env.svc.VerifyCard(env.ctx, tt.req)
+
+			assert.Nil(t, resp)
+			assert.ErrorIs(t, err, tt.err)
+		})
+	}
+}
+
 type fakeGatewayResolver struct {
 	cardGateway CardGateway
 	err         error
