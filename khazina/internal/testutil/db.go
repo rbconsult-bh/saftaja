@@ -17,6 +17,7 @@ import (
 )
 
 const baseDSN = "postgres://test_user:test_password@localhost:5433/test_khazina?sslmode=disable"
+const migrationAdvisoryLockID int64 = 917431742001
 
 type TestDB struct {
 	Pool   *pgxpool.Pool
@@ -45,7 +46,17 @@ func SetupIsolatedDB(t *testing.T) TestDB {
 
 	schemaDSN := baseDSN + "&search_path=" + schemaName
 
-	err = store.RunMigrations(schemaDSN)
+	migrationConn, err := adminPool.Acquire(ctx)
+	require.NoError(t, err)
+	defer migrationConn.Release()
+
+	_, err = migrationConn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrationAdvisoryLockID)
+	require.NoError(t, err)
+	defer func() {
+		_, _ = migrationConn.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", migrationAdvisoryLockID)
+	}()
+
+	err = store.RunMigrationsInSchema(schemaDSN, schemaName)
 	require.NoError(t, err)
 
 	testConfig, err := pgxpool.ParseConfig(baseDSN)

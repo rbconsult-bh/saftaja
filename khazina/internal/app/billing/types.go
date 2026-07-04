@@ -20,6 +20,7 @@ var (
 	ErrGatewayAccountNotFound   = errors.New("gateway account not found")
 	ErrIdempotencyMismatch      = errors.New("idempotency key already used with different parameters")
 	ErrPaymentIntentExpired     = errors.New("payment intent expired")
+	ErrUnsupportedGateway       = errors.New("unsupported gateway")
 )
 
 type Service interface {

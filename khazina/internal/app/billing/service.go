@@ -12,20 +12,20 @@ import (
 )
 
 type service struct {
-	queries       store.TransactionQuerier
-	encryptionKey []byte
+	queries         store.TransactionQuerier
+	gatewayResolver GatewayResolver
 }
 
-func New(queries store.TransactionQuerier, encryptionKey []byte) Service {
+func New(queries store.TransactionQuerier, gatewayResolver GatewayResolver) Service {
 	return &service{
-		queries:       queries,
-		encryptionKey: encryptionKey,
+		queries:         queries,
+		gatewayResolver: gatewayResolver,
 	}
 }
 
 func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error) {
 	if err := r.Validate(); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("validation failed")
+		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
 		return nil, err
 	}
 
@@ -50,7 +50,7 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 
 func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error) {
 	if err := r.Validate(); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("validation failed")
+		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
 		return nil, err
 	}
 
@@ -63,7 +63,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		if existingIntent.InvoiceID != r.InvoiceID ||
 			existingIntent.GatewayAccountID != r.GatewayAccountID ||
 			mapStorePaymentMethodToPaymentMethod(existingIntent.PaymentMethod) != r.PaymentMethod {
-			log.Ctx(ctx).Error().Msg("idempotency key collision with different parameters")
+			log.Ctx(ctx).Warn().Msg("idempotency key collision with different parameters")
 			return nil, ErrIdempotencyMismatch
 		}
 
@@ -111,13 +111,13 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, fmt.Errorf("un-payable invoice status: %s", invoice.Status)
 	}
 
-	_, err = s.queries.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
+	gatewayAccount, err := s.queries.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
 		ID:        r.GatewayAccountID,
 		ProjectID: r.ProjectID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Ctx(ctx).Info().Msg("gatewat account is not found")
+			log.Ctx(ctx).Info().Msg("gateway account is not found")
 			return nil, ErrGatewayAccountNotFound
 		}
 
@@ -126,24 +126,62 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	}
 
 	createPaymentIntentParams := store.CreatePaymentIntentParams{
-		InvoiceID:        r.InvoiceID,
-		ProjectID:        r.ProjectID,
-		GatewayAccountID: r.GatewayAccountID,
+		InvoiceID:        invoice.ID,
+		ProjectID:        invoice.ProjectID,
+		GatewayAccountID: gatewayAccount.ID,
 		PayerIp:          r.PayerIP,
 		PayerUserAgent:   r.PayerUserAgent,
 		IdempotencyKey:   r.IdempotencyKey,
 	}
 	switch r.PaymentMethod {
 	case PaymentMethodCard:
+		cardGateway, err := s.gatewayResolver.CardGateway(gatewayAccount)
+		if err != nil {
+			if errors.Is(err, ErrUnsupportedGateway) {
+				log.Ctx(ctx).Info().
+					Err(err).
+					Str("connector_type", string(gatewayAccount.ConnectorType)).
+					Str("payment_method", string(r.PaymentMethod)).
+					Msg("gateway account does not support payment method")
+				return nil, fmt.Errorf("%w: card is not supported by selected gateway account", ErrUnsupportedPaymentMethod)
+			}
+
+			log.Ctx(ctx).Error().
+				Err(err).
+				Str("gateway_account_id", gatewayAccount.ID.String()).
+				Str("connector_type", string(gatewayAccount.ConnectorType)).
+				Msg("failed to resolve card gateway")
+			return nil, err
+		}
+
 		createPaymentIntentParams.PaymentMethod = store.PaymentMethodCard
-		createPaymentIntentParams.GatewaySessionID = new(string)
-		// TODO: create mpgs session
+
+		createSessionResp, err := cardGateway.CreateSession(ctx, CreateSessionRequest{
+			InvoiceID: invoice.ID,
+			Amount:    invoice.Amount,
+			Currency:  invoice.Currency,
+		})
+		if err != nil {
+			log.Ctx(ctx).Error().
+				Err(err).
+				Str("gateway_account_id", gatewayAccount.ID.String()).
+				Str("invoice_id", invoice.ID.String()).
+				Msg("failed to create card gateway session")
+			return nil, err
+		}
+
+		createPaymentIntentParams.GatewaySessionID = &createSessionResp.GatewaySessionID
+
 	case PaymentMethodApplePay:
-		createPaymentIntentParams.PaymentMethod = store.PaymentMethodApplePay
-		// apple pay through does not need external services before we get the token from the user.
-		// TODO: handle apple pay
-		return nil, fmt.Errorf("%w: Apply Pay not yet supported", ErrUnsupportedPaymentMethod)
+		log.Ctx(ctx).Info().
+			Str("payment_method", string(r.PaymentMethod)).
+			Msg("payment method is not yet supported")
+		return nil, fmt.Errorf("%w: Apple Pay not yet supported", ErrUnsupportedPaymentMethod)
+
 	default:
+		log.Ctx(ctx).Info().
+			Str("payment_method", string(r.PaymentMethod)).
+			Msg("unsupported payment method")
 		return nil, ErrUnsupportedPaymentMethod
 	}
 

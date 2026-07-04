@@ -11,13 +11,26 @@ import (
 )
 
 func RunMigrations(dsn string) error {
+	return runMigrations(dsn, "")
+}
+
+func RunMigrationsInSchema(dsn, schemaName string) error {
+	return runMigrations(dsn, schemaName)
+}
+
+func runMigrations(dsn, schemaName string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return fmt.Errorf("cannot connect to database: %w", err)
 	}
 	defer db.Close()
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	cfg := &postgres.Config{}
+	if schemaName != "" {
+		cfg.SchemaName = schemaName
+	}
+
+	driver, err := postgres.WithInstance(db, cfg)
 	if err != nil {
 		return fmt.Errorf("cannot create postgres driver: %w", err)
 	}

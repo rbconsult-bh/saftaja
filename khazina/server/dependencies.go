@@ -77,9 +77,11 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		return nil, fmt.Errorf("failed to get encryption key: %w", err)
 	}
 
+	gatewayResolver := billing.NewGatewayResolver()
+
 	tenantSvc := tenant.NewService(queries)
 	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
-	billingSvc := billing.New(queries, encryptionKey)
+	billingSvc := billing.New(queries, gatewayResolver)
 	gatewaySvc := gateway.New(queries, encryptionKey)
 
 	emailer, err := initEmailer(cfg)

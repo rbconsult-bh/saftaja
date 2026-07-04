@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -25,10 +26,12 @@ var (
 var testEncryptionKey = []byte("12345678901234567890123456789012")
 
 type testEnv struct {
-	ctx     context.Context
-	db      *pgxpool.Pool
-	queries store.TransactionQuerier
-	svc     Service
+	ctx             context.Context
+	db              *pgxpool.Pool
+	queries         store.TransactionQuerier
+	cardGateway     *fakeCardGateway
+	gatewayResolver *fakeGatewayResolver
+	svc             Service
 }
 
 func setupTestEnv(t *testing.T) testEnv {
@@ -36,12 +39,20 @@ func setupTestEnv(t *testing.T) testEnv {
 
 	db := testutil.SetupIsolatedDBWithFixtures(t, "./testdata/fixtures")
 	queries := store.NewTransactionQuerier(db.Pool)
+	cardGateway := &fakeCardGateway{
+		sessionID: "session-test-123",
+	}
+	gatewayResolver := &fakeGatewayResolver{
+		cardGateway: cardGateway,
+	}
 
 	return testEnv{
-		ctx:     t.Context(),
-		db:      db.Pool,
-		queries: queries,
-		svc:     New(queries, testEncryptionKey),
+		ctx:             t.Context(),
+		db:              db.Pool,
+		queries:         queries,
+		cardGateway:     cardGateway,
+		gatewayResolver: gatewayResolver,
+		svc:             New(queries, gatewayResolver),
 	}
 }
 
@@ -336,6 +347,28 @@ func TestStartPayment_CreatesCardIntent(t *testing.T) {
 	assert.Equal(t, store.PaymentMethodCard, intent.PaymentMethod)
 	assert.Equal(t, store.PaymentIntentStatusCreated, intent.Status)
 	assert.Equal(t, "key-card-success", intent.IdempotencyKey)
+	require.NotNil(t, intent.GatewaySessionID)
+	assert.Equal(t, "session-test-123", *intent.GatewaySessionID)
+
+	assert.Equal(t, 1, env.gatewayResolver.calls)
+	assert.Equal(t, uuidGateway, env.gatewayResolver.account.ID)
+
+	assert.Equal(t, 1, env.cardGateway.calls)
+	assert.Equal(t, uuidInvoice, env.cardGateway.req.InvoiceID)
+	assert.Equal(t, "BHD", env.cardGateway.req.Currency)
+
+	require.NotNil(t, resp.GatewaySessionID)
+	assert.Equal(t, "session-test-123", *resp.GatewaySessionID)
+}
+
+func TestStartPayment_DoesNotCreateIntentWhenCardGatewayFails(t *testing.T) {
+	env := setupTestEnv(t)
+	env.cardGateway.err = errors.New("gateway down")
+
+	req := validStartPaymentRequest("key-gateway-fails")
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, env.cardGateway.err)
+	assert.Equal(t, 1, env.cardGateway.calls)
 }
 
 func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
@@ -344,4 +377,33 @@ func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
 	req.PaymentMethod = PaymentMethodApplePay
 
 	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
+}
+
+type fakeGatewayResolver struct {
+	cardGateway CardGateway
+	err         error
+	account     store.GatewayAccount
+	calls       int
+}
+
+func (f *fakeGatewayResolver) CardGateway(account store.GatewayAccount) (CardGateway, error) {
+	f.calls++
+	f.account = account
+	return f.cardGateway, f.err
+}
+
+type fakeCardGateway struct {
+	sessionID string
+	req       CreateSessionRequest
+	calls     int
+	err       error
+}
+
+func (f *fakeCardGateway) CreateSession(ctx context.Context, r CreateSessionRequest) (*CreateSessionResponse, error) {
+	f.calls++
+	f.req = r
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &CreateSessionResponse{GatewaySessionID: f.sessionID}, nil
 }
