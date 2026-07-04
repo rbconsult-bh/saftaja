@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ var testEncryptionKey = []byte("12345678901234567890123456789012")
 
 type testEnv struct {
 	ctx     context.Context
+	db      *pgxpool.Pool
 	queries store.TransactionQuerier
 	svc     Service
 }
@@ -37,12 +39,54 @@ func setupTestEnv(t *testing.T) testEnv {
 
 	return testEnv{
 		ctx:     t.Context(),
+		db:      db.Pool,
 		queries: queries,
 		svc:     New(queries, testEncryptionKey),
 	}
 }
 
-func TestGetInvoice_Validation(t *testing.T) {
+func validGetInvoiceRequest() GetInvoiceRequest {
+	return GetInvoiceRequest{
+		InvoiceID: uuidInvoice,
+		ProjectID: uuidProject,
+	}
+}
+
+func validStartPaymentRequest(idempotencyKey string) StartPaymentRequest {
+	return StartPaymentRequest{
+		InvoiceID:        uuidInvoice,
+		ProjectID:        uuidProject,
+		IdempotencyKey:   idempotencyKey,
+		GatewayAccountID: uuidGateway,
+		PaymentMethod:    PaymentMethodCard,
+		PayerIP:          "192.168.1.1",
+		PayerUserAgent:   "Mozilla/5.0",
+	}
+}
+
+func countPaymentIntents(t *testing.T, env testEnv) int {
+	t.Helper()
+
+	var count int
+	err := env.db.QueryRow(env.ctx, "SELECT COUNT(*) FROM payment_intents").Scan(&count)
+	require.NoError(t, err)
+
+	return count
+}
+
+func assertStartPaymentErrorWithoutNewIntent(t *testing.T, env testEnv, req StartPaymentRequest, wantErr error) {
+	t.Helper()
+
+	before := countPaymentIntents(t, env)
+
+	resp, err := env.svc.StartPayment(env.ctx, req)
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, wantErr)
+	assert.Equal(t, before, countPaymentIntents(t, env))
+}
+
+func TestGetInvoice_RejectsInvalidRequest(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
@@ -65,6 +109,7 @@ func TestGetInvoice_Validation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := env.svc.GetInvoice(env.ctx, tt.req)
+
 			assert.Nil(t, resp)
 			assert.ErrorIs(t, err, tt.err)
 		})
@@ -74,50 +119,59 @@ func TestGetInvoice_Validation(t *testing.T) {
 func TestGetInvoice_Success(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.GetInvoice(env.ctx, GetInvoiceRequest{
-		InvoiceID: uuidInvoice,
-		ProjectID: uuidProject,
-	})
+	resp, err := env.svc.GetInvoice(env.ctx, validGetInvoiceRequest())
+
 	require.NoError(t, err)
 	assert.Equal(t, uuidInvoice, resp.Invoice.ID)
-	assert.Len(t, resp.Invoice.Items, 1)
+	assert.Equal(t, uuidProject, resp.Invoice.ProjectID)
 	assert.Equal(t, InvoiceStatusPending, resp.Invoice.Status)
+	assert.Equal(t, "BHD", resp.Invoice.Currency)
+	assert.Equal(t, "testcustomer@saftaja.com", resp.Invoice.CustomerEmail)
+	require.Len(t, resp.Invoice.Items, 1)
+	assert.Equal(t, "test item", resp.Invoice.Items[0].Name)
 }
 
-func TestGetInvoice_NotFound_WrongProject(t *testing.T) {
+func TestGetInvoice_NotFound(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.GetInvoice(env.ctx, GetInvoiceRequest{
-		InvoiceID: uuidInvoice,
-		ProjectID: uuidNotExist,
-	})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrNotFound)
+	tests := []struct {
+		name string
+		req  GetInvoiceRequest
+	}{
+		{
+			name: "wrong_project",
+			req: GetInvoiceRequest{
+				InvoiceID: uuidInvoice,
+				ProjectID: uuidNotExist,
+			},
+		},
+		{
+			name: "invoice_does_not_exist",
+			req: GetInvoiceRequest{
+				InvoiceID: uuidNotExist,
+				ProjectID: uuidProject,
+			},
+		},
+		{
+			name: "invoice_has_no_items",
+			req: GetInvoiceRequest{
+				InvoiceID: uuidInvoiceNoItems,
+				ProjectID: uuidProject,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := env.svc.GetInvoice(env.ctx, tt.req)
+
+			assert.Nil(t, resp)
+			assert.ErrorIs(t, err, ErrNotFound)
+		})
+	}
 }
 
-func TestGetInvoice_NotFound_InvoiceNotExist(t *testing.T) {
-	env := setupTestEnv(t)
-
-	resp, err := env.svc.GetInvoice(env.ctx, GetInvoiceRequest{
-		InvoiceID: uuidNotExist,
-		ProjectID: uuidProject,
-	})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrNotFound)
-}
-
-func TestGetInvoice_NotFound_NoItems(t *testing.T) {
-	env := setupTestEnv(t)
-
-	resp, err := env.svc.GetInvoice(env.ctx, GetInvoiceRequest{
-		InvoiceID: uuidInvoiceNoItems,
-		ProjectID: uuidProject,
-	})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrNotFound)
-}
-
-func TestStartPayment_Validation(t *testing.T) {
+func TestStartPayment_RejectsInvalidRequestBeforeSideEffects(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
@@ -164,146 +218,115 @@ func TestStartPayment_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := StartPaymentRequest{
-				InvoiceID:        uuidInvoice,
-				ProjectID:        uuidProject,
-				IdempotencyKey:   "key-val",
-				GatewayAccountID: uuidGateway,
-				PaymentMethod:    PaymentMethodCard,
-				PayerIP:          "192.168.1.1",
-				PayerUserAgent:   "Mozilla/5.0",
-			}
+			req := validStartPaymentRequest("key-val")
 			tt.modifier(&req)
 
-			resp, err := env.svc.StartPayment(env.ctx, req)
-			assert.Nil(t, resp)
-			assert.ErrorIs(t, err, tt.err)
+			assertStartPaymentErrorWithoutNewIntent(t, env, req, tt.err)
 		})
 	}
 }
 
-func TestStartPayment_InvoiceErrors(t *testing.T) {
+func TestStartPayment_RejectsMissingInvoice(t *testing.T) {
+	env := setupTestEnv(t)
+	req := validStartPaymentRequest("key-missing-invoice")
+	req.InvoiceID = uuidNotExist
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrInvoiceNotFound)
+}
+
+func TestStartPayment_RejectsPaidInvoice(t *testing.T) {
+	env := setupTestEnv(t)
+	req := validStartPaymentRequest("key-paid-invoice")
+	req.InvoiceID = uuidInvoicePaid
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrInvoiceAlreadyPaid)
+}
+
+func TestStartPayment_RejectsCancelledInvoice(t *testing.T) {
+	env := setupTestEnv(t)
+	req := validStartPaymentRequest("key-cancelled-invoice")
+	req.InvoiceID = uuidInvoiceCancelled
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrInvoiceCancelled)
+}
+
+func TestStartPayment_RejectsUnknownGatewayAccount(t *testing.T) {
+	env := setupTestEnv(t)
+	req := validStartPaymentRequest("key-no-gw")
+	req.GatewayAccountID = uuidNotExist
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrGatewayAccountNotFound)
+}
+
+func TestStartPayment_ReplaysExistingIntent(t *testing.T) {
+	env := setupTestEnv(t)
+	before := countPaymentIntents(t, env)
+
+	resp, err := env.svc.StartPayment(env.ctx, validStartPaymentRequest("idem-created"))
+
+	require.NoError(t, err)
+	assert.Equal(t, uuid.MustParse("00000000-0000-0000-0000-000000005001"), resp.PaymentIntentID)
+	require.NotNil(t, resp.GatewaySessionID)
+	assert.Equal(t, "session-existing-abc", *resp.GatewaySessionID)
+	assert.Equal(t, before, countPaymentIntents(t, env))
+}
+
+func TestStartPayment_RejectsIdempotencyMismatch(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
-		name      string
-		invoiceID uuid.UUID
-		err       error
-	}{
-		{"not_found", uuidNotExist, ErrInvoiceNotFound},
-		{"already_paid", uuidInvoicePaid, ErrInvoiceAlreadyPaid},
-		{"cancelled", uuidInvoiceCancelled, ErrInvoiceCancelled},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := env.svc.StartPayment(env.ctx, StartPaymentRequest{
-				InvoiceID:        tt.invoiceID,
-				ProjectID:        uuidProject,
-				IdempotencyKey:   "key-" + tt.name,
-				GatewayAccountID: uuidGateway,
-				PaymentMethod:    PaymentMethodCard,
-				PayerIP:          "192.168.1.1",
-				PayerUserAgent:   "Mozilla/5.0",
-			})
-			assert.Nil(t, resp)
-			assert.ErrorIs(t, err, tt.err)
-		})
-	}
-}
-
-func TestStartPayment_GatewayAccountNotFound(t *testing.T) {
-	env := setupTestEnv(t)
-
-	resp, err := env.svc.StartPayment(env.ctx, StartPaymentRequest{
-		InvoiceID:        uuidInvoice,
-		ProjectID:        uuidProject,
-		IdempotencyKey:   "key-no-gw",
-		GatewayAccountID: uuidNotExist,
-		PaymentMethod:    PaymentMethodCard,
-		PayerIP:          "192.168.1.1",
-		PayerUserAgent:   "Mozilla/5.0",
-	})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrGatewayAccountNotFound)
-}
-
-func TestStartPayment_Idempotency(t *testing.T) {
-	env := setupTestEnv(t)
-
-	tests := []struct {
-		name        string
-		idempotKey  string
-		invoiceID   uuid.UUID
-		gatewayID   uuid.UUID
-		wantErr     error
-		wantIntent  uuid.UUID
-		wantSession string
+		name   string
+		change func(*StartPaymentRequest)
 	}{
 		{
-			name:        "replay",
-			idempotKey:  "idem-created",
-			invoiceID:   uuidInvoice,
-			gatewayID:   uuidGateway,
-			wantIntent:  uuid.MustParse("00000000-0000-0000-0000-000000005001"),
-			wantSession: "session-existing-abc",
+			name: "invoice",
+			change: func(r *StartPaymentRequest) {
+				r.IdempotencyKey = "idem-mismatch"
+			},
 		},
 		{
-			name:       "mismatched_invoice",
-			idempotKey: "idem-mismatch",
-			invoiceID:  uuidInvoice, // fixture key is on uuidInvoiceNoItems
-			gatewayID:  uuidGateway,
-			wantErr:    ErrIdempotencyMismatch,
+			name: "gateway_account",
+			change: func(r *StartPaymentRequest) {
+				r.IdempotencyKey = "idem-created"
+				r.GatewayAccountID = uuidNotExist
+			},
 		},
 		{
-			name:       "expired",
-			idempotKey: "idem-expired",
-			invoiceID:  uuidInvoice,
-			gatewayID:  uuidGateway,
-			wantErr:    ErrPaymentIntentExpired,
+			name: "payment_method",
+			change: func(r *StartPaymentRequest) {
+				r.IdempotencyKey = "idem-created"
+				r.PaymentMethod = PaymentMethodApplePay
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := env.svc.StartPayment(env.ctx, StartPaymentRequest{
-				InvoiceID:        tt.invoiceID,
-				ProjectID:        uuidProject,
-				IdempotencyKey:   tt.idempotKey,
-				GatewayAccountID: tt.gatewayID,
-				PaymentMethod:    PaymentMethodCard,
-				PayerIP:          "192.168.1.1",
-				PayerUserAgent:   "Mozilla/5.0",
-			})
+			req := validStartPaymentRequest("unused")
+			tt.change(&req)
 
-			if tt.wantErr != nil {
-				assert.Nil(t, resp)
-				assert.ErrorIs(t, err, tt.wantErr)
-				return
-			}
-
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantIntent, resp.PaymentIntentID)
-			require.NotNil(t, resp.GatewaySessionID)
-			assert.Equal(t, tt.wantSession, *resp.GatewaySessionID)
+			assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrIdempotencyMismatch)
 		})
 	}
 }
 
-func TestStartPayment_CardSuccess(t *testing.T) {
+func TestStartPayment_RejectsExpiredIntent(t *testing.T) {
 	env := setupTestEnv(t)
+	req := validStartPaymentRequest("idem-expired")
 
-	resp, err := env.svc.StartPayment(env.ctx, StartPaymentRequest{
-		InvoiceID:        uuidInvoice,
-		ProjectID:        uuidProject,
-		IdempotencyKey:   "key-card-success",
-		GatewayAccountID: uuidGateway,
-		PaymentMethod:    PaymentMethodCard,
-		PayerIP:          "192.168.1.1",
-		PayerUserAgent:   "Mozilla/5.0",
-	})
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrPaymentIntentExpired)
+}
+
+func TestStartPayment_CreatesCardIntent(t *testing.T) {
+	env := setupTestEnv(t)
+	before := countPaymentIntents(t, env)
+
+	resp, err := env.svc.StartPayment(env.ctx, validStartPaymentRequest("key-card-success"))
+
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, resp.PaymentIntentID)
+	require.NotNil(t, resp.GatewaySessionID)
+	assert.Equal(t, before+1, countPaymentIntents(t, env))
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, resp.PaymentIntentID)
 	require.NoError(t, err)
@@ -315,18 +338,10 @@ func TestStartPayment_CardSuccess(t *testing.T) {
 	assert.Equal(t, "key-card-success", intent.IdempotencyKey)
 }
 
-func TestStartPayment_ApplePay(t *testing.T) {
+func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
 	env := setupTestEnv(t)
+	req := validStartPaymentRequest("key-apple-pay")
+	req.PaymentMethod = PaymentMethodApplePay
 
-	resp, err := env.svc.StartPayment(env.ctx, StartPaymentRequest{
-		InvoiceID:        uuidInvoice,
-		ProjectID:        uuidProject,
-		IdempotencyKey:   "key-apple-pay",
-		GatewayAccountID: uuidGateway,
-		PaymentMethod:    PaymentMethodApplePay,
-		PayerIP:          "192.168.1.1",
-		PayerUserAgent:   "Mozilla/5.0",
-	})
-	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, ErrUnsupportedPaymentMethod)
+	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
 }
