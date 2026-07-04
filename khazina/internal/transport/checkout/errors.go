@@ -7,6 +7,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
@@ -59,12 +60,16 @@ func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 	var notFound *payment.InvoiceNotFoundError
 
 	switch {
+	case errors.Is(err, billing.ErrInvalidArgument):
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 	case errors.As(err, &notFound):
 		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 	case errors.As(err, &sessionExpired):
 		respondError(w, r, ErrCodeSessionExpired, templfiles.MsgSessionExpired, http.StatusGone)
 	case errors.As(err, &invalidTransition):
 		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
+	case errors.Is(err, billing.ErrInvoiceAlreadyPaid):
+		respondError(w, r, ErrCodeAlreadyPaid, templfiles.MsgAlreadyPaid, http.StatusConflict)
 	case errors.As(err, &alreadyPaid):
 		respondError(w, r, ErrCodeAlreadyPaid, templfiles.MsgAlreadyPaid, http.StatusConflict)
 	case errors.As(err, &mismatch):

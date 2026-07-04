@@ -21,6 +21,7 @@ import (
 	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
 
@@ -137,15 +138,15 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		ProjectID: projectID,
 	}).Return(&gateway.ListPaymentMethodsResponse{
 		PaymentMethods: []gateway.PaymentMethod{
-		{
-			Type:             gateway.PaymentMethodTypeCard,
-			GatewayAccountID: gatewayID,
-			MPGSBaseURL:      "https://test.gateway.mastercard.com",
-			MPGSMerchantID:   "TESTMERCHANT",
-			MPGSApiVersion:   "100",
+			{
+				Type:             gateway.PaymentMethodTypeCard,
+				GatewayAccountID: gatewayID,
+				MPGSBaseURL:      "https://test.gateway.mastercard.com",
+				MPGSMerchantID:   "TESTMERCHANT",
+				MPGSApiVersion:   "100",
+			},
 		},
-	},
-		}, nil)
+	}, nil)
 
 	w := f.getWithProject("/checkout/"+invoiceID.String(), project)
 
@@ -231,17 +232,17 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 	gatewayAccountID := uuid.New()
 	sessionID := uuid.New()
 
-	f.Payment.EXPECT().InitiateSession(mock.Anything, &payment.InitiateSessionRequest{
+	f.Billing.EXPECT().StartPayment(mock.Anything, billing.StartPaymentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    "card",
+		PaymentMethod:    billing.PaymentMethodCard,
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
-	}).Return(&payment.InitiateSessionResult{
+	}).Return(&billing.StartPaymentResponse{
 		PaymentIntentID:  sessionID,
-		GatewaySessionID: "MPGS_SESSION_123",
+		GatewaySessionID: ptr.To("MPGS_SESSION_123"),
 	}, nil)
 
 	body := map[string]any{
@@ -284,22 +285,21 @@ func TestInitiateSessionHandler_NoTenantContext(t *testing.T) {
 	}
 }
 
-func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
+func TestInitiateSessionHandler_InvalidStartPaymentRequest(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	f.Payment.EXPECT().InitiateSession(mock.Anything, &payment.InitiateSessionRequest{
+	f.Billing.EXPECT().StartPayment(mock.Anything, billing.StartPaymentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    "card",
+		PaymentMethod:    billing.PaymentMethodCard,
 		PayerIP:          "192.0.2.1",
-		PayerUserAgent:   "",
-		IdempotencyKey:   "",
-	}).Return(nil, &payment.InvoiceAlreadyPaidError{InvoiceID: invoiceID.String()})
+		PayerUserAgent:   "TestAgent",
+	}).Return(nil, billing.ErrInvalidArgument)
 
 	body := map[string]any{
 		"gateway_account_id": gatewayAccountID.String(),
@@ -310,6 +310,44 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 	ctx := saftajacontext.WithProject(req.Context(), project)
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "TestAgent")
+	req.RemoteAddr = "192.0.2.1:12345"
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
+	}
+}
+
+func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
+	f := newFixture(t)
+	invoiceID := uuid.New()
+	projectID := uuid.New()
+	project := testProject(projectID)
+	gatewayAccountID := uuid.New()
+
+	f.Billing.EXPECT().StartPayment(mock.Anything, billing.StartPaymentRequest{
+		ProjectID:        projectID,
+		InvoiceID:        invoiceID,
+		GatewayAccountID: gatewayAccountID,
+		PaymentMethod:    billing.PaymentMethodCard,
+		PayerIP:          "192.0.2.1",
+		PayerUserAgent:   "TestAgent",
+		IdempotencyKey:   "test-key-123",
+	}).Return(nil, billing.ErrInvoiceAlreadyPaid)
+
+	body := map[string]any{
+		"gateway_account_id": gatewayAccountID.String(),
+		"payment_method":     "card",
+	}
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/initiate", bytes.NewReader(b))
+	ctx := saftajacontext.WithProject(req.Context(), project)
+	req = req.WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "TestAgent")
+	req.Header.Set("Idempotency-Key", "test-key-123")
 	req.RemoteAddr = "192.0.2.1:12345"
 	w := httptest.NewRecorder()
 	f.router.ServeHTTP(w, req)

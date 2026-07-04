@@ -554,7 +554,6 @@ templ CheckoutForm(data CheckoutPageData) {
 		const INVOICE_AMOUNT = {{ data.Invoice.Amount }};
 		const INVOICE_CURRENCY = {{ data.Invoice.Currency }};
 		const LANG = {{ langCode(data.Lang) }};
-		const CHECKOUT_ATTEMPT_ID = getCheckoutAttemptID();
 		let CURRENT_PAYMENT_SESSION_ID = null;
 		let CURRENT_PAYMENT_TYPE = null;
 
@@ -565,8 +564,8 @@ templ CheckoutForm(data CheckoutPageData) {
 			return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 		}
 
-		function getCheckoutAttemptID() {
-			const key = `saftaja:checkout-attempt:${INVOICE_ID}`;
+		function startPaymentIdempotencyKey(accountId, type) {
+			const key = `saftaja:start-payment:${INVOICE_ID}:${accountId}:${type}`;
 			try {
 				let id = sessionStorage.getItem(key);
 				if (!id) {
@@ -577,10 +576,6 @@ templ CheckoutForm(data CheckoutPageData) {
 			} catch (_) {
 				return randomID();
 			}
-		}
-
-		function startPaymentIdempotencyKey(accountId, type) {
-			return `${INVOICE_ID}:${accountId}:${type}:${CHECKOUT_ATTEMPT_ID}`;
 		}
 
 		// Toggle invoice items
