@@ -9,8 +9,8 @@ type (
 	PaymentMethod       = store.PaymentMethod
 	InvoiceStatus       = store.InvoiceStatus
 	PaymentIntentStatus = store.PaymentIntentStatus
-	TransactionType     = store.TransactionType
-	TransactionStatus   = store.TransactionStatus
+	TransactionType     = store.GatewayOperationType
+	TransactionStatus   = store.GatewayOperationStatus
 )
 
 const (
@@ -25,12 +25,12 @@ const (
 	PaymentIntentStatusPaying         = store.PaymentIntentStatusPaying
 	PaymentIntentStatusCompleted      = store.PaymentIntentStatusCompleted
 	PaymentIntentStatusFailed         = store.PaymentIntentStatusFailed
-	TransactionTypeInitiateAuth       = store.TransactionTypeInitiateAuth
-	TransactionTypeAuthenticatePayer  = store.TransactionTypeAuthenticatePayer
-	TransactionTypePay                = store.TransactionTypePay
-	TransactionStatusPending          = store.TransactionStatusPending
-	TransactionStatusSuccess          = store.TransactionStatusSuccess
-	TransactionStatusFailed           = store.TransactionStatusFailed
+	TransactionTypeInitiateAuth       = store.GatewayOperationTypeInitiateAuth
+	TransactionTypeAuthenticatePayer  = store.GatewayOperationTypeAuthenticatePayer
+	TransactionTypePay                = store.GatewayOperationTypePay
+	TransactionStatusPending          = store.GatewayOperationStatusPending
+	TransactionStatusSuccess          = store.GatewayOperationStatusSuccess
+	TransactionStatusFailed           = store.GatewayOperationStatusFailed
 )
 
 type InitiateSessionRequest struct {

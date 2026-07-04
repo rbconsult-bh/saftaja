@@ -55,13 +55,13 @@ sql:
             go_type:
               type: "PaymentMethod"
 
-          - column: "transactions.transaction_type"
+          - column: "gateway_operations.operation_type"
             go_type:
-              type: "TransactionType"
+              type: "GatewayOperationType"
 
-          - column: "transactions.status"
+          - column: "gateway_operations.status"
             go_type:
-              type: "TransactionStatus"
+              type: "GatewayOperationStatus"
 
           - db_type: "timestamptz"
             nullable: false

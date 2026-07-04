@@ -16,11 +16,11 @@ type Querier interface {
 	CreateCustomerIfNotExists(ctx context.Context, arg CreateCustomerIfNotExistsParams) (CreateCustomerIfNotExistsRow, error)
 	CreateCustomerSession(ctx context.Context, arg CreateCustomerSessionParams) (CustomerSession, error)
 	CreateGatewayAccount(ctx context.Context, arg CreateGatewayAccountParams) (GatewayAccount, error)
+	CreateGatewayOperation(ctx context.Context, arg CreateGatewayOperationParams) (GatewayOperation, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
 	CreateOrganizationForCustomer(ctx context.Context, arg CreateOrganizationForCustomerParams) (uuid.UUID, error)
 	CreatePaymentIntent(ctx context.Context, arg CreatePaymentIntentParams) (PaymentIntent, error)
 	CreateProjectForOrganization(ctx context.Context, arg CreateProjectForOrganizationParams) (uuid.UUID, error)
-	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
 	DeleteCustomerSessionByIDAndCustomerID(ctx context.Context, arg DeleteCustomerSessionByIDAndCustomerIDParams) error
 	GetGatewayAccount(ctx context.Context, id uuid.UUID) (GatewayAccount, error)
 	GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGatewayAccountByIDAndProjectParams) (GatewayAccount, error)
@@ -29,22 +29,22 @@ type Querier interface {
 	GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceByIDAndProjectParams) (Invoice, error)
 	GetInvoiceItems(ctx context.Context, invoiceID uuid.UUID) ([]InvoiceItem, error)
 	GetInvoiceWithItemsByIDAndProjectID(ctx context.Context, arg GetInvoiceWithItemsByIDAndProjectIDParams) ([]GetInvoiceWithItemsByIDAndProjectIDRow, error)
+	GetLatestGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
 	GetLatestPaymentIntent(ctx context.Context, invoiceID uuid.UUID) (PaymentIntent, error)
-	GetLatestTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
-	GetPayTransactionByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
+	GetPayGatewayOperationByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
 	GetPaymentIntentByID(ctx context.Context, id uuid.UUID) (PaymentIntent, error)
 	GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPaymentIntentByIDAndProjectParams) (PaymentIntent, error)
 	GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyAndProjectParams) (PaymentIntent, error)
 	GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error)
 	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)
-	GetSuccessfulAuthTransaction(ctx context.Context, paymentIntentID uuid.UUID) (Transaction, error)
+	GetSuccessfulAuthGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)
 	ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error)
 	MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error
 	MarkInvoicePaid(ctx context.Context, id uuid.UUID) error
+	UpdateGatewayOperationStatus(ctx context.Context, arg UpdateGatewayOperationStatusParams) error
 	UpdatePaymentIntentStatus(ctx context.Context, arg UpdatePaymentIntentStatusParams) error
 	UpdatePaymentIntentsGatewayID(ctx context.Context, arg UpdatePaymentIntentsGatewayIDParams) error
-	UpdateTransactionStatus(ctx context.Context, arg UpdateTransactionStatusParams) error
 	VerifyCustomerProjectAccess(ctx context.Context, arg VerifyCustomerProjectAccessParams) (int32, error)
 }
 

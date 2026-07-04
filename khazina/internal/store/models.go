@@ -94,6 +94,24 @@ type GatewayAccount struct {
 	Secret        []byte
 }
 
+type GatewayOperation struct {
+	ID               uuid.UUID
+	PaymentIntentID  uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID        uuid.UUID
+	OperationType    GatewayOperationType
+	GatewayReference string
+	Amount           decimal.Decimal
+	Currency         string
+	Status           GatewayOperationStatus
+	RawRequest       []byte
+	RawResponse      []byte
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
+	GatewayAccountID uuid.UUID
+}
+
 type Invoice struct {
 	ID            uuid.UUID
 	ProjectID     uuid.UUID
@@ -162,21 +180,4 @@ type Project struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	DeletedAt      *time.Time
-}
-
-type Transaction struct {
-	ID                   uuid.UUID
-	PaymentIntentID      uuid.UUID
-	InvoiceID            uuid.UUID
-	ProjectID            uuid.UUID
-	TransactionType      TransactionType
-	GatewayTransactionID string
-	Amount               decimal.Decimal
-	Currency             string
-	Status               TransactionStatus
-	RawRequest           []byte
-	RawResponse          []byte
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	DeletedAt            *time.Time
 }

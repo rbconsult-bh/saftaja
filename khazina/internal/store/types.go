@@ -39,18 +39,18 @@ const (
 	PaymentMethodApplePay PaymentMethod = "apple_pay"
 )
 
-type TransactionType string
+type GatewayOperationType string
 
 const (
-	TransactionTypeInitiateAuth      TransactionType = "initiate_authentication"
-	TransactionTypeAuthenticatePayer TransactionType = "authenticate_payer"
-	TransactionTypePay               TransactionType = "pay"
+	GatewayOperationTypeInitiateAuth      GatewayOperationType = "initiate_authentication"
+	GatewayOperationTypeAuthenticatePayer GatewayOperationType = "authenticate_payer"
+	GatewayOperationTypePay               GatewayOperationType = "pay"
 )
 
-type TransactionStatus string
+type GatewayOperationStatus string
 
 const (
-	TransactionStatusPending TransactionStatus = "pending"
-	TransactionStatusSuccess TransactionStatus = "success"
-	TransactionStatusFailed  TransactionStatus = "failed"
+	GatewayOperationStatusPending GatewayOperationStatus = "pending"
+	GatewayOperationStatusSuccess GatewayOperationStatus = "success"
+	GatewayOperationStatusFailed  GatewayOperationStatus = "failed"
 )

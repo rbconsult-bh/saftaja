@@ -56,7 +56,7 @@ export async function seedDb(): Promise<SeedIds> {
 
   try {
     await client.query(`
-      TRUNCATE gateway_accounts, invoices, invoice_items, transactions, payment_intents, organizations, projects CASCADE
+      TRUNCATE gateway_accounts, invoices, invoice_items, gateway_operations, payment_intents, organizations, projects CASCADE
     `);
 
     const orgResult = await client.query(`
@@ -121,7 +121,7 @@ export async function dumpDb(): Promise<void> {
   await client.connect();
 
   try {
-    const tables = ['organizations', 'projects', 'gateway_accounts', 'invoices', 'payment_intents', 'transactions'];
+    const tables = ['organizations', 'projects', 'gateway_accounts', 'invoices', 'payment_intents', 'gateway_operations'];
     for (const table of tables) {
       const result = await client.query(`SELECT * FROM ${table}`);
       if (result.rows.length > 0) {
