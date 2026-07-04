@@ -54,8 +54,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, err
 	}
 
-	existingIntent, err := s.queries.GetPaymentIntentByIdempotencyKey(ctx, store.GetPaymentIntentByIdempotencyKeyParams{
-		InvoiceID:      r.InvoiceID,
+	existingIntent, err := s.queries.GetPaymentIntentByIdempotencyKeyAndProject(ctx, store.GetPaymentIntentByIdempotencyKeyAndProjectParams{
+		ProjectID:      r.ProjectID,
 		IdempotencyKey: r.IdempotencyKey,
 	})
 	switch {

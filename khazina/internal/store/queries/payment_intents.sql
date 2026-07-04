@@ -3,9 +3,9 @@ INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   RETURNING *;
 
--- name: GetPaymentIntentByIdempotencyKey :one
+-- name: GetPaymentIntentByIdempotencyKeyAndProject :one
 SELECT * FROM payment_intents
-WHERE invoice_id = $1
+WHERE project_id = $1
 AND idempotency_key = $2
 LIMIT 1;
 
