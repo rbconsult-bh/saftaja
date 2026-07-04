@@ -554,8 +554,34 @@ templ CheckoutForm(data CheckoutPageData) {
 		const INVOICE_AMOUNT = {{ data.Invoice.Amount }};
 		const INVOICE_CURRENCY = {{ data.Invoice.Currency }};
 		const LANG = {{ langCode(data.Lang) }};
+		const CHECKOUT_ATTEMPT_ID = getCheckoutAttemptID();
 		let CURRENT_PAYMENT_SESSION_ID = null;
 		let CURRENT_PAYMENT_TYPE = null;
+
+		function randomID() {
+			if (window.crypto && window.crypto.randomUUID) {
+				return window.crypto.randomUUID();
+			}
+			return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		}
+
+		function getCheckoutAttemptID() {
+			const key = `saftaja:checkout-attempt:${INVOICE_ID}`;
+			try {
+				let id = sessionStorage.getItem(key);
+				if (!id) {
+					id = randomID();
+					sessionStorage.setItem(key, id);
+				}
+				return id;
+			} catch (_) {
+				return randomID();
+			}
+		}
+
+		function startPaymentIdempotencyKey(accountId, type) {
+			return `${INVOICE_ID}:${accountId}:${type}:${CHECKOUT_ATTEMPT_ID}`;
+		}
 
 		// Toggle invoice items
 		function toggleItems() {
@@ -597,7 +623,10 @@ templ CheckoutForm(data CheckoutPageData) {
 			try {
 				const resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
+					headers: {
+						'Content-Type': 'application/json',
+						'Idempotency-Key': startPaymentIdempotencyKey(accountId, type)
+					},
 					body: JSON.stringify({
 						gateway_account_id: accountId,
 						payment_method: type

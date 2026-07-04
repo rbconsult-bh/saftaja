@@ -171,8 +171,8 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var req struct {
-		GatewayAccountID uuid.UUID            `json:"gateway_account_id"`
-		PaymentMethod    string `json:"payment_method"`
+		GatewayAccountID uuid.UUID `json:"gateway_account_id"`
+		PaymentMethod    string    `json:"payment_method"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
@@ -186,14 +186,14 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := h.paymentService.InitiateSession(ctx, &payment.InitiateSessionRequest{
-		ProjectID:        project.ID,
+	result, err := h.billing.StartPayment(ctx, billing.StartPaymentRequest{
 		InvoiceID:        invoiceID,
+		ProjectID:        project.ID,
+		IdempotencyKey:   r.Header.Get("Idempotency-Key"),
 		GatewayAccountID: req.GatewayAccountID,
-		PaymentMethod:    payment.PaymentMethod(req.PaymentMethod),
+		PaymentMethod:    billing.PaymentMethod(req.PaymentMethod),
 		PayerIP:          payerIP,
 		PayerUserAgent:   r.Header.Get("User-Agent"),
-		IdempotencyKey:   r.Header.Get("Idempotency-Key"),
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
