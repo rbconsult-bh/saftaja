@@ -56,8 +56,8 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 
 	// Check for existing session with same idempotency key
 	if req.IdempotencyKey != "" {
-		existingSession, err := s.queries.GetPaymentIntentByIdempotencyKey(ctx, store.GetPaymentIntentByIdempotencyKeyParams{
-			InvoiceID:      req.InvoiceID,
+		existingSession, err := s.queries.GetPaymentIntentByIdempotencyKeyAndProject(ctx, store.GetPaymentIntentByIdempotencyKeyAndProjectParams{
+			ProjectID:      req.ProjectID,
 			IdempotencyKey: req.IdempotencyKey,
 		})
 		if err == nil {
