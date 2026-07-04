@@ -203,6 +203,13 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
+	// TODO: lock in tx, select for update for the payment intent while we do our thing haha :)
+	// TODO: load intent and verify it belongs to this project and invoice
+	// TODO: check intent not expired (maybe do it as part of query? or not o tell user about it?)
+	// TODO: use state machine to validate transition of state
+	// TODO: use gatewayResolver to verify card
+	// TODO:
+
 	return &VerifyCardResponse{}, nil
 }
 
