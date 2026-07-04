@@ -144,9 +144,27 @@ func (r *StartPaymentRequest) Validate() error {
 }
 
 type (
-	VerifyCardRequest  struct{}
+	VerifyCardRequest struct {
+		ProjectID       uuid.UUID
+		InvoiceID       uuid.UUID
+		PaymentIntentID uuid.UUID
+	}
 	VerifyCardResponse struct{}
 )
+
+func (r *VerifyCardRequest) Validate() error {
+	if r.ProjectID == uuid.Nil {
+		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
+	}
+	if r.InvoiceID == uuid.Nil {
+		return fmt.Errorf("%w: InvoiceID is required", ErrInvalidArgument)
+	}
+	if r.PaymentIntentID == uuid.Nil {
+		return fmt.Errorf("%w: PaymentIntentID is required", ErrInvalidArgument)
+	}
+
+	return nil
+}
 
 type (
 	ChallengeCardRequest  struct{}

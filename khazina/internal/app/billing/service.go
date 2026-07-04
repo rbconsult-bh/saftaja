@@ -198,6 +198,11 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 }
 
 func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error) {
+	if err := r.Validate(); err != nil {
+		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
+		return nil, err
+	}
+
 	return &VerifyCardResponse{}, nil
 }
 
