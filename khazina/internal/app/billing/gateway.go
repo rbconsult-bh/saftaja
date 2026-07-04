@@ -28,16 +28,20 @@ type (
 	}
 )
 
-type gatewayResolver struct{}
+type gatewayResolver struct {
+	encryptionKey []byte
+}
 
-func NewGatewayResolver() GatewayResolver {
-	return &gatewayResolver{}
+func NewGatewayResolver(encryptionKey []byte) GatewayResolver {
+	return &gatewayResolver{
+		encryptionKey: encryptionKey,
+	}
 }
 
 func (gr *gatewayResolver) CardGateway(account store.GatewayAccount) (CardGateway, error) {
 	switch account.ConnectorType {
 	case store.ConnectorTypeMPGS:
-		return NewMPGSCardGateway(), nil
+		return newMPGSCardGateway(account, gr.encryptionKey)
 	default:
 		return nil, fmt.Errorf("%w: connector_type: %s does not support card", ErrUnsupportedGateway, account.ConnectorType)
 	}

@@ -77,7 +77,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		return nil, fmt.Errorf("failed to get encryption key: %w", err)
 	}
 
-	gatewayResolver := billing.NewGatewayResolver()
+	gatewayResolver := billing.NewGatewayResolver(encryptionKey)
 
 	tenantSvc := tenant.NewService(queries)
 	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
