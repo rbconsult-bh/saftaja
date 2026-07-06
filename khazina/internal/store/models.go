@@ -155,20 +155,20 @@ type OrganizationCustomer struct {
 }
 
 type PaymentIntent struct {
-	ID               uuid.UUID
-	InvoiceID        uuid.UUID
-	ProjectID        uuid.UUID
-	GatewayAccountID uuid.UUID
-	GatewaySessionID *string
-	Status           PaymentIntentStatus
-	PaymentMethod    PaymentMethod
-	PayerIp          string
-	PayerUserAgent   string
-	ExpiresAt        time.Time
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	DeletedAt        *time.Time
-	IdempotencyKey   string
+	ID                    uuid.UUID
+	InvoiceID             uuid.UUID
+	ProjectID             uuid.UUID
+	GatewayAccountID      uuid.UUID
+	GatewaySetupReference *string
+	Status                PaymentIntentStatus
+	PaymentMethod         PaymentMethod
+	PayerIp               string
+	PayerUserAgent        string
+	ExpiresAt             time.Time
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	DeletedAt             *time.Time
+	IdempotencyKey        string
 }
 
 type Project struct {

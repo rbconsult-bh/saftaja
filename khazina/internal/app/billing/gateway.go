@@ -14,19 +14,54 @@ type GatewayResolver interface {
 }
 
 type CardGateway interface {
-	CreateSession(ctx context.Context, r CreateSessionRequest) (*CreateSessionResponse, error)
+	SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error)
+	PrepareVerifyCard(ctx context.Context, r VerifyCardGatewayRequest) (*PreparedVerifyCardGatewayRequest, error)
 }
 
 type (
-	CreateSessionRequest struct {
+	SetupCardPaymentGatewayRequest struct {
 		InvoiceID uuid.UUID
 		Amount    decimal.Decimal
 		Currency  string
 	}
-	CreateSessionResponse struct {
-		GatewaySessionID string
+	SetupCardPaymentGatewayResponse struct {
+		GatewaySetupReference string
 	}
 )
+
+type VerifyCardGatewayNextStep string
+
+const (
+	VerifyCardGatewayNextStepChallengeCard VerifyCardGatewayNextStep = "challenge_card"
+	VerifyCardGatewayNextStepCantContinue  VerifyCardGatewayNextStep = "cant_continue"
+)
+
+type (
+	VerifyCardGatewayRequest struct {
+		InvoiceID             uuid.UUID
+		Currency              string
+		GatewaySetupReference string
+	}
+	PreparedVerifyCardGatewayRequest struct {
+		GatewayReference string
+		RawRequest       []byte
+		send             func(ctx context.Context) (*VerifyCardGatewayResponse, error)
+	}
+	VerifyCardGatewayResponse struct {
+		NextStep    VerifyCardGatewayNextStep
+		RawResponse []byte
+	}
+)
+
+func (p *PreparedVerifyCardGatewayRequest) Send(ctx context.Context) (*VerifyCardGatewayResponse, error) {
+	if p == nil {
+		return nil, fmt.Errorf("prepared verify card request is nil")
+	}
+	if p.send == nil {
+		return nil, fmt.Errorf("prepared verify card request is missing send function")
+	}
+	return p.send(ctx)
+}
 
 type gatewayResolver struct {
 	encryptionKey []byte

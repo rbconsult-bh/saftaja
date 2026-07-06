@@ -29,7 +29,7 @@ func TestValidatePaymentIntentTransition_Card(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validatePaymentIntentTransition(PaymentMethodCard, tt.from, tt.to)
+			err := tt.from.ValidatePaymentIntentTransition(PaymentMethodCard, tt.to)
 			if tt.wantErr {
 				assert.True(t, errors.Is(err, ErrPaymentIntentInvalidTransition))
 			} else {

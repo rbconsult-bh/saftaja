@@ -122,8 +122,8 @@ type (
 		PayerUserAgent   string
 	}
 	StartPaymentResponse struct {
-		PaymentIntentID  uuid.UUID
-		GatewaySessionID *string
+		PaymentIntentID       uuid.UUID
+		GatewaySetupReference *string
 	}
 )
 
@@ -161,7 +161,15 @@ type (
 		InvoiceID       uuid.UUID
 		PaymentIntentID uuid.UUID
 	}
-	VerifyCardResponse struct{}
+	VerifyCardNextStep string
+	VerifyCardResponse struct {
+		NextStep VerifyCardNextStep
+	}
+)
+
+const (
+	VerifyCardNextStepChallengeCard VerifyCardNextStep = "challenge_card"
+	VerifyCardNextStepCantContinue  VerifyCardNextStep = "cant_continue"
 )
 
 func (r *VerifyCardRequest) Validate() error {

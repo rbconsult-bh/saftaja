@@ -33,7 +33,7 @@ type Querier interface {
 	GetPayGatewayOperationByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
 	GetPaymentIntentByID(ctx context.Context, id uuid.UUID) (PaymentIntent, error)
 	GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPaymentIntentByIDAndProjectParams) (PaymentIntent, error)
-	GetPaymentIntentByIDAndProjectAndInvoiceForUpdate(ctx context.Context, arg GetPaymentIntentByIDAndProjectAndInvoiceForUpdateParams) (PaymentIntent, error)
+	GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate(ctx context.Context, arg GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdateParams) (PaymentIntent, error)
 	GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyAndProjectParams) (PaymentIntent, error)
 	GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error)
 	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)
@@ -43,8 +43,8 @@ type Querier interface {
 	MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error
 	MarkInvoicePaid(ctx context.Context, id uuid.UUID) error
 	UpdateGatewayOperationStatus(ctx context.Context, arg UpdateGatewayOperationStatusParams) error
+	UpdatePaymentIntentGatewaySetupReference(ctx context.Context, arg UpdatePaymentIntentGatewaySetupReferenceParams) error
 	UpdatePaymentIntentStatus(ctx context.Context, arg UpdatePaymentIntentStatusParams) error
-	UpdatePaymentIntentsGatewayID(ctx context.Context, arg UpdatePaymentIntentsGatewayIDParams) error
 	VerifyCustomerProjectAccess(ctx context.Context, arg VerifyCustomerProjectAccessParams) (int32, error)
 }
 

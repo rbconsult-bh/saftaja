@@ -101,36 +101,36 @@ func (q *Queries) GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGa
 }
 
 const getGatewayAccountByPaymentIntentID = `-- name: GetGatewayAccountByPaymentIntentID :one
-SELECT ga.id, ga.project_id, connector_type, account_name, config, is_active, ga.created_at, ga.updated_at, ga.deleted_at, secret, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM gateway_accounts ga
+SELECT ga.id, ga.project_id, connector_type, account_name, config, is_active, ga.created_at, ga.updated_at, ga.deleted_at, secret, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM gateway_accounts ga
 JOIN payment_intents pi ON ga.id = pi.gateway_account_id
 WHERE pi.id = $1
 `
 
 type GetGatewayAccountByPaymentIntentIDRow struct {
-	ID               uuid.UUID
-	ProjectID        uuid.UUID
-	ConnectorType    ConnectorType
-	AccountName      string
-	Config           []byte
-	IsActive         bool
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	DeletedAt        *time.Time
-	Secret           []byte
-	ID_2             uuid.UUID
-	InvoiceID        uuid.UUID
-	ProjectID_2      uuid.UUID
-	GatewayAccountID uuid.UUID
-	GatewaySessionID *string
-	Status           PaymentIntentStatus
-	PaymentMethod    PaymentMethod
-	PayerIp          string
-	PayerUserAgent   string
-	ExpiresAt        time.Time
-	CreatedAt_2      time.Time
-	UpdatedAt_2      time.Time
-	DeletedAt_2      *time.Time
-	IdempotencyKey   string
+	ID                    uuid.UUID
+	ProjectID             uuid.UUID
+	ConnectorType         ConnectorType
+	AccountName           string
+	Config                []byte
+	IsActive              bool
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	DeletedAt             *time.Time
+	Secret                []byte
+	ID_2                  uuid.UUID
+	InvoiceID             uuid.UUID
+	ProjectID_2           uuid.UUID
+	GatewayAccountID      uuid.UUID
+	GatewaySetupReference *string
+	Status                PaymentIntentStatus
+	PaymentMethod         PaymentMethod
+	PayerIp               string
+	PayerUserAgent        string
+	ExpiresAt             time.Time
+	CreatedAt_2           time.Time
+	UpdatedAt_2           time.Time
+	DeletedAt_2           *time.Time
+	IdempotencyKey        string
 }
 
 func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentIntentIDRow, error) {
@@ -151,7 +151,7 @@ func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uui
 		&i.InvoiceID,
 		&i.ProjectID_2,
 		&i.GatewayAccountID,
-		&i.GatewaySessionID,
+		&i.GatewaySetupReference,
 		&i.Status,
 		&i.PaymentMethod,
 		&i.PayerIp,

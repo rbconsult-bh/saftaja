@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMPGSCardGateway_CreateSession(t *testing.T) {
+func TestMPGSCardGateway_SetupCardPayment(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
@@ -42,7 +42,7 @@ func TestMPGSCardGateway_CreateSession(t *testing.T) {
 		Return(&mpgsclient.Response[mpgsclient.UpdateSessionResponse]{}, nil)
 
 	gateway := &mpgsCardGateway{client: mpgsClient}
-	resp, err := gateway.CreateSession(ctx, CreateSessionRequest{
+	resp, err := gateway.SetupCardPayment(ctx, SetupCardPaymentGatewayRequest{
 		InvoiceID: invoiceID,
 		Amount:    decimal.RequireFromString("15.000"),
 		Currency:  "BHD",
@@ -50,32 +50,28 @@ func TestMPGSCardGateway_CreateSession(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, "SESSION123", resp.GatewaySessionID)
+	assert.Equal(t, "SESSION123", resp.GatewaySetupReference)
 }
 
-func TestMPGSCardGateway_ReturnsCreateSessionError(t *testing.T) {
+func TestMPGSCardGateway_ReturnsSetupCardPaymentCreateSessionError(t *testing.T) {
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	mpgsClient.EXPECT().
 		CreateSession(mock.Anything, mock.Anything).
 		Return(nil, errors.New("create failed"))
 
 	gateway := &mpgsCardGateway{client: mpgsClient}
-	resp, err := gateway.CreateSession(context.Background(), validCreateSessionRequest())
+	resp, err := gateway.SetupCardPayment(context.Background(), validSetupCardPaymentGatewayRequest())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create mpgs session")
 	assert.Nil(t, resp)
 }
 
-func TestMPGSCardGateway_ReturnsMissingSessionIDError(t *testing.T) {
+func TestMPGSCardGateway_ReturnsSetupCardPaymentMissingSetupReferenceError(t *testing.T) {
 	tests := []struct {
 		name string
 		resp *mpgsclient.Response[mpgsclient.CreateSessionResponse]
 	}{
-		{
-			name: "nil_response",
-			resp: nil,
-		},
 		{
 			name: "nil_session",
 			resp: &mpgsclient.Response[mpgsclient.CreateSessionResponse]{
@@ -100,7 +96,7 @@ func TestMPGSCardGateway_ReturnsMissingSessionIDError(t *testing.T) {
 				Return(tt.resp, nil)
 
 			gateway := &mpgsCardGateway{client: mpgsClient}
-			resp, err := gateway.CreateSession(context.Background(), validCreateSessionRequest())
+			resp, err := gateway.SetupCardPayment(context.Background(), validSetupCardPaymentGatewayRequest())
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "missing session id")
@@ -109,7 +105,7 @@ func TestMPGSCardGateway_ReturnsMissingSessionIDError(t *testing.T) {
 	}
 }
 
-func TestMPGSCardGateway_ReturnsUpdateSessionError(t *testing.T) {
+func TestMPGSCardGateway_ReturnsSetupCardPaymentUpdateSessionError(t *testing.T) {
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	mpgsClient.EXPECT().
 		CreateSession(mock.Anything, mock.Anything).
@@ -124,10 +120,115 @@ func TestMPGSCardGateway_ReturnsUpdateSessionError(t *testing.T) {
 		Return(nil, errors.New("update failed"))
 
 	gateway := &mpgsCardGateway{client: mpgsClient}
-	resp, err := gateway.CreateSession(context.Background(), validCreateSessionRequest())
+	resp, err := gateway.SetupCardPayment(context.Background(), validSetupCardPaymentGatewayRequest())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update mpgs session")
+	assert.Nil(t, resp)
+}
+
+func TestMPGSCardGateway_PrepareVerifyCard(t *testing.T) {
+	ctx := context.Background()
+	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
+	rawResp := []byte(`{"result":"SUCCESS"}`)
+
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	gateway := &mpgsCardGateway{client: mpgsClient}
+
+	prepared, err := gateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+		InvoiceID:             invoiceID,
+		Currency:              "BHD",
+		GatewaySetupReference: "SESSION123",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, prepared)
+	assert.NotEmpty(t, prepared.GatewayReference)
+	assert.JSONEq(t, `{
+		"apiOperation": "INITIATE_AUTHENTICATION",
+		"authentication": {"channel": "PAYER_BROWSER"},
+		"order": {"currency": "BHD"},
+		"session": {"id": "SESSION123"}
+	}`, string(prepared.RawRequest))
+
+	mpgsClient.EXPECT().
+		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.MatchedBy(func(req *mpgsclient.InitiateAuthenticationRequest) bool {
+			return req.APIOperation == mpgsclient.OperationInitiateAuthentication &&
+				req.Authentication.Channel == mpgsclient.ChannelPayerBrowser &&
+				req.Order.Currency == "BHD" &&
+				req.Session.ID == "SESSION123"
+		})).
+		Return(&mpgsclient.Response[mpgsclient.InitiateAuthenticationResponse]{
+			Data: mpgsclient.InitiateAuthenticationResponse{
+				Result: mpgsclient.ResultSuccess,
+				Response: mpgsclient.InitiateAuthenticationGatewayResponse{
+					GatewayRecommendation: mpgsclient.GatewayRecommendationProceed,
+				},
+			},
+			RawBody: rawResp,
+		}, nil)
+
+	resp, err := prepared.Send(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, VerifyCardGatewayNextStepChallengeCard, resp.NextStep)
+	assert.Equal(t, rawResp, resp.RawResponse)
+}
+
+func TestMPGSCardGateway_PrepareVerifyCardCantContinue(t *testing.T) {
+	ctx := context.Background()
+	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
+
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	gateway := &mpgsCardGateway{client: mpgsClient}
+
+	prepared, err := gateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+		InvoiceID:             invoiceID,
+		Currency:              "BHD",
+		GatewaySetupReference: "SESSION123",
+	})
+	require.NoError(t, err)
+
+	mpgsClient.EXPECT().
+		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.Anything).
+		Return(&mpgsclient.Response[mpgsclient.InitiateAuthenticationResponse]{
+			Data: mpgsclient.InitiateAuthenticationResponse{
+				Result: mpgsclient.ResultFailure,
+				Response: mpgsclient.InitiateAuthenticationGatewayResponse{
+					GatewayRecommendation: mpgsclient.GatewayRecommendationDoNotProceed,
+				},
+			},
+		}, nil)
+
+	resp, err := prepared.Send(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, VerifyCardGatewayNextStepCantContinue, resp.NextStep)
+}
+
+func TestMPGSCardGateway_PrepareVerifyCardSendError(t *testing.T) {
+	ctx := context.Background()
+	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
+
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	gateway := &mpgsCardGateway{client: mpgsClient}
+
+	prepared, err := gateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+		InvoiceID:             invoiceID,
+		Currency:              "BHD",
+		GatewaySetupReference: "SESSION123",
+	})
+	require.NoError(t, err)
+
+	mpgsClient.EXPECT().
+		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.Anything).
+		Return(nil, errors.New("init auth failed"))
+
+	resp, err := prepared.Send(ctx)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to initiate authentication")
 	assert.Nil(t, resp)
 }
 
@@ -189,8 +290,8 @@ func TestGatewayResolver_RejectsInvalidMPGSSecret(t *testing.T) {
 	assert.Nil(t, cardGateway)
 }
 
-func validCreateSessionRequest() CreateSessionRequest {
-	return CreateSessionRequest{
+func validSetupCardPaymentGatewayRequest() SetupCardPaymentGatewayRequest {
+	return SetupCardPaymentGatewayRequest{
 		InvoiceID: uuid.MustParse("00000000-0000-0000-0000-000000003001"),
 		Amount:    decimal.RequireFromString("15.000"),
 		Currency:  "BHD",

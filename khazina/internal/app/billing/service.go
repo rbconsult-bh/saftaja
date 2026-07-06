@@ -83,8 +83,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 
 		log.Ctx(ctx).Info().Msg("returning idempotent response")
 		return &StartPaymentResponse{
-			PaymentIntentID:  existingIntent.ID,
-			GatewaySessionID: existingIntent.GatewaySessionID,
+			PaymentIntentID:       existingIntent.ID,
+			GatewaySetupReference: existingIntent.GatewaySetupReference,
 		}, nil
 	case errors.Is(err, pgx.ErrNoRows):
 		// we are good :)
@@ -165,7 +165,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 
 		createPaymentIntentParams.PaymentMethod = store.PaymentMethodCard
 
-		createSessionResp, err := cardGateway.CreateSession(ctx, CreateSessionRequest{
+		setupResp, err := cardGateway.SetupCardPayment(ctx, SetupCardPaymentGatewayRequest{
 			InvoiceID: invoice.ID,
 			Amount:    invoice.Amount,
 			Currency:  invoice.Currency,
@@ -175,11 +175,10 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 				Err(err).
 				Str("gateway_account_id", gatewayAccount.ID.String()).
 				Str("invoice_id", invoice.ID.String()).
-				Msg("failed to create card gateway session")
+				Msg("failed to setup card payment")
 			return nil, err
 		}
-
-		createPaymentIntentParams.GatewaySessionID = &createSessionResp.GatewaySessionID
+		createPaymentIntentParams.GatewaySetupReference = &setupResp.GatewaySetupReference
 
 	case PaymentMethodApplePay:
 		log.Ctx(ctx).Info().
@@ -201,8 +200,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	}
 
 	return &StartPaymentResponse{
-		PaymentIntentID:  resp.ID,
-		GatewaySessionID: resp.GatewaySessionID,
+		PaymentIntentID:       resp.ID,
+		GatewaySetupReference: resp.GatewaySetupReference,
 	}, nil
 }
 
@@ -221,9 +220,9 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 
 	queriesWithTx := s.queries.WithTx(tx)
 
-	paymentIntent, err := queriesWithTx.GetPaymentIntentByIDAndProjectAndInvoiceForUpdate(
+	paymentIntent, err := queriesWithTx.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate(
 		ctx,
-		store.GetPaymentIntentByIDAndProjectAndInvoiceForUpdateParams{
+		store.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdateParams{
 			ID:        r.PaymentIntentID,
 			ProjectID: r.ProjectID,
 			InvoiceID: r.InvoiceID,
@@ -235,11 +234,11 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 			return nil, ErrNotFound
 		}
 
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment intent by id and project for update")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to lock payment intent")
 		return nil, err
 	}
 
-	paymentIntentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
+	currentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment intent status to payment intent status")
 		return nil, err
@@ -251,7 +250,7 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
-	if err := validatePaymentIntentTransition(paymentMethod, paymentIntentStatus, PaymentIntentStatusVerifyingCard); err != nil {
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusVerifyingCard); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid transition")
 		return nil, err
 	}
@@ -261,12 +260,26 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, ErrPaymentIntentExpired
 	}
 
+	if paymentIntent.GatewaySetupReference == nil || *paymentIntent.GatewaySetupReference == "" {
+		log.Ctx(ctx).Error().Msg("payment intent is missing gateway setup reference")
+		return nil, fmt.Errorf("%w: payment intent is missing gateway setup reference", ErrPaymentIntentInvalidState)
+	}
+
+	invoice, err := queriesWithTx.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        paymentIntent.InvoiceID,
+		ProjectID: paymentIntent.ProjectID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id and project")
+		return nil, err
+	}
+
 	gatewayAccount, err := queriesWithTx.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
 		ID:        paymentIntent.GatewayAccountID,
 		ProjectID: paymentIntent.ProjectID,
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get gateway account")
 		return nil, err
 	}
 
@@ -275,11 +288,81 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		log.Ctx(ctx).Error().Err(err).Msg("failed to resolve card gateway by gateway account")
 		return nil, err
 	}
-	fmt.Printf("cardGateway: %v\n", cardGateway)
 
-	// TODO: call cardGateway.VerifyCard()
+	prepared, err := cardGateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+		InvoiceID:             invoice.ID,
+		Currency:              invoice.Currency,
+		GatewaySetupReference: *paymentIntent.GatewaySetupReference,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card verification")
+		return nil, err
+	}
 
-	return &VerifyCardResponse{}, nil
+	gatewayOperation, err := s.queries.CreateGatewayOperation(ctx, store.CreateGatewayOperationParams{
+		PaymentIntentID:  paymentIntent.ID,
+		InvoiceID:        invoice.ID,
+		ProjectID:        paymentIntent.ProjectID,
+		GatewayAccountID: paymentIntent.GatewayAccountID,
+		OperationType:    store.GatewayOperationTypeInitiateAuth,
+		GatewayReference: prepared.GatewayReference,
+		Amount:           invoice.Amount,
+		Currency:         invoice.Currency,
+		RawRequest:       prepared.RawRequest,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create gateway operation")
+		return nil, err
+	}
+
+	updateGatewayOperationStatus := func(status store.GatewayOperationStatus, rawResponse []byte) error {
+		return s.queries.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
+			ID:          gatewayOperation.ID,
+			Status:      status,
+			RawResponse: rawResponse,
+		})
+	}
+
+	gatewayResp, err := prepared.Send(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to verify card with gateway")
+		if statusErr := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, nil); statusErr != nil {
+			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after verify card error")
+		}
+		return nil, err
+	}
+
+	if gatewayResp.NextStep != VerifyCardGatewayNextStepChallengeCard {
+		if err := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, gatewayResp.RawResponse); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to update gateway operation status")
+			return nil, err
+		}
+		return &VerifyCardResponse{
+			NextStep: VerifyCardNextStepCantContinue,
+		}, nil
+	}
+
+	if err := updateGatewayOperationStatus(store.GatewayOperationStatusSuccess, gatewayResp.RawResponse); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update gateway operation status")
+		return nil, err
+	}
+
+	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
+		ID:     paymentIntent.ID,
+		Status: store.PaymentIntentStatusVerifyingCard,
+	}); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update payment intent status")
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit verify card result")
+		return nil, err
+	}
+
+	return &VerifyCardResponse{
+		NextStep: VerifyCardNextStepChallengeCard,
+	}, nil
 }
 
 func (s *service) ChallengeCard(ctx context.Context, r ChallengeCardRequest) (*ChallengeCardResponse, error) {

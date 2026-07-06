@@ -201,9 +201,9 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	respondJSON(w, map[string]any{
-		"action":             "render_embedded",
-		"payment_session_id": result.PaymentIntentID.String(),
-		"mpgs_session_id":    result.GatewaySessionID,
+		"action":                  "render_embedded",
+		"payment_session_id":      result.PaymentIntentID.String(),
+		"gateway_setup_reference": result.GatewaySetupReference,
 	})
 }
 

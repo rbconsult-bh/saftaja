@@ -1,5 +1,5 @@
 -- name: CreatePaymentIntent :one
-INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway_session_id, payment_method, payer_ip, payer_user_agent, idempotency_key)
+INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway_setup_reference, payment_method, payer_ip, payer_user_agent, idempotency_key)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   RETURNING *;
 
@@ -17,9 +17,9 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM payment_intents
 WHERE id = $1 AND project_id = $2 LIMIT 1;
 
--- name: UpdatePaymentIntentsGatewayID :exec
+-- name: UpdatePaymentIntentGatewaySetupReference :exec
 UPDATE payment_intents
-SET gateway_session_id = $2
+SET gateway_setup_reference = $2
 WHERE id = $1;
 
 -- name: UpdatePaymentIntentStatus :exec
@@ -27,7 +27,7 @@ UPDATE payment_intents
 SET status = $2
 WHERE id = $1;
 
--- name: GetPaymentIntentByIDAndProjectAndInvoiceForUpdate :one
+-- name: GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate :one
 SELECT * FROM payment_intents
 WHERE id = $1 AND project_id = $2 AND invoice_id = $3 LIMIT 1
-FOR UPDATE;
+FOR NO KEY UPDATE;

@@ -2,8 +2,10 @@ package billing
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
+	"github.com/google/uuid"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -35,7 +37,7 @@ func newMPGSCardGateway(account store.GatewayAccount, encryptionKey []byte) (Car
 	}, nil
 }
 
-func (mcg *mpgsCardGateway) CreateSession(ctx context.Context, r CreateSessionRequest) (*CreateSessionResponse, error) {
+func (mcg *mpgsCardGateway) SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error) {
 	createSessionResp, err := mcg.client.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
 			AuthenticationLimit: ptr.To[int32](25),
@@ -44,7 +46,7 @@ func (mcg *mpgsCardGateway) CreateSession(ctx context.Context, r CreateSessionRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mpgs session: %w", err)
 	}
-	if createSessionResp == nil || createSessionResp.Data.Session == nil || createSessionResp.Data.Session.ID == "" {
+	if createSessionResp.Data.Session == nil || createSessionResp.Data.Session.ID == "" {
 		return nil, fmt.Errorf("failed to create mpgs session: missing session id")
 	}
 
@@ -59,7 +61,49 @@ func (mcg *mpgsCardGateway) CreateSession(ctx context.Context, r CreateSessionRe
 		return nil, fmt.Errorf("failed to update mpgs session: %w", err)
 	}
 
-	return &CreateSessionResponse{
-		GatewaySessionID: createSessionResp.Data.Session.ID,
+	return &SetupCardPaymentGatewayResponse{
+		GatewaySetupReference: createSessionResp.Data.Session.ID,
+	}, nil
+}
+
+func (mcg *mpgsCardGateway) PrepareVerifyCard(ctx context.Context, r VerifyCardGatewayRequest) (*PreparedVerifyCardGatewayRequest, error) {
+	gatewayReference := uuid.NewString()
+	mpgsReq := &mpgsclient.InitiateAuthenticationRequest{
+		APIOperation: mpgsclient.OperationInitiateAuthentication,
+		Authentication: mpgsclient.InitiateAuthenticationReqAuthentication{
+			Channel: mpgsclient.ChannelPayerBrowser,
+		},
+		Order: mpgsclient.InitiateAuthenticationOrder{
+			Currency: r.Currency,
+		},
+		Session: mpgsclient.InitiateAuthenticationSession{
+			ID: r.GatewaySetupReference,
+		},
+	}
+
+	rawReq, err := json.Marshal(mpgsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal initiate authentication request: %w", err)
+	}
+
+	return &PreparedVerifyCardGatewayRequest{
+		GatewayReference: gatewayReference,
+		RawRequest:       rawReq,
+		send: func(ctx context.Context) (*VerifyCardGatewayResponse, error) {
+			resp, err := mcg.client.InitiateAuthentication(ctx, r.InvoiceID.String(), gatewayReference, mpgsReq)
+			if err != nil {
+				return nil, fmt.Errorf("failed to initiate authentication: %w", err)
+			}
+			nextStep := VerifyCardGatewayNextStepCantContinue
+			if resp.Data.Result == mpgsclient.ResultSuccess &&
+				resp.Data.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed {
+				nextStep = VerifyCardGatewayNextStepChallengeCard
+			}
+
+			return &VerifyCardGatewayResponse{
+				NextStep:    nextStep,
+				RawResponse: resp.RawBody,
+			}, nil
+		},
 	}, nil
 }

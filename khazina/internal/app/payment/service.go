@@ -64,7 +64,7 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 			// Session already exists, return it
 			return &InitiateSessionResult{
 				PaymentIntentID:  existingSession.ID,
-				GatewaySessionID: ptr.Deref(existingSession.GatewaySessionID),
+				GatewaySessionID: ptr.Deref(existingSession.GatewaySetupReference),
 			}, nil
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -101,14 +101,14 @@ func (s *service) InitiateSession(ctx context.Context, req *InitiateSessionReque
 	}
 
 	dbSession, err := s.queries.CreatePaymentIntent(ctx, store.CreatePaymentIntentParams{
-		InvoiceID:        invoice.ID,
-		ProjectID:        invoice.ProjectID,
-		GatewayAccountID: account.ID,
-		GatewaySessionID: &resp.Data.Session.ID,
-		PaymentMethod:    req.PaymentMethod,
-		PayerIp:          req.PayerIP,
-		PayerUserAgent:   req.PayerUserAgent,
-		IdempotencyKey:   req.IdempotencyKey,
+		InvoiceID:             invoice.ID,
+		ProjectID:             invoice.ProjectID,
+		GatewayAccountID:      account.ID,
+		GatewaySetupReference: &resp.Data.Session.ID,
+		PaymentMethod:         req.PaymentMethod,
+		PayerIp:               req.PayerIP,
+		PayerUserAgent:        req.PayerUserAgent,
+		IdempotencyKey:        req.IdempotencyKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create payment session: %w", err)
@@ -189,7 +189,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 			Channel: mpgsclient.ChannelPayerBrowser,
 		},
 		Order:   mpgsclient.InitiateAuthenticationOrder{Currency: invoice.Currency},
-		Session: mpgsclient.InitiateAuthenticationSession{ID: ptr.Deref(session.GatewaySessionID)},
+		Session: mpgsclient.InitiateAuthenticationSession{ID: ptr.Deref(session.GatewaySetupReference)},
 	}
 
 	rawReq, err := json.Marshal(mpgsReq)
@@ -347,7 +347,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 			Currency: invoice.Currency,
 		},
 		Session: mpgsclient.AuthenticatePayerReqSession{
-			ID: ptr.Deref(session.GatewaySessionID),
+			ID: ptr.Deref(session.GatewaySetupReference),
 		},
 	}
 
@@ -496,7 +496,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 			Reference: invoice.ID.String(),
 		},
 		Session: mpgsclient.ExecutePayReqSession{
-			ID: ptr.Deref(session.GatewaySessionID),
+			ID: ptr.Deref(session.GatewaySetupReference),
 		},
 	}
 

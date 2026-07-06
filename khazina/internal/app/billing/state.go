@@ -23,7 +23,7 @@ var cardPaymentIntentTransitions = map[PaymentIntentStatus]map[PaymentIntentStat
 	PaymentIntentStatusFailed:    {},
 }
 
-func validatePaymentIntentTransition(pm PaymentMethod, from, to PaymentIntentStatus) error {
+func (from PaymentIntentStatus) ValidatePaymentIntentTransition(pm PaymentMethod, to PaymentIntentStatus) error {
 	switch pm {
 	case PaymentMethodCard:
 		if cardPaymentIntentTransitions[from][to] {

@@ -61,34 +61,34 @@ func (q *Queries) GetProjectByCustomDomain(ctx context.Context, customDomain str
 }
 
 const getProjectByPaymentIntentID = `-- name: GetProjectByPaymentIntentID :one
-SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, pi.id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM projects p
+SELECT p.id, organization_id, name, environment, custom_domain, p.created_at, p.updated_at, p.deleted_at, pi.id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM projects p
 JOIN payment_intents pi ON p.id = pi.project_id
 WHERE pi.id = $1
 `
 
 type GetProjectByPaymentIntentIDRow struct {
-	ID               uuid.UUID
-	OrganizationID   uuid.UUID
-	Name             string
-	Environment      ProjectEnvironment
-	CustomDomain     *string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	DeletedAt        *time.Time
-	ID_2             uuid.UUID
-	InvoiceID        uuid.UUID
-	ProjectID        uuid.UUID
-	GatewayAccountID uuid.UUID
-	GatewaySessionID *string
-	Status           PaymentIntentStatus
-	PaymentMethod    PaymentMethod
-	PayerIp          string
-	PayerUserAgent   string
-	ExpiresAt        time.Time
-	CreatedAt_2      time.Time
-	UpdatedAt_2      time.Time
-	DeletedAt_2      *time.Time
-	IdempotencyKey   string
+	ID                    uuid.UUID
+	OrganizationID        uuid.UUID
+	Name                  string
+	Environment           ProjectEnvironment
+	CustomDomain          *string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	DeletedAt             *time.Time
+	ID_2                  uuid.UUID
+	InvoiceID             uuid.UUID
+	ProjectID             uuid.UUID
+	GatewayAccountID      uuid.UUID
+	GatewaySetupReference *string
+	Status                PaymentIntentStatus
+	PaymentMethod         PaymentMethod
+	PayerIp               string
+	PayerUserAgent        string
+	ExpiresAt             time.Time
+	CreatedAt_2           time.Time
+	UpdatedAt_2           time.Time
+	DeletedAt_2           *time.Time
+	IdempotencyKey        string
 }
 
 func (q *Queries) GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error) {
@@ -107,7 +107,7 @@ func (q *Queries) GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID)
 		&i.InvoiceID,
 		&i.ProjectID,
 		&i.GatewayAccountID,
-		&i.GatewaySessionID,
+		&i.GatewaySetupReference,
 		&i.Status,
 		&i.PaymentMethod,
 		&i.PayerIp,
