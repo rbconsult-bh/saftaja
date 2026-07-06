@@ -10,13 +10,15 @@ import (
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 )
 
-var ErrInvalidArgument = errors.New("invalid argument")
+var (
+	ErrInvalidArgument          = errors.New("invalid argument")
+	ErrUnsupportedConnectorType = errors.New("unsupported connector type")
+)
 
 type ConnectorType string
 
 const (
-	ConnectorTypeMPGS    ConnectorType = "mpgs"
-	ConnectorTypeUnknown ConnectorType = "unknown"
+	ConnectorTypeMPGS ConnectorType = "mpgs"
 )
 
 type Service interface {

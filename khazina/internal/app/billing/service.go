@@ -244,7 +244,6 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, ErrPaymentIntentExpired
 	}
 
-	// TODO: use state machine to validate transition of state
 	paymentIntentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment intent status to payment intent status")
@@ -258,7 +257,19 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 	}
 
 	if !paymentIntentStatus.CanMoveTo(paymentMethod, PaymentIntentStatusVerifyingCard) {
-		// TODO: fail, this is not good state :(
+		log.Ctx(ctx).Info().
+			Str("payment_intent_id", paymentIntent.ID.String()).
+			Str("payment_method", string(paymentMethod)).
+			Str("from_status", string(paymentIntentStatus)).
+			Str("to_status", string(PaymentIntentStatusVerifyingCard)).
+			Msg("payment intent invalid transition")
+		return nil, fmt.Errorf(
+			"%w: cannot move payment intent from %s to %s for %s",
+			ErrPaymentIntentInvalidTransition,
+			paymentIntentStatus,
+			PaymentIntentStatusVerifyingCard,
+			paymentMethod,
+		)
 	}
 
 	// TODO: use gatewayResolver to verify card

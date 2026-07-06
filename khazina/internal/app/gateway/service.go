@@ -33,10 +33,14 @@ func (s *service) ListActiveByProject(ctx context.Context, r ListActiveByProject
 			if err != nil {
 				return nil, fmt.Errorf("invalid gateway config for %s: %w", acc.ID, err)
 			}
+			connectorType, err := mapConnectorTypeFromStore(acc.ConnectorType)
+			if err != nil {
+				return nil, err
+			}
 			gateways = append(gateways, GatewayCredentials{
 				GatewayAccountID: acc.ID,
 				AccountName:      acc.AccountName,
-				ConnectorType:    mapConnectorTypeFromStore(acc.ConnectorType),
+				ConnectorType:    connectorType,
 				BaseURL:          cfg.BaseURL,
 				MerchantID:       cfg.MerchantID,
 			})
@@ -86,6 +90,11 @@ func (s *service) ListPaymentMethods(ctx context.Context, r ListPaymentMethodsRe
 }
 
 func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*GatewayAccount, error) {
+	connectorType, err := mapConnectorTypeToStore(req.ConnectorType)
+	if err != nil {
+		return nil, err
+	}
+
 	configJSON, err := json.Marshal(req.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config: %w", err)
@@ -103,7 +112,7 @@ func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*Gatewa
 
 	acc, err := s.queries.CreateGatewayAccount(ctx, store.CreateGatewayAccountParams{
 		ProjectID:     req.ProjectID,
-		ConnectorType: mapConnectorTypeToStore(req.ConnectorType),
+		ConnectorType: connectorType,
 		AccountName:   req.AccountName,
 		Secret:        encrypted,
 		Config:        configJSON,
@@ -112,11 +121,16 @@ func (s *service) Create(ctx context.Context, req CreateGatewayRequest) (*Gatewa
 		return nil, fmt.Errorf("failed to create gateway account: %w", err)
 	}
 
+	createdConnectorType, err := mapConnectorTypeFromStore(acc.ConnectorType)
+	if err != nil {
+		return nil, err
+	}
+
 	return &GatewayAccount{
 		ID:            acc.ID,
 		ProjectID:     acc.ProjectID,
 		AccountName:   acc.AccountName,
-		ConnectorType: mapConnectorTypeFromStore(acc.ConnectorType),
+		ConnectorType: createdConnectorType,
 		IsActive:      acc.IsActive,
 	}, nil
 }

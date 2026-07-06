@@ -66,6 +66,8 @@ func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
 	case errors.As(err, &sessionExpired):
 		respondError(w, r, ErrCodeSessionExpired, templfiles.MsgSessionExpired, http.StatusGone)
+	case errors.Is(err, billing.ErrPaymentIntentInvalidTransition):
+		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
 	case errors.As(err, &invalidTransition):
 		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
 	case errors.Is(err, billing.ErrInvoiceAlreadyPaid):
