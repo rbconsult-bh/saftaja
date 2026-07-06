@@ -228,7 +228,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	result, err := h.paymentService.InitiateAuth(ctx, &payment.InitiateAuthRequest{
+	result, err := h.billing.VerifyCard(ctx, billing.VerifyCardRequest{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
 		PaymentIntentID: sessionID,
@@ -240,7 +240,6 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 
 	respondJSON(w, map[string]any{
 		"next_step": result.NextStep,
-		"tx_id":     result.TransactionID,
 	})
 }
 
