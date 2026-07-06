@@ -261,7 +261,23 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, ErrPaymentIntentExpired
 	}
 
-	// TODO: use gatewayResolver to verify card
+	gatewayAccount, err := queriesWithTx.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
+		ID:        paymentIntent.GatewayAccountID,
+		ProjectID: paymentIntent.ProjectID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment")
+		return nil, err
+	}
+
+	cardGateway, err := s.gatewayResolver.CardGateway(gatewayAccount)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to resolve card gateway by gateway account")
+		return nil, err
+	}
+	fmt.Printf("cardGateway: %v\n", cardGateway)
+
+	// TODO: call cardGateway.VerifyCard()
 
 	return &VerifyCardResponse{}, nil
 }
