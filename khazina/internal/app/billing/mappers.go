@@ -62,14 +62,14 @@ func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) InvoiceStatus 
 	}
 }
 
-func mapStorePaymentMethodToPaymentMethod(spm store.PaymentMethod) PaymentMethod {
+func mapStorePaymentMethodToPaymentMethod(spm store.PaymentMethod) (PaymentMethod, error) {
 	switch spm {
 	case store.PaymentMethodCard:
-		return PaymentMethodCard
+		return PaymentMethodCard, nil
 	case store.PaymentMethodApplePay:
-		return PaymentMethodApplePay
+		return PaymentMethodApplePay, nil
 	default:
-		return PaymentMethodUnkown
+		return "", fmt.Errorf("%w: unknown payment method %q", ErrPaymentIntentInvalidState, spm)
 	}
 }
 

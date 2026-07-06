@@ -63,9 +63,15 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	})
 	switch {
 	case err == nil:
+		existingPaymentMethod, err := mapStorePaymentMethodToPaymentMethod(existingIntent.PaymentMethod)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment method to payment method")
+			return nil, err
+		}
+
 		if existingIntent.InvoiceID != r.InvoiceID ||
 			existingIntent.GatewayAccountID != r.GatewayAccountID ||
-			mapStorePaymentMethodToPaymentMethod(existingIntent.PaymentMethod) != r.PaymentMethod {
+			existingPaymentMethod != r.PaymentMethod {
 			log.Ctx(ctx).Warn().Msg("idempotency key collision with different parameters")
 			return nil, ErrIdempotencyMismatch
 		}
@@ -239,6 +245,22 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 	}
 
 	// TODO: use state machine to validate transition of state
+	paymentIntentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment intent status to payment intent status")
+		return nil, err
+	}
+
+	paymentMethod, err := mapStorePaymentMethodToPaymentMethod(paymentIntent.PaymentMethod)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment method to payment method")
+		return nil, err
+	}
+
+	if !paymentIntentStatus.CanMoveTo(paymentMethod, PaymentIntentStatusVerifyingCard) {
+		// TODO: fail, this is not good state :(
+	}
+
 	// TODO: use gatewayResolver to verify card
 
 	return &VerifyCardResponse{}, nil

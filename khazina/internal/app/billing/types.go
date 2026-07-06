@@ -47,7 +47,6 @@ const (
 type PaymentMethod string
 
 const (
-	PaymentMethodUnkown   PaymentMethod = "unknown"
 	PaymentMethodCard     PaymentMethod = "card"
 	PaymentMethodApplePay PaymentMethod = "apple_pay"
 )
