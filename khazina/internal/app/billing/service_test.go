@@ -638,7 +638,7 @@ func TestVerifyCard_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.
 
 	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
-	assert.Equal(t, store.GatewayOperationStatusFailed, op.Status)
+	assert.Equal(t, store.GatewayOperationStatusSuccess, op.Status)
 	assert.JSONEq(t, string(rawResp), string(op.RawResponse))
 
 	retryRawResp := []byte(`{"result":"SUCCESS"}`)

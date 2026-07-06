@@ -344,7 +344,12 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 	}
 
 	if gatewayResp.NextStep != VerifyCardGatewayNextStepChallengeCard {
-		if err := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, gatewayResp.RawResponse); err != nil {
+		// The gateway request finished successfully, but the gateway said this card
+		// cannot continue. The payment intent stays created, so StartCardChallenge
+		// is still blocked by the state machine.
+		// TODO: if we need to keep more detail about gateway decisions later, add a
+		// separate table/model for those decisions instead of overloading operation status.
+		if err := updateGatewayOperationStatus(store.GatewayOperationStatusSuccess, gatewayResp.RawResponse); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update gateway operation status")
 			return nil, err
 		}
