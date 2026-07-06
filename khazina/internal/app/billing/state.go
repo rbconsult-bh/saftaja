@@ -1,5 +1,7 @@
 package billing
 
+import "fmt"
+
 var cardPaymentIntentTransitions = map[PaymentIntentStatus]map[PaymentIntentStatus]bool{
 	PaymentIntentStatusCreated: {
 		PaymentIntentStatusVerifyingCard: true,
@@ -21,16 +23,23 @@ var cardPaymentIntentTransitions = map[PaymentIntentStatus]map[PaymentIntentStat
 	PaymentIntentStatusFailed:    {},
 }
 
-func (s PaymentIntentStatus) CanMoveTo(pm PaymentMethod, next PaymentIntentStatus) bool {
+func validatePaymentIntentTransition(pm PaymentMethod, from, to PaymentIntentStatus) error {
 	switch pm {
 	case PaymentMethodCard:
-		return cardPaymentIntentTransitions[s][next]
+		if cardPaymentIntentTransitions[from][to] {
+			return nil
+		}
 	case PaymentMethodApplePay:
 		// TODO: use applePayPaymentIntentTransitions
-		fallthrough
-	default:
-		return false
 	}
+
+	return fmt.Errorf(
+		"%w: cannot move payment intent from %s to %s for %s",
+		ErrPaymentIntentInvalidTransition,
+		from,
+		to,
+		pm,
+	)
 }
 
 func (s PaymentIntentStatus) IsTerminal() bool {

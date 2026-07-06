@@ -282,6 +282,12 @@ func TestStartPayment_ReplaysExistingIntent(t *testing.T) {
 	assert.Equal(t, before, countPaymentIntents(t, env))
 }
 
+func TestStartPayment_RejectsExistingIntentWithUnknownPaymentMethod(t *testing.T) {
+	env := setupTestEnv(t)
+
+	assertStartPaymentErrorWithoutNewIntent(t, env, validStartPaymentRequest("idem-unknown-method"), ErrPaymentIntentInvalidState)
+}
+
 func TestStartPayment_RejectsIdempotencyMismatch(t *testing.T) {
 	env := setupTestEnv(t)
 

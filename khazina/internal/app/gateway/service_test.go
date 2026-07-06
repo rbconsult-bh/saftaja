@@ -50,3 +50,16 @@ func TestListPaymentMethods_NilProjectID_InvalidArgument(t *testing.T) {
 	require.Nil(t, resp)
 	require.ErrorIs(t, err, ErrInvalidArgument)
 }
+
+func TestCreate_RejectsUnsupportedConnectorType(t *testing.T) {
+	testEnv := setupTestEnv(t)
+
+	resp, err := testEnv.svc.Create(testEnv.ctx, CreateGatewayRequest{
+		ProjectID:     uuid.New(),
+		AccountName:   "bad gateway",
+		ConnectorType: ConnectorType("wat"),
+	})
+
+	require.Nil(t, resp)
+	require.ErrorIs(t, err, ErrUnsupportedConnectorType)
+}

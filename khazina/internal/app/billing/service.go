@@ -256,20 +256,9 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
-	if !paymentIntentStatus.CanMoveTo(paymentMethod, PaymentIntentStatusVerifyingCard) {
-		log.Ctx(ctx).Info().
-			Str("payment_intent_id", paymentIntent.ID.String()).
-			Str("payment_method", string(paymentMethod)).
-			Str("from_status", string(paymentIntentStatus)).
-			Str("to_status", string(PaymentIntentStatusVerifyingCard)).
-			Msg("payment intent invalid transition")
-		return nil, fmt.Errorf(
-			"%w: cannot move payment intent from %s to %s for %s",
-			ErrPaymentIntentInvalidTransition,
-			paymentIntentStatus,
-			PaymentIntentStatusVerifyingCard,
-			paymentMethod,
-		)
+	if err := validatePaymentIntentTransition(paymentMethod, paymentIntentStatus, PaymentIntentStatusVerifyingCard); err != nil {
+		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid transition")
+		return nil, err
 	}
 
 	// TODO: use gatewayResolver to verify card
