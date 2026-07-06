@@ -239,11 +239,6 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
-	if paymentIntent.ExpiresAt.Before(time.Now()) {
-		log.Ctx(ctx).Info().Msg("payment intent expired")
-		return nil, ErrPaymentIntentExpired
-	}
-
 	paymentIntentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment intent status to payment intent status")
@@ -259,6 +254,11 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 	if err := validatePaymentIntentTransition(paymentMethod, paymentIntentStatus, PaymentIntentStatusVerifyingCard); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid transition")
 		return nil, err
+	}
+
+	if paymentIntent.ExpiresAt.Before(time.Now()) {
+		log.Ctx(ctx).Info().Msg("payment intent expired")
+		return nil, ErrPaymentIntentExpired
 	}
 
 	// TODO: use gatewayResolver to verify card
