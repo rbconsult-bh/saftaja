@@ -33,20 +33,6 @@ func (s PaymentIntentStatus) CanMoveTo(pm PaymentMethod, next PaymentIntentStatu
 	}
 }
 
-func (s PaymentIntentStatus) IsKnown() bool {
-	switch s {
-	case PaymentIntentStatusCreated,
-		PaymentIntentStatusVerifyingCard,
-		PaymentIntentStatusCardVerified,
-		PaymentIntentStatusProcessingPayment,
-		PaymentIntentStatusCompleted,
-		PaymentIntentStatusFailed:
-		return true
-	default:
-		return false
-	}
-}
-
 func (s PaymentIntentStatus) IsTerminal() bool {
 	return s == PaymentIntentStatusCompleted || s == PaymentIntentStatusFailed
 }

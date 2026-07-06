@@ -34,9 +34,7 @@ func TestPaymentIntentStatusCanMoveTo_Card(t *testing.T) {
 }
 
 func TestPaymentIntentStatusHelpers(t *testing.T) {
-	assert.True(t, PaymentIntentStatusCreated.IsKnown())
 	assert.True(t, PaymentIntentStatusCompleted.IsTerminal())
 	assert.True(t, PaymentIntentStatusFailed.IsTerminal())
 	assert.False(t, PaymentIntentStatusVerifyingCard.IsTerminal())
-	assert.False(t, PaymentIntentStatus("wat").IsKnown())
 }
