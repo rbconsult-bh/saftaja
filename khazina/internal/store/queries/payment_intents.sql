@@ -9,14 +9,6 @@ WHERE project_id = $1
 AND idempotency_key = $2
 LIMIT 1;
 
-
--- name: GetLatestPaymentIntent :one
-SELECT * FROM payment_intents
-WHERE invoice_id = $1
-AND status IN ('created', 'authenticating', 'authenticated')
-ORDER BY created_at DESC
-LIMIT 1;
-
 -- name: GetPaymentIntentByID :one
 SELECT * FROM payment_intents
 WHERE id = $1 LIMIT 1;

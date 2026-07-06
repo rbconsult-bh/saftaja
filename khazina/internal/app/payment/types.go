@@ -14,23 +14,23 @@ type (
 )
 
 const (
-	PaymentMethodCard                 = store.PaymentMethodCard
-	PaymentMethodApplePay             = store.PaymentMethodApplePay
-	InvoiceStatusPending              = store.InvoiceStatusPending
-	InvoiceStatusPaid                 = store.InvoiceStatusPaid
-	InvoiceStatusFailed               = store.InvoiceStatusCancelled
-	PaymentIntentStatusCreated        = store.PaymentIntentStatusCreated
-	PaymentIntentStatusAuthenticating = store.PaymentIntentStatusAuthenticating
-	PaymentIntentStatusAuthenticated  = store.PaymentIntentStatusAuthenticated
-	PaymentIntentStatusPaying         = store.PaymentIntentStatusPaying
-	PaymentIntentStatusCompleted      = store.PaymentIntentStatusCompleted
-	PaymentIntentStatusFailed         = store.PaymentIntentStatusFailed
-	TransactionTypeInitiateAuth       = store.GatewayOperationTypeInitiateAuth
-	TransactionTypeAuthenticatePayer  = store.GatewayOperationTypeAuthenticatePayer
-	TransactionTypePay                = store.GatewayOperationTypePay
-	TransactionStatusPending          = store.GatewayOperationStatusPending
-	TransactionStatusSuccess          = store.GatewayOperationStatusSuccess
-	TransactionStatusFailed           = store.GatewayOperationStatusFailed
+	PaymentMethodCard                    = store.PaymentMethodCard
+	PaymentMethodApplePay                = store.PaymentMethodApplePay
+	InvoiceStatusPending                 = store.InvoiceStatusPending
+	InvoiceStatusPaid                    = store.InvoiceStatusPaid
+	InvoiceStatusFailed                  = store.InvoiceStatusCancelled
+	PaymentIntentStatusCreated           = store.PaymentIntentStatusCreated
+	PaymentIntentStatusVerifyingCard     = store.PaymentIntentStatusVerifyingCard
+	PaymentIntentStatusCardVerified      = store.PaymentIntentStatusCardVerified
+	PaymentIntentStatusProcessingPayment = store.PaymentIntentStatusProcessingPayment
+	PaymentIntentStatusCompleted         = store.PaymentIntentStatusCompleted
+	PaymentIntentStatusFailed            = store.PaymentIntentStatusFailed
+	TransactionTypeInitiateAuth          = store.GatewayOperationTypeInitiateAuth
+	TransactionTypeAuthenticatePayer     = store.GatewayOperationTypeAuthenticatePayer
+	TransactionTypePay                   = store.GatewayOperationTypePay
+	TransactionStatusPending             = store.GatewayOperationStatusPending
+	TransactionStatusSuccess             = store.GatewayOperationStatusSuccess
+	TransactionStatusFailed              = store.GatewayOperationStatusFailed
 )
 
 type InitiateSessionRequest struct {

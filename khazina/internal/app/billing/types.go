@@ -11,16 +11,17 @@ import (
 )
 
 var (
-	ErrInvalidArgument          = errors.New("invalid argument")
-	ErrNotFound                 = errors.New("not found")
-	ErrUnsupportedPaymentMethod = errors.New("unsupported payment method")
-	ErrInvoiceAlreadyPaid       = errors.New("invoice already paid")
-	ErrInvoiceCancelled         = errors.New("invoice cancelled")
-	ErrInvoiceNotFound          = errors.New("invoice not found")
-	ErrGatewayAccountNotFound   = errors.New("gateway account not found")
-	ErrIdempotencyMismatch      = errors.New("idempotency key already used with different parameters")
-	ErrPaymentIntentExpired     = errors.New("payment intent expired")
-	ErrUnsupportedGateway       = errors.New("unsupported gateway")
+	ErrInvalidArgument           = errors.New("invalid argument")
+	ErrNotFound                  = errors.New("not found")
+	ErrUnsupportedPaymentMethod  = errors.New("unsupported payment method")
+	ErrInvoiceAlreadyPaid        = errors.New("invoice already paid")
+	ErrInvoiceCancelled          = errors.New("invoice cancelled")
+	ErrInvoiceNotFound           = errors.New("invoice not found")
+	ErrGatewayAccountNotFound    = errors.New("gateway account not found")
+	ErrIdempotencyMismatch       = errors.New("idempotency key already used with different parameters")
+	ErrPaymentIntentExpired      = errors.New("payment intent expired")
+	ErrPaymentIntentInvalidState = errors.New("payment intent invalid state")
+	ErrUnsupportedGateway        = errors.New("unsupported gateway")
 )
 
 type Service interface {
@@ -31,6 +32,17 @@ type Service interface {
 	ChallengeCard(ctx context.Context, r ChallengeCardRequest) (*ChallengeCardResponse, error)
 	CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error)
 }
+
+type PaymentIntentStatus string
+
+const (
+	PaymentIntentStatusCreated           PaymentIntentStatus = "created"
+	PaymentIntentStatusVerifyingCard     PaymentIntentStatus = "verifying_card"
+	PaymentIntentStatusCardVerified      PaymentIntentStatus = "card_verified"
+	PaymentIntentStatusProcessingPayment PaymentIntentStatus = "processing_payment"
+	PaymentIntentStatusCompleted         PaymentIntentStatus = "completed"
+	PaymentIntentStatusFailed            PaymentIntentStatus = "failed"
+)
 
 type PaymentMethod string
 

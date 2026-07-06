@@ -2,7 +2,6 @@ package payment
 
 import (
 	"testing"
-
 )
 
 func TestValidateSessionTransition(t *testing.T) {
@@ -12,15 +11,15 @@ func TestValidateSessionTransition(t *testing.T) {
 		to   PaymentIntentStatus
 		err  bool
 	}{
-		{"created to authenticating", PaymentIntentStatusCreated, PaymentIntentStatusAuthenticating, false},
+		{"created to verifying card", PaymentIntentStatusCreated, PaymentIntentStatusVerifyingCard, false},
 		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
 		{"created to completed", PaymentIntentStatusCreated, PaymentIntentStatusCompleted, true},
-		{"authenticating to authenticated", PaymentIntentStatusAuthenticating, PaymentIntentStatusAuthenticated, false},
-		{"authenticating to failed", PaymentIntentStatusAuthenticating, PaymentIntentStatusFailed, false},
-		{"authenticated to paying", PaymentIntentStatusAuthenticated, PaymentIntentStatusPaying, false},
-		{"paying to completed", PaymentIntentStatusPaying, PaymentIntentStatusCompleted, false},
-		{"paying to failed", PaymentIntentStatusPaying, PaymentIntentStatusFailed, false},
-		{"completed to anything", PaymentIntentStatusCompleted, PaymentIntentStatusAuthenticating, true},
+		{"verifying card to card verified", PaymentIntentStatusVerifyingCard, PaymentIntentStatusCardVerified, false},
+		{"verifying card to failed", PaymentIntentStatusVerifyingCard, PaymentIntentStatusFailed, false},
+		{"card verified to processing payment", PaymentIntentStatusCardVerified, PaymentIntentStatusProcessingPayment, false},
+		{"processing payment to completed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusCompleted, false},
+		{"processing payment to failed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusFailed, false},
+		{"completed to anything", PaymentIntentStatusCompleted, PaymentIntentStatusVerifyingCard, true},
 		{"failed to anything", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
 	}
 
@@ -64,8 +63,8 @@ func TestIsTerminalSessionStatus(t *testing.T) {
 	if !IsTerminalSessionStatus(PaymentIntentStatusFailed) {
 		t.Error("failed should be terminal")
 	}
-	if IsTerminalSessionStatus(PaymentIntentStatusAuthenticating) {
-		t.Error("authenticating should not be terminal")
+	if IsTerminalSessionStatus(PaymentIntentStatusVerifyingCard) {
+		t.Error("verifying card should not be terminal")
 	}
 }
 

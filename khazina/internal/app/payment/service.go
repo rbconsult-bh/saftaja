@@ -150,7 +150,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusAuthenticating); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusVerifyingCard); err != nil {
 		return nil, err
 	}
 
@@ -233,7 +233,7 @@ func (s *service) InitiateAuth(ctx context.Context, req *InitiateAuthRequest) (*
 	if status == TransactionStatusSuccess {
 		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: PaymentIntentStatusAuthenticating,
+			Status: PaymentIntentStatusVerifyingCard,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -272,7 +272,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusAuthenticated); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusCardVerified); err != nil {
 		return nil, err
 	}
 
@@ -392,7 +392,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	if status == TransactionStatusSuccess {
 		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: PaymentIntentStatusAuthenticated,
+			Status: PaymentIntentStatusCardVerified,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}
@@ -431,7 +431,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusPaying); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusProcessingPayment); err != nil {
 		return nil, err
 	}
 

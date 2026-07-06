@@ -1,6 +1,8 @@
 package billing
 
 import (
+	"fmt"
+
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -68,5 +70,43 @@ func mapStorePaymentMethodToPaymentMethod(spm store.PaymentMethod) PaymentMethod
 		return PaymentMethodApplePay
 	default:
 		return PaymentMethodUnkown
+	}
+}
+
+func mapStorePaymentIntentStatusToPaymentIntentStatus(s store.PaymentIntentStatus) (PaymentIntentStatus, error) {
+	switch s {
+	case store.PaymentIntentStatusCreated:
+		return PaymentIntentStatusCreated, nil
+	case store.PaymentIntentStatusVerifyingCard:
+		return PaymentIntentStatusVerifyingCard, nil
+	case store.PaymentIntentStatusCardVerified:
+		return PaymentIntentStatusCardVerified, nil
+	case store.PaymentIntentStatusProcessingPayment:
+		return PaymentIntentStatusProcessingPayment, nil
+	case store.PaymentIntentStatusCompleted:
+		return PaymentIntentStatusCompleted, nil
+	case store.PaymentIntentStatusFailed:
+		return PaymentIntentStatusFailed, nil
+	default:
+		return "", fmt.Errorf("%w: unknown payment intent status %q", ErrPaymentIntentInvalidState, s)
+	}
+}
+
+func mapPaymentIntentStatusToStorePaymentIntentStatus(s PaymentIntentStatus) (store.PaymentIntentStatus, error) {
+	switch s {
+	case PaymentIntentStatusCreated:
+		return store.PaymentIntentStatusCreated, nil
+	case PaymentIntentStatusVerifyingCard:
+		return store.PaymentIntentStatusVerifyingCard, nil
+	case PaymentIntentStatusCardVerified:
+		return store.PaymentIntentStatusCardVerified, nil
+	case PaymentIntentStatusProcessingPayment:
+		return store.PaymentIntentStatusProcessingPayment, nil
+	case PaymentIntentStatusCompleted:
+		return store.PaymentIntentStatusCompleted, nil
+	case PaymentIntentStatusFailed:
+		return store.PaymentIntentStatusFailed, nil
+	default:
+		return "", fmt.Errorf("%w: unknown payment intent status %q", ErrPaymentIntentInvalidState, s)
 	}
 }

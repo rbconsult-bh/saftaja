@@ -59,36 +59,6 @@ func (q *Queries) CreatePaymentIntent(ctx context.Context, arg CreatePaymentInte
 	return i, err
 }
 
-const getLatestPaymentIntent = `-- name: GetLatestPaymentIntent :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
-WHERE invoice_id = $1
-AND status IN ('created', 'authenticating', 'authenticated')
-ORDER BY created_at DESC
-LIMIT 1
-`
-
-func (q *Queries) GetLatestPaymentIntent(ctx context.Context, invoiceID uuid.UUID) (PaymentIntent, error) {
-	row := q.db.QueryRow(ctx, getLatestPaymentIntent, invoiceID)
-	var i PaymentIntent
-	err := row.Scan(
-		&i.ID,
-		&i.InvoiceID,
-		&i.ProjectID,
-		&i.GatewayAccountID,
-		&i.GatewaySessionID,
-		&i.Status,
-		&i.PaymentMethod,
-		&i.PayerIp,
-		&i.PayerUserAgent,
-		&i.ExpiresAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.IdempotencyKey,
-	)
-	return i, err
-}
-
 const getPaymentIntentByID = `-- name: GetPaymentIntentByID :one
 SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
 WHERE id = $1 LIMIT 1

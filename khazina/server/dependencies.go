@@ -81,7 +81,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 
 	tenantSvc := tenant.NewService(queries)
 	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
-	billingSvc := billing.New(queries, gatewayResolver)
+	billingSvc := billing.New(dbPool, queries, gatewayResolver)
 	gatewaySvc := gateway.New(queries, encryptionKey)
 
 	emailer, err := initEmailer(cfg)
