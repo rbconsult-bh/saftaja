@@ -34,3 +34,8 @@ WHERE id = $1;
 UPDATE payment_intents
 SET status = $2
 WHERE id = $1;
+
+-- name: GetPaymentIntentByIDAndProjectAndInvoiceForUpdate :one
+SELECT * FROM payment_intents
+WHERE id = $1 AND project_id = $2 AND invoice_id = $3 LIMIT 1
+FOR UPDATE;

@@ -7,17 +7,20 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rs/zerolog/log"
 )
 
 type service struct {
+	db              *pgxpool.Pool
 	queries         store.TransactionQuerier
 	gatewayResolver GatewayResolver
 }
 
-func New(queries store.TransactionQuerier, gatewayResolver GatewayResolver) Service {
+func New(db *pgxpool.Pool, queries store.TransactionQuerier, gatewayResolver GatewayResolver) Service {
 	return &service{
+		db:              db,
 		queries:         queries,
 		gatewayResolver: gatewayResolver,
 	}
@@ -203,12 +206,40 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
-	// TODO: lock in tx, select for update for the payment intent while we do our thing haha :)
-	// TODO: load intent and verify it belongs to this project and invoice
-	// TODO: check intent not expired (maybe do it as part of query? or not o tell user about it?)
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to begin tx")
+		return nil, errors.New("failed to begin tx")
+	}
+	defer tx.Rollback(ctx)
+
+	queriesWithTx := s.queries.WithTx(tx)
+
+	paymentIntent, err := queriesWithTx.GetPaymentIntentByIDAndProjectAndInvoiceForUpdate(
+		ctx,
+		store.GetPaymentIntentByIDAndProjectAndInvoiceForUpdateParams{
+			ID:        r.PaymentIntentID,
+			ProjectID: r.ProjectID,
+			InvoiceID: r.InvoiceID,
+		},
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Ctx(ctx).Info().Msg("payment intent not found")
+			return nil, ErrNotFound
+		}
+
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get payment intent by id and project for update")
+		return nil, err
+	}
+
+	if paymentIntent.ExpiresAt.Before(time.Now()) {
+		log.Ctx(ctx).Info().Msg("payment intent expired")
+		return nil, ErrPaymentIntentExpired
+	}
+
 	// TODO: use state machine to validate transition of state
 	// TODO: use gatewayResolver to verify card
-	// TODO:
 
 	return &VerifyCardResponse{}, nil
 }

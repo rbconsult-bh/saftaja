@@ -34,6 +34,7 @@ type Querier interface {
 	GetPayGatewayOperationByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
 	GetPaymentIntentByID(ctx context.Context, id uuid.UUID) (PaymentIntent, error)
 	GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPaymentIntentByIDAndProjectParams) (PaymentIntent, error)
+	GetPaymentIntentByIDAndProjectAndInvoiceForUpdate(ctx context.Context, arg GetPaymentIntentByIDAndProjectAndInvoiceForUpdateParams) (PaymentIntent, error)
 	GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyAndProjectParams) (PaymentIntent, error)
 	GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error)
 	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)

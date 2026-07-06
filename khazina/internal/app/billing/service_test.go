@@ -52,7 +52,7 @@ func setupTestEnv(t *testing.T) testEnv {
 		queries:         queries,
 		cardGateway:     cardGateway,
 		gatewayResolver: gatewayResolver,
-		svc:             New(queries, gatewayResolver),
+		svc:             New(db.Pool, queries, gatewayResolver),
 	}
 }
 

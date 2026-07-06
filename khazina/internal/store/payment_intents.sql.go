@@ -148,6 +148,40 @@ func (q *Queries) GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPay
 	return i, err
 }
 
+const getPaymentIntentByIDAndProjectAndInvoiceForUpdate = `-- name: GetPaymentIntentByIDAndProjectAndInvoiceForUpdate :one
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
+WHERE id = $1 AND project_id = $2 AND invoice_id = $3 LIMIT 1
+FOR UPDATE
+`
+
+type GetPaymentIntentByIDAndProjectAndInvoiceForUpdateParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+	InvoiceID uuid.UUID
+}
+
+func (q *Queries) GetPaymentIntentByIDAndProjectAndInvoiceForUpdate(ctx context.Context, arg GetPaymentIntentByIDAndProjectAndInvoiceForUpdateParams) (PaymentIntent, error) {
+	row := q.db.QueryRow(ctx, getPaymentIntentByIDAndProjectAndInvoiceForUpdate, arg.ID, arg.ProjectID, arg.InvoiceID)
+	var i PaymentIntent
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.GatewayAccountID,
+		&i.GatewaySessionID,
+		&i.Status,
+		&i.PaymentMethod,
+		&i.PayerIp,
+		&i.PayerUserAgent,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IdempotencyKey,
+	)
+	return i, err
+}
+
 const getPaymentIntentByIdempotencyKeyAndProject = `-- name: GetPaymentIntentByIdempotencyKeyAndProject :one
 SELECT id, invoice_id, project_id, gateway_account_id, gateway_session_id, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
 WHERE project_id = $1
