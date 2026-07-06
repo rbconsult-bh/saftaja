@@ -17,6 +17,7 @@ var (
 	ErrInvoiceAlreadyPaid             = errors.New("invoice already paid")
 	ErrInvoiceCancelled               = errors.New("invoice cancelled")
 	ErrInvoiceNotFound                = errors.New("invoice not found")
+	ErrInvoiceInvalidState            = errors.New("invoice invalid state")
 	ErrGatewayAccountNotFound         = errors.New("gateway account not found")
 	ErrIdempotencyMismatch            = errors.New("idempotency key already used with different parameters")
 	ErrPaymentIntentExpired           = errors.New("payment intent expired")
@@ -58,7 +59,6 @@ const (
 type InvoiceStatus string
 
 const (
-	InvoiceStatusUnknown   InvoiceStatus = "unknown"
 	InvoiceStatusPending   InvoiceStatus = "pending"
 	InvoiceStatusPaid      InvoiceStatus = "paid"
 	InvoiceStatusCancelled InvoiceStatus = "cancelled"

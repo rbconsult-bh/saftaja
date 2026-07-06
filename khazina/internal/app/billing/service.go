@@ -46,8 +46,14 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 		return nil, ErrNotFound
 	}
 
+	invoice, err := mapStoreInvoiceRowsToInvoice(rows)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to map invoice")
+		return nil, err
+	}
+
 	return &GetInvoiceResponse{
-		Invoice: mapStoreInvoiceRowsToInvoice(rows),
+		Invoice: invoice,
 	}, nil
 }
 
@@ -117,7 +123,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		log.Ctx(ctx).Info().Msg("cannot pay cancelled invoice")
 		return nil, ErrInvoiceCancelled
 	default:
-		return nil, fmt.Errorf("un-payable invoice status: %s", invoice.Status)
+		log.Ctx(ctx).Error().Str("invoice_status", string(invoice.Status)).Msg("unknown invoice status")
+		return nil, fmt.Errorf("%w: unknown invoice status %q", ErrInvoiceInvalidState, invoice.Status)
 	}
 
 	gatewayAccount, err := s.queries.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{

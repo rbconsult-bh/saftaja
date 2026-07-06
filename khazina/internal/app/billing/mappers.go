@@ -7,19 +7,23 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
 
-func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProjectIDRow) Invoice {
+func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProjectIDRow) (Invoice, error) {
 	if len(rows) == 0 {
-		return Invoice{}
+		return Invoice{}, nil
 	}
 
 	first := rows[0].Invoice
+	status, err := mapStoreInvoiceStatusToInvoiceStatus(first.Status)
+	if err != nil {
+		return Invoice{}, err
+	}
 
 	invoice := Invoice{
 		ID:            first.ID,
 		ProjectID:     first.ProjectID,
 		Amount:        first.Amount,
 		Currency:      first.Currency,
-		Status:        mapStoreInvoiceStatusToInvoiceStatus(first.Status),
+		Status:        status,
 		ExternalID:    ptr.Deref(first.ExternalID),
 		CustomerEmail: ptr.Deref(first.CustomerEmail),
 		CustomerName:  ptr.Deref(first.CustomerName),
@@ -46,19 +50,19 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 		invoice.Items = append(invoice.Items, item)
 	}
 
-	return invoice
+	return invoice, nil
 }
 
-func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) InvoiceStatus {
+func mapStoreInvoiceStatusToInvoiceStatus(is store.InvoiceStatus) (InvoiceStatus, error) {
 	switch is {
 	case store.InvoiceStatusPending:
-		return InvoiceStatusPending
+		return InvoiceStatusPending, nil
 	case store.InvoiceStatusPaid:
-		return InvoiceStatusPaid
+		return InvoiceStatusPaid, nil
 	case store.InvoiceStatusCancelled:
-		return InvoiceStatusCancelled
+		return InvoiceStatusCancelled, nil
 	default:
-		return InvoiceStatusUnknown
+		return "", fmt.Errorf("%w: unknown invoice status %q", ErrInvoiceInvalidState, is)
 	}
 }
 
