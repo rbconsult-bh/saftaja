@@ -26,7 +26,8 @@ type PaymentIntentStatus string
 const (
 	PaymentIntentStatusCreated           PaymentIntentStatus = "created"
 	PaymentIntentStatusVerifyingCard     PaymentIntentStatus = "verifying_card"
-	PaymentIntentStatusCardVerified      PaymentIntentStatus = "card_verified"
+	PaymentIntentStatusChallengingCard   PaymentIntentStatus = "challenging_card"
+	PaymentIntentStatusReadyToCapture    PaymentIntentStatus = "ready_to_capture"
 	PaymentIntentStatusProcessingPayment PaymentIntentStatus = "processing_payment"
 	PaymentIntentStatusCompleted         PaymentIntentStatus = "completed"
 	PaymentIntentStatusFailed            PaymentIntentStatus = "failed"

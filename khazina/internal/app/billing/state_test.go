@@ -17,10 +17,14 @@ func TestValidatePaymentIntentTransition_Card(t *testing.T) {
 		{"created to verifying card", PaymentIntentStatusCreated, PaymentIntentStatusVerifyingCard, false},
 		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
 		{"created cannot skip to processing payment", PaymentIntentStatusCreated, PaymentIntentStatusProcessingPayment, true},
-		{"verifying card to card verified", PaymentIntentStatusVerifyingCard, PaymentIntentStatusCardVerified, false},
+		{"verifying card to challenging card", PaymentIntentStatusVerifyingCard, PaymentIntentStatusChallengingCard, false},
+		{"verifying card to ready to capture", PaymentIntentStatusVerifyingCard, PaymentIntentStatusReadyToCapture, false},
 		{"verifying card to failed", PaymentIntentStatusVerifyingCard, PaymentIntentStatusFailed, false},
-		{"card verified to processing payment", PaymentIntentStatusCardVerified, PaymentIntentStatusProcessingPayment, false},
-		{"card verified to failed", PaymentIntentStatusCardVerified, PaymentIntentStatusFailed, false},
+		{"challenging card to ready to capture", PaymentIntentStatusChallengingCard, PaymentIntentStatusReadyToCapture, false},
+		{"challenging card to failed", PaymentIntentStatusChallengingCard, PaymentIntentStatusFailed, false},
+		{"challenging card cannot capture payment", PaymentIntentStatusChallengingCard, PaymentIntentStatusProcessingPayment, true},
+		{"ready to capture to processing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusProcessingPayment, false},
+		{"ready to capture to failed", PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed, false},
 		{"processing payment to completed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusCompleted, false},
 		{"processing payment to failed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusFailed, false},
 		{"completed is terminal", PaymentIntentStatusCompleted, PaymentIntentStatusFailed, true},
@@ -43,4 +47,5 @@ func TestPaymentIntentStatusHelpers(t *testing.T) {
 	assert.True(t, PaymentIntentStatusCompleted.IsTerminal())
 	assert.True(t, PaymentIntentStatusFailed.IsTerminal())
 	assert.False(t, PaymentIntentStatusVerifyingCard.IsTerminal())
+	assert.False(t, PaymentIntentStatusChallengingCard.IsTerminal())
 }

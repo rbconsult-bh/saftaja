@@ -8,10 +8,15 @@ var cardPaymentIntentTransitions = map[PaymentIntentStatus]map[PaymentIntentStat
 		PaymentIntentStatusFailed:        true,
 	},
 	PaymentIntentStatusVerifyingCard: {
-		PaymentIntentStatusCardVerified: true,
-		PaymentIntentStatusFailed:       true,
+		PaymentIntentStatusChallengingCard: true,
+		PaymentIntentStatusReadyToCapture:  true,
+		PaymentIntentStatusFailed:          true,
 	},
-	PaymentIntentStatusCardVerified: {
+	PaymentIntentStatusChallengingCard: {
+		PaymentIntentStatusReadyToCapture: true,
+		PaymentIntentStatusFailed:         true,
+	},
+	PaymentIntentStatusReadyToCapture: {
 		PaymentIntentStatusProcessingPayment: true,
 		PaymentIntentStatusFailed:            true,
 	},

@@ -55,7 +55,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusCardVerified); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusReadyToCapture); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +175,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 	if status == TransactionStatusSuccess {
 		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: PaymentIntentStatusCardVerified,
+			Status: PaymentIntentStatusReadyToCapture,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}

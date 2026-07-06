@@ -29,9 +29,11 @@ type Service interface {
 	GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error)
 
 	StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error)
-	VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error)
-	ChallengeCard(ctx context.Context, r ChallengeCardRequest) (*ChallengeCardResponse, error)
 	CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error)
+
+	VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error)
+	StartCardChallenge(ctx context.Context, r StartCardChallengeRequest) (*StartCardChallengeResponse, error)
+	CompleteCardChallenge(ctx context.Context, r CompleteCardChallengeRequest) (*CompleteCardChallengeResponse, error)
 }
 
 type PaymentIntentStatus string
@@ -39,7 +41,8 @@ type PaymentIntentStatus string
 const (
 	PaymentIntentStatusCreated           PaymentIntentStatus = "created"
 	PaymentIntentStatusVerifyingCard     PaymentIntentStatus = "verifying_card"
-	PaymentIntentStatusCardVerified      PaymentIntentStatus = "card_verified"
+	PaymentIntentStatusChallengingCard   PaymentIntentStatus = "challenging_card"
+	PaymentIntentStatusReadyToCapture    PaymentIntentStatus = "ready_to_capture"
 	PaymentIntentStatusProcessingPayment PaymentIntentStatus = "processing_payment"
 	PaymentIntentStatusCompleted         PaymentIntentStatus = "completed"
 	PaymentIntentStatusFailed            PaymentIntentStatus = "failed"
@@ -156,6 +159,11 @@ func (r *StartPaymentRequest) Validate() error {
 }
 
 type (
+	CapturePaymentRequest  struct{}
+	CapturePaymentResponse struct{}
+)
+
+type (
 	VerifyCardRequest struct {
 		ProjectID       uuid.UUID
 		InvoiceID       uuid.UUID
@@ -187,11 +195,11 @@ func (r *VerifyCardRequest) Validate() error {
 }
 
 type (
-	ChallengeCardRequest  struct{}
-	ChallengeCardResponse struct{}
+	StartCardChallengeRequest  struct{}
+	StartCardChallengeResponse struct{}
 )
 
 type (
-	CapturePaymentRequest  struct{}
-	CapturePaymentResponse struct{}
+	CompleteCardChallengeRequest  struct{}
+	CompleteCardChallengeResponse struct{}
 )

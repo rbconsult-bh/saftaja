@@ -2,8 +2,8 @@ package payment
 
 var validSessionTransitions = map[PaymentIntentStatus][]PaymentIntentStatus{
 	PaymentIntentStatusCreated:           {PaymentIntentStatusVerifyingCard, PaymentIntentStatusFailed},
-	PaymentIntentStatusVerifyingCard:     {PaymentIntentStatusCardVerified, PaymentIntentStatusFailed},
-	PaymentIntentStatusCardVerified:      {PaymentIntentStatusProcessingPayment},
+	PaymentIntentStatusVerifyingCard:     {PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed},
+	PaymentIntentStatusReadyToCapture:    {PaymentIntentStatusProcessingPayment},
 	PaymentIntentStatusProcessingPayment: {PaymentIntentStatusCompleted, PaymentIntentStatusFailed},
 }
 

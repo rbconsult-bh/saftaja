@@ -205,6 +205,10 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	}, nil
 }
 
+func (s *service) CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error) {
+	return &CapturePaymentResponse{}, nil
+}
+
 func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error) {
 	if err := r.Validate(); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
@@ -365,10 +369,10 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 	}, nil
 }
 
-func (s *service) ChallengeCard(ctx context.Context, r ChallengeCardRequest) (*ChallengeCardResponse, error) {
-	return &ChallengeCardResponse{}, nil
+func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRequest) (*StartCardChallengeResponse, error) {
+	return &StartCardChallengeResponse{}, nil
 }
 
-func (s *service) CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error) {
-	return &CapturePaymentResponse{}, nil
+func (s *service) CompleteCardChallenge(ctx context.Context, r CompleteCardChallengeRequest) (*CompleteCardChallengeResponse, error) {
+	return &CompleteCardChallengeResponse{}, nil
 }

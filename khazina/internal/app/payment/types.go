@@ -21,7 +21,7 @@ const (
 	InvoiceStatusFailed                  = store.InvoiceStatusCancelled
 	PaymentIntentStatusCreated           = store.PaymentIntentStatusCreated
 	PaymentIntentStatusVerifyingCard     = store.PaymentIntentStatusVerifyingCard
-	PaymentIntentStatusCardVerified      = store.PaymentIntentStatusCardVerified
+	PaymentIntentStatusReadyToCapture    = store.PaymentIntentStatusReadyToCapture
 	PaymentIntentStatusProcessingPayment = store.PaymentIntentStatusProcessingPayment
 	PaymentIntentStatusCompleted         = store.PaymentIntentStatusCompleted
 	PaymentIntentStatusFailed            = store.PaymentIntentStatusFailed

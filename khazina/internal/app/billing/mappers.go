@@ -79,8 +79,10 @@ func mapStorePaymentIntentStatusToPaymentIntentStatus(s store.PaymentIntentStatu
 		return PaymentIntentStatusCreated, nil
 	case store.PaymentIntentStatusVerifyingCard:
 		return PaymentIntentStatusVerifyingCard, nil
-	case store.PaymentIntentStatusCardVerified:
-		return PaymentIntentStatusCardVerified, nil
+	case store.PaymentIntentStatusChallengingCard:
+		return PaymentIntentStatusChallengingCard, nil
+	case store.PaymentIntentStatusReadyToCapture:
+		return PaymentIntentStatusReadyToCapture, nil
 	case store.PaymentIntentStatusProcessingPayment:
 		return PaymentIntentStatusProcessingPayment, nil
 	case store.PaymentIntentStatusCompleted:
@@ -98,8 +100,10 @@ func mapPaymentIntentStatusToStorePaymentIntentStatus(s PaymentIntentStatus) (st
 		return store.PaymentIntentStatusCreated, nil
 	case PaymentIntentStatusVerifyingCard:
 		return store.PaymentIntentStatusVerifyingCard, nil
-	case PaymentIntentStatusCardVerified:
-		return store.PaymentIntentStatusCardVerified, nil
+	case PaymentIntentStatusChallengingCard:
+		return store.PaymentIntentStatusChallengingCard, nil
+	case PaymentIntentStatusReadyToCapture:
+		return store.PaymentIntentStatusReadyToCapture, nil
 	case PaymentIntentStatusProcessingPayment:
 		return store.PaymentIntentStatusProcessingPayment, nil
 	case PaymentIntentStatusCompleted:

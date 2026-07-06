@@ -106,27 +106,27 @@ func (_c *MockService_CapturePayment_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
-// ChallengeCard provides a mock function for the type MockService
-func (_mock *MockService) ChallengeCard(ctx context.Context, r billing.ChallengeCardRequest) (*billing.ChallengeCardResponse, error) {
+// CompleteCardChallenge provides a mock function for the type MockService
+func (_mock *MockService) CompleteCardChallenge(ctx context.Context, r billing.CompleteCardChallengeRequest) (*billing.CompleteCardChallengeResponse, error) {
 	ret := _mock.Called(ctx, r)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ChallengeCard")
+		panic("no return value specified for CompleteCardChallenge")
 	}
 
-	var r0 *billing.ChallengeCardResponse
+	var r0 *billing.CompleteCardChallengeResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.ChallengeCardRequest) (*billing.ChallengeCardResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.CompleteCardChallengeRequest) (*billing.CompleteCardChallengeResponse, error)); ok {
 		return returnFunc(ctx, r)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.ChallengeCardRequest) *billing.ChallengeCardResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.CompleteCardChallengeRequest) *billing.CompleteCardChallengeResponse); ok {
 		r0 = returnFunc(ctx, r)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.ChallengeCardResponse)
+			r0 = ret.Get(0).(*billing.CompleteCardChallengeResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, billing.ChallengeCardRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, billing.CompleteCardChallengeRequest) error); ok {
 		r1 = returnFunc(ctx, r)
 	} else {
 		r1 = ret.Error(1)
@@ -134,27 +134,27 @@ func (_mock *MockService) ChallengeCard(ctx context.Context, r billing.Challenge
 	return r0, r1
 }
 
-// MockService_ChallengeCard_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChallengeCard'
-type MockService_ChallengeCard_Call struct {
+// MockService_CompleteCardChallenge_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CompleteCardChallenge'
+type MockService_CompleteCardChallenge_Call struct {
 	*mock.Call
 }
 
-// ChallengeCard is a helper method to define mock.On call
+// CompleteCardChallenge is a helper method to define mock.On call
 //   - ctx context.Context
-//   - r billing.ChallengeCardRequest
-func (_e *MockService_Expecter) ChallengeCard(ctx interface{}, r interface{}) *MockService_ChallengeCard_Call {
-	return &MockService_ChallengeCard_Call{Call: _e.mock.On("ChallengeCard", ctx, r)}
+//   - r billing.CompleteCardChallengeRequest
+func (_e *MockService_Expecter) CompleteCardChallenge(ctx interface{}, r interface{}) *MockService_CompleteCardChallenge_Call {
+	return &MockService_CompleteCardChallenge_Call{Call: _e.mock.On("CompleteCardChallenge", ctx, r)}
 }
 
-func (_c *MockService_ChallengeCard_Call) Run(run func(ctx context.Context, r billing.ChallengeCardRequest)) *MockService_ChallengeCard_Call {
+func (_c *MockService_CompleteCardChallenge_Call) Run(run func(ctx context.Context, r billing.CompleteCardChallengeRequest)) *MockService_CompleteCardChallenge_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 billing.ChallengeCardRequest
+		var arg1 billing.CompleteCardChallengeRequest
 		if args[1] != nil {
-			arg1 = args[1].(billing.ChallengeCardRequest)
+			arg1 = args[1].(billing.CompleteCardChallengeRequest)
 		}
 		run(
 			arg0,
@@ -164,12 +164,12 @@ func (_c *MockService_ChallengeCard_Call) Run(run func(ctx context.Context, r bi
 	return _c
 }
 
-func (_c *MockService_ChallengeCard_Call) Return(challengeCardResponse *billing.ChallengeCardResponse, err error) *MockService_ChallengeCard_Call {
-	_c.Call.Return(challengeCardResponse, err)
+func (_c *MockService_CompleteCardChallenge_Call) Return(completeCardChallengeResponse *billing.CompleteCardChallengeResponse, err error) *MockService_CompleteCardChallenge_Call {
+	_c.Call.Return(completeCardChallengeResponse, err)
 	return _c
 }
 
-func (_c *MockService_ChallengeCard_Call) RunAndReturn(run func(ctx context.Context, r billing.ChallengeCardRequest) (*billing.ChallengeCardResponse, error)) *MockService_ChallengeCard_Call {
+func (_c *MockService_CompleteCardChallenge_Call) RunAndReturn(run func(ctx context.Context, r billing.CompleteCardChallengeRequest) (*billing.CompleteCardChallengeResponse, error)) *MockService_CompleteCardChallenge_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -238,6 +238,74 @@ func (_c *MockService_GetInvoice_Call) Return(getInvoiceResponse *billing.GetInv
 }
 
 func (_c *MockService_GetInvoice_Call) RunAndReturn(run func(ctx context.Context, r billing.GetInvoiceRequest) (*billing.GetInvoiceResponse, error)) *MockService_GetInvoice_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StartCardChallenge provides a mock function for the type MockService
+func (_mock *MockService) StartCardChallenge(ctx context.Context, r billing.StartCardChallengeRequest) (*billing.StartCardChallengeResponse, error) {
+	ret := _mock.Called(ctx, r)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StartCardChallenge")
+	}
+
+	var r0 *billing.StartCardChallengeResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.StartCardChallengeRequest) (*billing.StartCardChallengeResponse, error)); ok {
+		return returnFunc(ctx, r)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, billing.StartCardChallengeRequest) *billing.StartCardChallengeResponse); ok {
+		r0 = returnFunc(ctx, r)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.StartCardChallengeResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, billing.StartCardChallengeRequest) error); ok {
+		r1 = returnFunc(ctx, r)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockService_StartCardChallenge_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StartCardChallenge'
+type MockService_StartCardChallenge_Call struct {
+	*mock.Call
+}
+
+// StartCardChallenge is a helper method to define mock.On call
+//   - ctx context.Context
+//   - r billing.StartCardChallengeRequest
+func (_e *MockService_Expecter) StartCardChallenge(ctx interface{}, r interface{}) *MockService_StartCardChallenge_Call {
+	return &MockService_StartCardChallenge_Call{Call: _e.mock.On("StartCardChallenge", ctx, r)}
+}
+
+func (_c *MockService_StartCardChallenge_Call) Run(run func(ctx context.Context, r billing.StartCardChallengeRequest)) *MockService_StartCardChallenge_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 billing.StartCardChallengeRequest
+		if args[1] != nil {
+			arg1 = args[1].(billing.StartCardChallengeRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_StartCardChallenge_Call) Return(startCardChallengeResponse *billing.StartCardChallengeResponse, err error) *MockService_StartCardChallenge_Call {
+	_c.Call.Return(startCardChallengeResponse, err)
+	return _c
+}
+
+func (_c *MockService_StartCardChallenge_Call) RunAndReturn(run func(ctx context.Context, r billing.StartCardChallengeRequest) (*billing.StartCardChallengeResponse, error)) *MockService_StartCardChallenge_Call {
 	_c.Call.Return(run)
 	return _c
 }
