@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -15,17 +16,17 @@ import (
 )
 
 var (
-	uuidProject          = uuid.MustParse("00000000-0000-0000-0000-000000001001")
-	uuidGateway          = uuid.MustParse("00000000-0000-0000-0000-000000002001")
-	uuidInvoice          = uuid.MustParse("00000000-0000-0000-0000-000000003001")
-	uuidInvoiceNoItems   = uuid.MustParse("00000000-0000-0000-0000-000000003002")
-	uuidInvoicePaid      = uuid.MustParse("00000000-0000-0000-0000-000000003003")
-	uuidInvoiceCancelled = uuid.MustParse("00000000-0000-0000-0000-000000003004")
-	uuidPaymentIntent    = uuid.MustParse("00000000-0000-0000-0000-000000005001")
-	uuidPaymentExpired   = uuid.MustParse("00000000-0000-0000-0000-000000005002")
+	uuidProject                      = uuid.MustParse("00000000-0000-0000-0000-000000001001")
+	uuidGateway                      = uuid.MustParse("00000000-0000-0000-0000-000000002001")
+	uuidInvoice                      = uuid.MustParse("00000000-0000-0000-0000-000000003001")
+	uuidInvoiceNoItems               = uuid.MustParse("00000000-0000-0000-0000-000000003002")
+	uuidInvoicePaid                  = uuid.MustParse("00000000-0000-0000-0000-000000003003")
+	uuidInvoiceCancelled             = uuid.MustParse("00000000-0000-0000-0000-000000003004")
+	uuidPaymentIntent                = uuid.MustParse("00000000-0000-0000-0000-000000005001")
+	uuidPaymentExpired               = uuid.MustParse("00000000-0000-0000-0000-000000005002")
 	uuidPaymentReadyToStartChallenge = uuid.MustParse("00000000-0000-0000-0000-000000005005")
-	uuidPaymentNoSetup   = uuid.MustParse("00000000-0000-0000-0000-000000005006")
-	uuidNotExist         = uuid.MustParse("00000000-0000-0000-0000-00000000ffff")
+	uuidPaymentNoSetup               = uuid.MustParse("00000000-0000-0000-0000-000000005006")
+	uuidNotExist                     = uuid.MustParse("00000000-0000-0000-0000-00000000ffff")
 )
 
 var testEncryptionKey = []byte("12345678901234567890123456789012")
@@ -79,6 +80,28 @@ func validStartPaymentRequest(idempotencyKey string) StartPaymentRequest {
 		PaymentMethod:    PaymentMethodCard,
 		PayerIP:          "192.168.1.1",
 		PayerUserAgent:   "Mozilla/5.0",
+	}
+}
+
+func validStartCardChallengeRequest() StartCardChallengeRequest {
+	return StartCardChallengeRequest{
+		PaymentIntentRef: PaymentIntentRef{
+			ProjectID:       uuidProject,
+			InvoiceID:       uuidInvoice,
+			PaymentIntentID: uuidPaymentReadyToStartChallenge,
+		},
+		Browser: ThreeDSBrowser{
+			IPAddress:           "192.0.2.1",
+			UserAgent:           "Mozilla/5.0",
+			AcceptHeader:        "text/html,application/xhtml+xml",
+			ChallengeWindowSize: ThreeDSChallengeWindowSizeFullScreen,
+			ColorDepth:          24,
+			JavaEnabled:         false,
+			Language:            "en-US",
+			ScreenHeight:        1080,
+			ScreenWidth:         1920,
+			TimeZone:            -180,
+		},
 	}
 }
 
@@ -449,6 +472,51 @@ func TestPrepareCardChallenge_RejectsInvalidRequest(t *testing.T) {
 
 			assert.Nil(t, resp)
 			assert.ErrorIs(t, err, tt.err)
+		})
+	}
+}
+
+func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
+	svc := New(nil, nil, nil)
+
+	tests := []struct {
+		name      string
+		change    func(*StartCardChallengeRequest)
+		errorText string
+	}{
+		{"missing project ID", func(r *StartCardChallengeRequest) { r.ProjectID = uuid.Nil }, "ProjectID is required"},
+		{"missing invoice ID", func(r *StartCardChallengeRequest) { r.InvoiceID = uuid.Nil }, "InvoiceID is required"},
+		{"missing payment intent ID", func(r *StartCardChallengeRequest) { r.PaymentIntentID = uuid.Nil }, "PaymentIntentID is required"},
+		{"missing IP address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "" }, "IPAddress is required"},
+		{"invalid IP address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "invalid" }, "IPAddress is invalid"},
+		{"missing user agent", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = "" }, "UserAgent is required"},
+		{"user agent too long", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = strings.Repeat("a", 2049) }, "UserAgent must not exceed 2048 characters"},
+		{"missing accept header", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = "" }, "AcceptHeader is required"},
+		{"accept header too long", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = strings.Repeat("a", 2049) }, "AcceptHeader must not exceed 2048 characters"},
+		{"unsupported challenge size", func(r *StartCardChallengeRequest) { r.Browser.ChallengeWindowSize = "100_X_100" }, "unsupported ChallengeWindowSize"},
+		{"color depth too small", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 0 }, "ColorDepth must be between 1 and 48"},
+		{"color depth too large", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 49 }, "ColorDepth must be between 1 and 48"},
+		{"missing language", func(r *StartCardChallengeRequest) { r.Browser.Language = "" }, "Language is required"},
+		{"language too long", func(r *StartCardChallengeRequest) { r.Browser.Language = "zh-Hant-HK" }, "Language must not exceed 8 characters"},
+		{"screen height too small", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 0 }, "ScreenHeight must be between 1 and 999999"},
+		{"screen height too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 1000000 }, "ScreenHeight must be between 1 and 999999"},
+		{"screen width too small", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 0 }, "ScreenWidth must be between 1 and 999999"},
+		{"screen width too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 1000000 }, "ScreenWidth must be between 1 and 999999"},
+		{"time zone too small", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = -841 }, "TimeZone must be between -840 and 840"},
+		{"time zone too large", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = 841 }, "TimeZone must be between -840 and 840"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := validStartCardChallengeRequest()
+			tt.change(&req)
+
+			resp, err := svc.StartCardChallenge(t.Context(), req)
+
+			assert.Nil(t, resp)
+			require.Error(t, err)
+			assert.ErrorIs(t, err, ErrInvalidArgument)
+			assert.Contains(t, err.Error(), tt.errorText)
 		})
 	}
 }

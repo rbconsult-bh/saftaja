@@ -380,6 +380,18 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 }
 
 func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRequest) (*StartCardChallengeResponse, error) {
+	if err := r.Validate(); err != nil {
+		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
+		return nil, err
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to begin tx")
+		return nil, errors.New("failed to begin tx")
+	}
+	defer tx.Rollback(ctx)
+
 	return &StartCardChallengeResponse{}, nil
 }
 
