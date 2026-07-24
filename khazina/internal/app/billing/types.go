@@ -189,21 +189,22 @@ type (
 	CapturePaymentResponse struct{}
 )
 
+type PrepareCardChallengeNextStep string
+
+const (
+	PrepareCardChallengeNextStepStartChallenge PrepareCardChallengeNextStep = "start_challenge"
+	PrepareCardChallengeNextStepCantContinue   PrepareCardChallengeNextStep = "cant_continue"
+)
+
 type (
 	PrepareCardChallengeRequest struct {
 		ProjectID       uuid.UUID
 		InvoiceID       uuid.UUID
 		PaymentIntentID uuid.UUID
 	}
-	PrepareCardChallengeNextStep string
 	PrepareCardChallengeResponse struct {
 		NextStep PrepareCardChallengeNextStep
 	}
-)
-
-const (
-	PrepareCardChallengeNextStepStartChallenge PrepareCardChallengeNextStep = "start_challenge"
-	PrepareCardChallengeNextStepCantContinue   PrepareCardChallengeNextStep = "cant_continue"
 )
 
 func (r *PrepareCardChallengeRequest) Validate() error {
@@ -295,12 +296,22 @@ func (r ThreeDSBrowser) Validate() error {
 	return nil
 }
 
+type StartCardChallengeNextStep string
+
+const (
+	StartCardChallengeNextStepCompleteChallenge StartCardChallengeNextStep = "complete_challenge"
+	StartCardChallengeNextStepCapture           StartCardChallengeNextStep = "capture"
+	StartCardChallengeNextStepCantContinue      StartCardChallengeNextStep = "cant_continue"
+)
+
 type (
 	StartCardChallengeRequest struct {
 		PaymentIntentRef
 		Browser ThreeDSBrowser
 	}
-	StartCardChallengeResponse struct{}
+	StartCardChallengeResponse struct {
+		NextStep StartCardChallengeNextStep
+	}
 )
 
 func (r *StartCardChallengeRequest) Validate() error {
