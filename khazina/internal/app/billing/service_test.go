@@ -476,51 +476,6 @@ func TestPrepareCardChallenge_RejectsInvalidRequest(t *testing.T) {
 	}
 }
 
-func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
-	svc := New(nil, nil, nil)
-
-	tests := []struct {
-		name      string
-		change    func(*StartCardChallengeRequest)
-		errorText string
-	}{
-		{"missing project ID", func(r *StartCardChallengeRequest) { r.ProjectID = uuid.Nil }, "ProjectID is required"},
-		{"missing invoice ID", func(r *StartCardChallengeRequest) { r.InvoiceID = uuid.Nil }, "InvoiceID is required"},
-		{"missing payment intent ID", func(r *StartCardChallengeRequest) { r.PaymentIntentID = uuid.Nil }, "PaymentIntentID is required"},
-		{"missing IP address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "" }, "IPAddress is required"},
-		{"invalid IP address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "invalid" }, "IPAddress is invalid"},
-		{"missing user agent", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = "" }, "UserAgent is required"},
-		{"user agent too long", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = strings.Repeat("a", 2049) }, "UserAgent must not exceed 2048 characters"},
-		{"missing accept header", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = "" }, "AcceptHeader is required"},
-		{"accept header too long", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = strings.Repeat("a", 2049) }, "AcceptHeader must not exceed 2048 characters"},
-		{"unsupported challenge size", func(r *StartCardChallengeRequest) { r.Browser.ChallengeWindowSize = "100_X_100" }, "unsupported ChallengeWindowSize"},
-		{"color depth too small", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 0 }, "ColorDepth must be between 1 and 48"},
-		{"color depth too large", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 49 }, "ColorDepth must be between 1 and 48"},
-		{"missing language", func(r *StartCardChallengeRequest) { r.Browser.Language = "" }, "Language is required"},
-		{"language too long", func(r *StartCardChallengeRequest) { r.Browser.Language = "zh-Hant-HK" }, "Language must not exceed 8 characters"},
-		{"screen height too small", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 0 }, "ScreenHeight must be between 1 and 999999"},
-		{"screen height too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 1000000 }, "ScreenHeight must be between 1 and 999999"},
-		{"screen width too small", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 0 }, "ScreenWidth must be between 1 and 999999"},
-		{"screen width too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 1000000 }, "ScreenWidth must be between 1 and 999999"},
-		{"time zone too small", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = -841 }, "TimeZone must be between -840 and 840"},
-		{"time zone too large", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = 841 }, "TimeZone must be between -840 and 840"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := validStartCardChallengeRequest()
-			tt.change(&req)
-
-			resp, err := svc.StartCardChallenge(t.Context(), req)
-
-			assert.Nil(t, resp)
-			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrInvalidArgument)
-			assert.Contains(t, err.Error(), tt.errorText)
-		})
-	}
-}
-
 func TestPrepareCardChallenge_ReturnsNotFound(t *testing.T) {
 	env := setupTestEnv(t)
 
@@ -767,6 +722,51 @@ func TestPrepareCardChallenge_RecordsFailedOperationWhenGatewaySendFails(t *test
 	require.NoError(t, err)
 	assert.Equal(t, store.GatewayOperationStatusFailed, op.Status)
 	assert.JSONEq(t, `{"prepared":true}`, string(op.RawRequest))
+}
+
+func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
+	svc := New(nil, nil, nil)
+
+	tests := []struct {
+		name      string
+		change    func(*StartCardChallengeRequest)
+		errorText string
+	}{
+		{"missing project ID", func(r *StartCardChallengeRequest) { r.ProjectID = uuid.Nil }, "ProjectID is required"},
+		{"missing invoice ID", func(r *StartCardChallengeRequest) { r.InvoiceID = uuid.Nil }, "InvoiceID is required"},
+		{"missing payment intent ID", func(r *StartCardChallengeRequest) { r.PaymentIntentID = uuid.Nil }, "PaymentIntentID is required"},
+		{"missing IP address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "" }, "IPAddress is required"},
+		{"invalid IP address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "invalid" }, "IPAddress is invalid"},
+		{"missing user agent", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = "" }, "UserAgent is required"},
+		{"user agent too long", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = strings.Repeat("a", 2049) }, "UserAgent must not exceed 2048 characters"},
+		{"missing accept header", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = "" }, "AcceptHeader is required"},
+		{"accept header too long", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = strings.Repeat("a", 2049) }, "AcceptHeader must not exceed 2048 characters"},
+		{"unsupported challenge size", func(r *StartCardChallengeRequest) { r.Browser.ChallengeWindowSize = "100_X_100" }, "unsupported ChallengeWindowSize"},
+		{"color depth too small", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 0 }, "ColorDepth must be between 1 and 48"},
+		{"color depth too large", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 49 }, "ColorDepth must be between 1 and 48"},
+		{"missing language", func(r *StartCardChallengeRequest) { r.Browser.Language = "" }, "Language is required"},
+		{"language too long", func(r *StartCardChallengeRequest) { r.Browser.Language = "zh-Hant-HK" }, "Language must not exceed 8 characters"},
+		{"screen height too small", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 0 }, "ScreenHeight must be between 1 and 999999"},
+		{"screen height too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 1000000 }, "ScreenHeight must be between 1 and 999999"},
+		{"screen width too small", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 0 }, "ScreenWidth must be between 1 and 999999"},
+		{"screen width too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 1000000 }, "ScreenWidth must be between 1 and 999999"},
+		{"time zone too small", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = -841 }, "TimeZone must be between -840 and 840"},
+		{"time zone too large", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = 841 }, "TimeZone must be between -840 and 840"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := validStartCardChallengeRequest()
+			tt.change(&req)
+
+			resp, err := svc.StartCardChallenge(t.Context(), req)
+
+			assert.Nil(t, resp)
+			require.Error(t, err)
+			assert.ErrorIs(t, err, ErrInvalidArgument)
+			assert.Contains(t, err.Error(), tt.errorText)
+		})
+	}
 }
 
 type fakeGatewayResolver struct {
