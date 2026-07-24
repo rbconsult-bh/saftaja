@@ -777,14 +777,14 @@ templ CheckoutForm(data CheckoutPageData) {
 		async function start3DSFlow() {
 			showProcessing();
 
-			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/initiate-auth`;
+			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/prepare-challenge`;
 
 			try {
-				const initRes = await fetch(url, { method: "POST" }).then(r => r.json());
+				const prepareRes = await fetch(url, { method: "POST" }).then(r => r.json());
 
-				if (initRes.next_step === "challenge_card") {
+				if (prepareRes.next_step === "start_challenge") {
 					doAuthenticatePayer();
-				} else if (initRes.next_step === "cant_continue") {
+				} else if (prepareRes.next_step === "cant_continue") {
 					showError({{ MsgPaymentDeclined.Get(data.Lang) }});
 				} else {
 					showError({{ MsgInternalError.Get(data.Lang) }});

@@ -127,7 +127,7 @@ func TestMPGSCardGateway_ReturnsSetupCardPaymentUpdateSessionError(t *testing.T)
 	assert.Nil(t, resp)
 }
 
-func TestMPGSCardGateway_PrepareVerifyCard(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallenge(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 	rawResp := []byte(`{"result":"SUCCESS"}`)
@@ -135,7 +135,7 @@ func TestMPGSCardGateway_PrepareVerifyCard(t *testing.T) {
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
-	prepared, err := gateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
 		InvoiceID:             invoiceID,
 		Currency:              "BHD",
 		GatewaySetupReference: "SESSION123",
@@ -171,18 +171,18 @@ func TestMPGSCardGateway_PrepareVerifyCard(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, VerifyCardGatewayNextStepChallengeCard, resp.NextStep)
+	assert.Equal(t, PrepareCardChallengeGatewayNextStepStartChallenge, resp.NextStep)
 	assert.Equal(t, rawResp, resp.RawResponse)
 }
 
-func TestMPGSCardGateway_PrepareVerifyCardCantContinue(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallengeCantContinue(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
-	prepared, err := gateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
 		InvoiceID:             invoiceID,
 		Currency:              "BHD",
 		GatewaySetupReference: "SESSION123",
@@ -204,17 +204,17 @@ func TestMPGSCardGateway_PrepareVerifyCardCantContinue(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, VerifyCardGatewayNextStepCantContinue, resp.NextStep)
+	assert.Equal(t, PrepareCardChallengeGatewayNextStepCantContinue, resp.NextStep)
 }
 
-func TestMPGSCardGateway_PrepareVerifyCardSendError(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallengeSendError(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
-	prepared, err := gateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
 		InvoiceID:             invoiceID,
 		Currency:              "BHD",
 		GatewaySetupReference: "SESSION123",

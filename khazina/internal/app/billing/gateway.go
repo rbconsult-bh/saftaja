@@ -15,7 +15,7 @@ type GatewayResolver interface {
 
 type CardGateway interface {
 	SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error)
-	PrepareVerifyCard(ctx context.Context, r VerifyCardGatewayRequest) (*PreparedVerifyCardGatewayRequest, error)
+	PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error)
 }
 
 type (
@@ -29,36 +29,36 @@ type (
 	}
 )
 
-type VerifyCardGatewayNextStep string
+type PrepareCardChallengeGatewayNextStep string
 
 const (
-	VerifyCardGatewayNextStepChallengeCard VerifyCardGatewayNextStep = "challenge_card"
-	VerifyCardGatewayNextStepCantContinue  VerifyCardGatewayNextStep = "cant_continue"
+	PrepareCardChallengeGatewayNextStepStartChallenge PrepareCardChallengeGatewayNextStep = "start_challenge"
+	PrepareCardChallengeGatewayNextStepCantContinue   PrepareCardChallengeGatewayNextStep = "cant_continue"
 )
 
 type (
-	VerifyCardGatewayRequest struct {
+	PrepareCardChallengeGatewayRequest struct {
 		InvoiceID             uuid.UUID
 		Currency              string
 		GatewaySetupReference string
 	}
-	PreparedVerifyCardGatewayRequest struct {
+	PreparedCardChallengeGatewayRequest struct {
 		GatewayReference string
 		RawRequest       []byte
-		send             func(ctx context.Context) (*VerifyCardGatewayResponse, error)
+		send             func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error)
 	}
-	VerifyCardGatewayResponse struct {
-		NextStep    VerifyCardGatewayNextStep
+	PrepareCardChallengeGatewayResponse struct {
+		NextStep    PrepareCardChallengeGatewayNextStep
 		RawResponse []byte
 	}
 )
 
-func (p *PreparedVerifyCardGatewayRequest) Send(ctx context.Context) (*VerifyCardGatewayResponse, error) {
+func (p *PreparedCardChallengeGatewayRequest) Send(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 	if p == nil {
-		return nil, fmt.Errorf("prepared verify card request is nil")
+		return nil, fmt.Errorf("prepared card challenge request is nil")
 	}
 	if p.send == nil {
-		return nil, fmt.Errorf("prepared verify card request is missing send function")
+		return nil, fmt.Errorf("prepared card challenge request is missing send function")
 	}
 	return p.send(ctx)
 }

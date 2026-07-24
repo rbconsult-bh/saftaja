@@ -216,7 +216,7 @@ func (s *service) CapturePayment(ctx context.Context, r CapturePaymentRequest) (
 	return &CapturePaymentResponse{}, nil
 }
 
-func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error) {
+func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeRequest) (*PrepareCardChallengeResponse, error) {
 	if err := r.Validate(); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
 		return nil, err
@@ -261,7 +261,7 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
-	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusVerifyingCard); err != nil {
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusReadyToStartChallenge); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid transition")
 		return nil, err
 	}
@@ -300,13 +300,13 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 		return nil, err
 	}
 
-	prepared, err := cardGateway.PrepareVerifyCard(ctx, VerifyCardGatewayRequest{
+	prepared, err := cardGateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
 		InvoiceID:             invoice.ID,
 		Currency:              invoice.Currency,
 		GatewaySetupReference: *paymentIntent.GatewaySetupReference,
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card verification")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card challenge")
 		return nil, err
 	}
 
@@ -336,25 +336,23 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 
 	gatewayResp, err := prepared.Send(ctx)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to verify card with gateway")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card challenge with gateway")
 		if statusErr := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, nil); statusErr != nil {
-			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after verify card error")
+			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after prepare card challenge error")
 		}
 		return nil, err
 	}
 
-	if gatewayResp.NextStep != VerifyCardGatewayNextStepChallengeCard {
-		// The gateway request finished successfully, but the gateway said this card
-		// cannot continue. The payment intent stays created, so StartCardChallenge
-		// is still blocked by the state machine.
-		// TODO: if we need to keep more detail about gateway decisions later, add a
-		// separate table/model for those decisions instead of overloading operation status.
+	if gatewayResp.NextStep != PrepareCardChallengeGatewayNextStepStartChallenge {
+		// The gateway call completed successfully, but its decision was "can't continue."
+		// Keep the payment intent in created so the customer can update the card and
+		// retry PrepareCardChallenge. The raw gateway decision is stored on this operation.
 		if err := updateGatewayOperationStatus(store.GatewayOperationStatusSuccess, gatewayResp.RawResponse); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update gateway operation status")
 			return nil, err
 		}
-		return &VerifyCardResponse{
-			NextStep: VerifyCardNextStepCantContinue,
+		return &PrepareCardChallengeResponse{
+			NextStep: PrepareCardChallengeNextStepCantContinue,
 		}, nil
 	}
 
@@ -365,19 +363,19 @@ func (s *service) VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyC
 
 	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 		ID:     paymentIntent.ID,
-		Status: store.PaymentIntentStatusVerifyingCard,
+		Status: store.PaymentIntentStatusReadyToStartChallenge,
 	}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update payment intent status")
 		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to commit verify card result")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit prepared card challenge")
 		return nil, err
 	}
 
-	return &VerifyCardResponse{
-		NextStep: VerifyCardNextStepChallengeCard,
+	return &PrepareCardChallengeResponse{
+		NextStep: PrepareCardChallengeNextStepStartChallenge,
 	}, nil
 }
 

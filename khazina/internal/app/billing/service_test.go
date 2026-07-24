@@ -23,7 +23,7 @@ var (
 	uuidInvoiceCancelled = uuid.MustParse("00000000-0000-0000-0000-000000003004")
 	uuidPaymentIntent    = uuid.MustParse("00000000-0000-0000-0000-000000005001")
 	uuidPaymentExpired   = uuid.MustParse("00000000-0000-0000-0000-000000005002")
-	uuidPaymentVerifying = uuid.MustParse("00000000-0000-0000-0000-000000005005")
+	uuidPaymentReadyToStartChallenge = uuid.MustParse("00000000-0000-0000-0000-000000005005")
 	uuidPaymentNoSetup   = uuid.MustParse("00000000-0000-0000-0000-000000005006")
 	uuidNotExist         = uuid.MustParse("00000000-0000-0000-0000-00000000ffff")
 )
@@ -418,34 +418,34 @@ func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
 	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
 }
 
-func TestVerifyCard_RejectsInvalidRequest(t *testing.T) {
+func TestPrepareCardChallenge_RejectsInvalidRequest(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
 		name string
-		req  VerifyCardRequest
+		req  PrepareCardChallengeRequest
 		err  error
 	}{
 		{
 			name: "missing_project_ID",
-			req:  VerifyCardRequest{InvoiceID: uuidInvoice},
+			req:  PrepareCardChallengeRequest{InvoiceID: uuidInvoice},
 			err:  ErrInvalidArgument,
 		},
 		{
 			name: "missing_invoice_ID",
-			req:  VerifyCardRequest{ProjectID: uuidProject},
+			req:  PrepareCardChallengeRequest{ProjectID: uuidProject},
 			err:  ErrInvalidArgument,
 		},
 		{
 			name: "missing_payment_intent_ID",
-			req:  VerifyCardRequest{InvoiceID: uuidInvoice, ProjectID: uuidProject},
+			req:  PrepareCardChallengeRequest{InvoiceID: uuidInvoice, ProjectID: uuidProject},
 			err:  ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := env.svc.VerifyCard(env.ctx, tt.req)
+			resp, err := env.svc.PrepareCardChallenge(env.ctx, tt.req)
 
 			assert.Nil(t, resp)
 			assert.ErrorIs(t, err, tt.err)
@@ -453,10 +453,10 @@ func TestVerifyCard_RejectsInvalidRequest(t *testing.T) {
 	}
 }
 
-func TestVerifyCard_ReturnsNotFound(t *testing.T) {
+func TestPrepareCardChallenge_ReturnsNotFound(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidNotExist,
@@ -465,28 +465,28 @@ func TestVerifyCard_ReturnsNotFound(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrNotFound)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
 }
 
-func TestVerifyCard_RejectsInvalidStateTransition(t *testing.T) {
+func TestPrepareCardChallenge_RejectsInvalidStateTransition(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
-		PaymentIntentID: uuidPaymentVerifying,
+		PaymentIntentID: uuidPaymentReadyToStartChallenge,
 	})
 
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrPaymentIntentInvalidTransition)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
 }
 
-func TestVerifyCard_RejectsExpiredIntent(t *testing.T) {
+func TestPrepareCardChallenge_RejectsExpiredIntent(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentExpired,
@@ -495,13 +495,13 @@ func TestVerifyCard_RejectsExpiredIntent(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrPaymentIntentExpired)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
 }
 
-func TestVerifyCard_RejectsMissingGatewaySetupReference(t *testing.T) {
+func TestPrepareCardChallenge_RejectsMissingGatewaySetupReference(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentNoSetup,
@@ -510,15 +510,15 @@ func TestVerifyCard_RejectsMissingGatewaySetupReference(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
 }
 
-func TestVerifyCard_ReturnsGatewayResolverError(t *testing.T) {
+func TestPrepareCardChallenge_ReturnsGatewayResolverError(t *testing.T) {
 	env := setupTestEnv(t)
 	errResolver := errors.New("resolver failed")
 	env.gatewayResolver.err = errResolver
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -527,18 +527,18 @@ func TestVerifyCard_ReturnsGatewayResolverError(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, errResolver)
 	assert.Equal(t, 1, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
 
 	_, err = env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	assert.Error(t, err)
 }
 
-func TestVerifyCard_ReturnsPrepareVerifyCardErrorBeforeCreatingOperation(t *testing.T) {
+func TestPrepareCardChallenge_ReturnsPrepareCardChallengeErrorBeforeCreatingOperation(t *testing.T) {
 	env := setupTestEnv(t)
 	errPrepare := errors.New("prepare failed")
-	env.cardGateway.prepareVerifyCard.err = errPrepare
+	env.cardGateway.prepareCardChallenge.err = errPrepare
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -546,7 +546,7 @@ func TestVerifyCard_ReturnsPrepareVerifyCardErrorBeforeCreatingOperation(t *test
 
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, errPrepare)
-	assert.Equal(t, 1, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, 1, env.cardGateway.prepareCardChallenge.calls)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -556,15 +556,15 @@ func TestVerifyCard_ReturnsPrepareVerifyCardErrorBeforeCreatingOperation(t *test
 	assert.Error(t, err)
 }
 
-func TestVerifyCard_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
+func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
 	env := setupTestEnv(t)
 	rawReq := []byte(`{"prepared":true}`)
 	rawResp := []byte(`{"result":"SUCCESS"}`)
 
-	env.cardGateway.prepareVerifyCard.resp = &PreparedVerifyCardGatewayRequest{
+	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
 		GatewayReference: "gw-init-auth-123",
 		RawRequest:       rawReq,
-		send: func(ctx context.Context) (*VerifyCardGatewayResponse, error) {
+		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 			require.NoError(t, err)
 			assert.Equal(t, store.PaymentIntentStatusCreated, intent.Status)
@@ -575,14 +575,14 @@ func TestVerifyCard_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
 			assert.JSONEq(t, string(rawReq), string(op.RawRequest))
 			assert.Equal(t, "gw-init-auth-123", op.GatewayReference)
 
-			return &VerifyCardGatewayResponse{
-				NextStep:    VerifyCardGatewayNextStepChallengeCard,
+			return &PrepareCardChallengeGatewayResponse{
+				NextStep:    PrepareCardChallengeGatewayNextStepStartChallenge,
 				RawResponse: rawResp,
 			}, nil
 		},
 	}
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -590,15 +590,15 @@ func TestVerifyCard_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, VerifyCardNextStepChallengeCard, resp.NextStep)
-	assert.Equal(t, 1, env.cardGateway.prepareVerifyCard.calls)
-	assert.Equal(t, uuidInvoice, env.cardGateway.prepareVerifyCard.req.InvoiceID)
-	assert.Equal(t, "BHD", env.cardGateway.prepareVerifyCard.req.Currency)
-	assert.Equal(t, "session-existing-abc", env.cardGateway.prepareVerifyCard.req.GatewaySetupReference)
+	assert.Equal(t, PrepareCardChallengeNextStepStartChallenge, resp.NextStep)
+	assert.Equal(t, 1, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, uuidInvoice, env.cardGateway.prepareCardChallenge.req.InvoiceID)
+	assert.Equal(t, "BHD", env.cardGateway.prepareCardChallenge.req.Currency)
+	assert.Equal(t, "session-existing-abc", env.cardGateway.prepareCardChallenge.req.GatewaySetupReference)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
-	assert.Equal(t, store.PaymentIntentStatusVerifyingCard, intent.Status)
+	assert.Equal(t, store.PaymentIntentStatusReadyToStartChallenge, intent.Status)
 
 	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -606,31 +606,31 @@ func TestVerifyCard_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
 	assert.JSONEq(t, string(rawResp), string(op.RawResponse))
 }
 
-func TestVerifyCard_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.T) {
+func TestPrepareCardChallenge_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.T) {
 	env := setupTestEnv(t)
 	rawResp := []byte(`{"result":"FAILURE"}`)
-	req := VerifyCardRequest{
+	req := PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
 	}
 
-	env.cardGateway.prepareVerifyCard.resp = &PreparedVerifyCardGatewayRequest{
+	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
 		GatewayReference: "gw-init-auth-failed",
 		RawRequest:       []byte(`{"prepared":true}`),
-		send: func(ctx context.Context) (*VerifyCardGatewayResponse, error) {
-			return &VerifyCardGatewayResponse{
-				NextStep:    VerifyCardGatewayNextStepCantContinue,
+		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
+			return &PrepareCardChallengeGatewayResponse{
+				NextStep:    PrepareCardChallengeGatewayNextStepCantContinue,
 				RawResponse: rawResp,
 			}, nil
 		},
 	}
 
-	resp, err := env.svc.VerifyCard(env.ctx, req)
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, VerifyCardNextStepCantContinue, resp.NextStep)
+	assert.Equal(t, PrepareCardChallengeNextStepCantContinue, resp.NextStep)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -642,27 +642,27 @@ func TestVerifyCard_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.
 	assert.JSONEq(t, string(rawResp), string(op.RawResponse))
 
 	retryRawResp := []byte(`{"result":"SUCCESS"}`)
-	env.cardGateway.prepareVerifyCard.resp = &PreparedVerifyCardGatewayRequest{
+	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
 		GatewayReference: "gw-init-auth-retry",
 		RawRequest:       []byte(`{"prepared":"retry"}`),
-		send: func(ctx context.Context) (*VerifyCardGatewayResponse, error) {
-			return &VerifyCardGatewayResponse{
-				NextStep:    VerifyCardGatewayNextStepChallengeCard,
+		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
+			return &PrepareCardChallengeGatewayResponse{
+				NextStep:    PrepareCardChallengeGatewayNextStepStartChallenge,
 				RawResponse: retryRawResp,
 			}, nil
 		},
 	}
 
-	resp, err = env.svc.VerifyCard(env.ctx, req)
+	resp, err = env.svc.PrepareCardChallenge(env.ctx, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, VerifyCardNextStepChallengeCard, resp.NextStep)
-	assert.Equal(t, 2, env.cardGateway.prepareVerifyCard.calls)
+	assert.Equal(t, PrepareCardChallengeNextStepStartChallenge, resp.NextStep)
+	assert.Equal(t, 2, env.cardGateway.prepareCardChallenge.calls)
 
 	intent, err = env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
-	assert.Equal(t, store.PaymentIntentStatusVerifyingCard, intent.Status)
+	assert.Equal(t, store.PaymentIntentStatusReadyToStartChallenge, intent.Status)
 
 	op, err = env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -671,18 +671,18 @@ func TestVerifyCard_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.
 	assert.JSONEq(t, string(retryRawResp), string(op.RawResponse))
 }
 
-func TestVerifyCard_RecordsFailedOperationWhenGatewaySendFails(t *testing.T) {
+func TestPrepareCardChallenge_RecordsFailedOperationWhenGatewaySendFails(t *testing.T) {
 	env := setupTestEnv(t)
 	errGateway := errors.New("gateway unavailable")
-	env.cardGateway.prepareVerifyCard.resp = &PreparedVerifyCardGatewayRequest{
+	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
 		GatewayReference: "gw-init-auth-error",
 		RawRequest:       []byte(`{"prepared":true}`),
-		send: func(ctx context.Context) (*VerifyCardGatewayResponse, error) {
+		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			return nil, errGateway
 		},
 	}
 
-	resp, err := env.svc.VerifyCard(env.ctx, VerifyCardRequest{
+	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -715,8 +715,8 @@ func (f *fakeGatewayResolver) CardGateway(account store.GatewayAccount) (CardGat
 }
 
 type fakeCardGateway struct {
-	setupCardPayment  fakeSetupCardPaymentCall
-	prepareVerifyCard fakePrepareVerifyCardCall
+	setupCardPayment     fakeSetupCardPaymentCall
+	prepareCardChallenge fakePrepareCardChallengeCall
 }
 
 type fakeSetupCardPaymentCall struct {
@@ -726,10 +726,10 @@ type fakeSetupCardPaymentCall struct {
 	err   error
 }
 
-type fakePrepareVerifyCardCall struct {
+type fakePrepareCardChallengeCall struct {
 	calls int
-	req   VerifyCardGatewayRequest
-	resp  *PreparedVerifyCardGatewayRequest
+	req   PrepareCardChallengeGatewayRequest
+	resp  *PreparedCardChallengeGatewayRequest
 	err   error
 }
 
@@ -742,11 +742,11 @@ func (f *fakeCardGateway) SetupCardPayment(ctx context.Context, r SetupCardPayme
 	return f.setupCardPayment.resp, nil
 }
 
-func (f *fakeCardGateway) PrepareVerifyCard(ctx context.Context, r VerifyCardGatewayRequest) (*PreparedVerifyCardGatewayRequest, error) {
-	f.prepareVerifyCard.calls++
-	f.prepareVerifyCard.req = r
-	if f.prepareVerifyCard.err != nil {
-		return nil, f.prepareVerifyCard.err
+func (f *fakeCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error) {
+	f.prepareCardChallenge.calls++
+	f.prepareCardChallenge.req = r
+	if f.prepareCardChallenge.err != nil {
+		return nil, f.prepareCardChallenge.err
 	}
-	return f.prepareVerifyCard.resp, nil
+	return f.prepareCardChallenge.resp, nil
 }

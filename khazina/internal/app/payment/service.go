@@ -214,7 +214,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusProcessingPayment); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusCapturingPayment); err != nil {
 		return nil, err
 	}
 
@@ -342,7 +342,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 		if err := qtx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
-			Status: PaymentIntentStatusCompleted,
+			Status: PaymentIntentStatusSucceeded,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update session status: %w", err)
 		}

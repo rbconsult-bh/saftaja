@@ -32,7 +32,7 @@ type Service interface {
 	StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error)
 	CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error)
 
-	VerifyCard(ctx context.Context, r VerifyCardRequest) (*VerifyCardResponse, error)
+	PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeRequest) (*PrepareCardChallengeResponse, error)
 	StartCardChallenge(ctx context.Context, r StartCardChallengeRequest) (*StartCardChallengeResponse, error)
 	CompleteCardChallenge(ctx context.Context, r CompleteCardChallengeRequest) (*CompleteCardChallengeResponse, error)
 }
@@ -40,13 +40,13 @@ type Service interface {
 type PaymentIntentStatus string
 
 const (
-	PaymentIntentStatusCreated           PaymentIntentStatus = "created"
-	PaymentIntentStatusVerifyingCard     PaymentIntentStatus = "verifying_card"
-	PaymentIntentStatusChallengingCard   PaymentIntentStatus = "challenging_card"
-	PaymentIntentStatusReadyToCapture    PaymentIntentStatus = "ready_to_capture"
-	PaymentIntentStatusProcessingPayment PaymentIntentStatus = "processing_payment"
-	PaymentIntentStatusCompleted         PaymentIntentStatus = "completed"
-	PaymentIntentStatusFailed            PaymentIntentStatus = "failed"
+	PaymentIntentStatusCreated                     PaymentIntentStatus = "created"
+	PaymentIntentStatusReadyToStartChallenge       PaymentIntentStatus = "ready_to_start_challenge"
+	PaymentIntentStatusAwaitingChallengeCompletion PaymentIntentStatus = "awaiting_challenge_completion"
+	PaymentIntentStatusReadyToCapture              PaymentIntentStatus = "ready_to_capture"
+	PaymentIntentStatusCapturingPayment            PaymentIntentStatus = "capturing_payment"
+	PaymentIntentStatusSucceeded                   PaymentIntentStatus = "succeeded"
+	PaymentIntentStatusFailed                      PaymentIntentStatus = "failed"
 )
 
 type PaymentMethod string
@@ -164,23 +164,23 @@ type (
 )
 
 type (
-	VerifyCardRequest struct {
+	PrepareCardChallengeRequest struct {
 		ProjectID       uuid.UUID
 		InvoiceID       uuid.UUID
 		PaymentIntentID uuid.UUID
 	}
-	VerifyCardNextStep string
-	VerifyCardResponse struct {
-		NextStep VerifyCardNextStep
+	PrepareCardChallengeNextStep string
+	PrepareCardChallengeResponse struct {
+		NextStep PrepareCardChallengeNextStep
 	}
 )
 
 const (
-	VerifyCardNextStepChallengeCard VerifyCardNextStep = "challenge_card"
-	VerifyCardNextStepCantContinue  VerifyCardNextStep = "cant_continue"
+	PrepareCardChallengeNextStepStartChallenge PrepareCardChallengeNextStep = "start_challenge"
+	PrepareCardChallengeNextStepCantContinue   PrepareCardChallengeNextStep = "cant_continue"
 )
 
-func (r *VerifyCardRequest) Validate() error {
+func (r *PrepareCardChallengeRequest) Validate() error {
 	if r.ProjectID == uuid.Nil {
 		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
 	}

@@ -81,16 +81,16 @@ func mapStorePaymentIntentStatusToPaymentIntentStatus(s store.PaymentIntentStatu
 	switch s {
 	case store.PaymentIntentStatusCreated:
 		return PaymentIntentStatusCreated, nil
-	case store.PaymentIntentStatusVerifyingCard:
-		return PaymentIntentStatusVerifyingCard, nil
-	case store.PaymentIntentStatusChallengingCard:
-		return PaymentIntentStatusChallengingCard, nil
+	case store.PaymentIntentStatusReadyToStartChallenge:
+		return PaymentIntentStatusReadyToStartChallenge, nil
+	case store.PaymentIntentStatusAwaitingChallengeCompletion:
+		return PaymentIntentStatusAwaitingChallengeCompletion, nil
 	case store.PaymentIntentStatusReadyToCapture:
 		return PaymentIntentStatusReadyToCapture, nil
-	case store.PaymentIntentStatusProcessingPayment:
-		return PaymentIntentStatusProcessingPayment, nil
-	case store.PaymentIntentStatusCompleted:
-		return PaymentIntentStatusCompleted, nil
+	case store.PaymentIntentStatusCapturingPayment:
+		return PaymentIntentStatusCapturingPayment, nil
+	case store.PaymentIntentStatusSucceeded:
+		return PaymentIntentStatusSucceeded, nil
 	case store.PaymentIntentStatusFailed:
 		return PaymentIntentStatusFailed, nil
 	default:
@@ -102,16 +102,16 @@ func mapPaymentIntentStatusToStorePaymentIntentStatus(s PaymentIntentStatus) (st
 	switch s {
 	case PaymentIntentStatusCreated:
 		return store.PaymentIntentStatusCreated, nil
-	case PaymentIntentStatusVerifyingCard:
-		return store.PaymentIntentStatusVerifyingCard, nil
-	case PaymentIntentStatusChallengingCard:
-		return store.PaymentIntentStatusChallengingCard, nil
+	case PaymentIntentStatusReadyToStartChallenge:
+		return store.PaymentIntentStatusReadyToStartChallenge, nil
+	case PaymentIntentStatusAwaitingChallengeCompletion:
+		return store.PaymentIntentStatusAwaitingChallengeCompletion, nil
 	case PaymentIntentStatusReadyToCapture:
 		return store.PaymentIntentStatusReadyToCapture, nil
-	case PaymentIntentStatusProcessingPayment:
-		return store.PaymentIntentStatusProcessingPayment, nil
-	case PaymentIntentStatusCompleted:
-		return store.PaymentIntentStatusCompleted, nil
+	case PaymentIntentStatusCapturingPayment:
+		return store.PaymentIntentStatusCapturingPayment, nil
+	case PaymentIntentStatusSucceeded:
+		return store.PaymentIntentStatusSucceeded, nil
 	case PaymentIntentStatusFailed:
 		return store.PaymentIntentStatusFailed, nil
 	default:

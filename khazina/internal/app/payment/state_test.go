@@ -11,15 +11,15 @@ func TestValidateSessionTransition(t *testing.T) {
 		to   PaymentIntentStatus
 		err  bool
 	}{
-		{"created to verifying card", PaymentIntentStatusCreated, PaymentIntentStatusVerifyingCard, false},
+		{"created to ready to start challenge", PaymentIntentStatusCreated, PaymentIntentStatusReadyToStartChallenge, false},
 		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
-		{"created to completed", PaymentIntentStatusCreated, PaymentIntentStatusCompleted, true},
-		{"verifying card to ready to capture", PaymentIntentStatusVerifyingCard, PaymentIntentStatusReadyToCapture, false},
-		{"verifying card to failed", PaymentIntentStatusVerifyingCard, PaymentIntentStatusFailed, false},
-		{"ready to capture to processing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusProcessingPayment, false},
-		{"processing payment to completed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusCompleted, false},
-		{"processing payment to failed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusFailed, false},
-		{"completed to anything", PaymentIntentStatusCompleted, PaymentIntentStatusVerifyingCard, true},
+		{"created to succeeded", PaymentIntentStatusCreated, PaymentIntentStatusSucceeded, true},
+		{"ready to start challenge to ready to capture", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusReadyToCapture, false},
+		{"ready to start challenge to failed", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed, false},
+		{"ready to capture to capturing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusCapturingPayment, false},
+		{"capturing payment to succeeded", PaymentIntentStatusCapturingPayment, PaymentIntentStatusSucceeded, false},
+		{"capturing payment to failed", PaymentIntentStatusCapturingPayment, PaymentIntentStatusFailed, false},
+		{"succeeded to anything", PaymentIntentStatusSucceeded, PaymentIntentStatusReadyToStartChallenge, true},
 		{"failed to anything", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
 	}
 
@@ -57,14 +57,14 @@ func TestValidateInvoiceTransition(t *testing.T) {
 }
 
 func TestIsTerminalSessionStatus(t *testing.T) {
-	if !IsTerminalSessionStatus(PaymentIntentStatusCompleted) {
-		t.Error("completed should be terminal")
+	if !IsTerminalSessionStatus(PaymentIntentStatusSucceeded) {
+		t.Error("succeeded should be terminal")
 	}
 	if !IsTerminalSessionStatus(PaymentIntentStatusFailed) {
 		t.Error("failed should be terminal")
 	}
-	if IsTerminalSessionStatus(PaymentIntentStatusVerifyingCard) {
-		t.Error("verifying card should not be terminal")
+	if IsTerminalSessionStatus(PaymentIntentStatusReadyToStartChallenge) {
+		t.Error("ready to start challenge should not be terminal")
 	}
 }
 

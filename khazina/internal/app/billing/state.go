@@ -4,27 +4,27 @@ import "fmt"
 
 var cardPaymentIntentTransitions = map[PaymentIntentStatus]map[PaymentIntentStatus]bool{
 	PaymentIntentStatusCreated: {
-		PaymentIntentStatusVerifyingCard: true,
-		PaymentIntentStatusFailed:        true,
+		PaymentIntentStatusReadyToStartChallenge: true,
+		PaymentIntentStatusFailed:                true,
 	},
-	PaymentIntentStatusVerifyingCard: {
-		PaymentIntentStatusChallengingCard: true,
-		PaymentIntentStatusReadyToCapture:  true,
-		PaymentIntentStatusFailed:          true,
+	PaymentIntentStatusReadyToStartChallenge: {
+		PaymentIntentStatusAwaitingChallengeCompletion: true,
+		PaymentIntentStatusReadyToCapture:              true,
+		PaymentIntentStatusFailed:                      true,
 	},
-	PaymentIntentStatusChallengingCard: {
+	PaymentIntentStatusAwaitingChallengeCompletion: {
 		PaymentIntentStatusReadyToCapture: true,
 		PaymentIntentStatusFailed:         true,
 	},
 	PaymentIntentStatusReadyToCapture: {
-		PaymentIntentStatusProcessingPayment: true,
-		PaymentIntentStatusFailed:            true,
+		PaymentIntentStatusCapturingPayment: true,
+		PaymentIntentStatusFailed:           true,
 	},
-	PaymentIntentStatusProcessingPayment: {
-		PaymentIntentStatusCompleted: true,
+	PaymentIntentStatusCapturingPayment: {
+		PaymentIntentStatusSucceeded: true,
 		PaymentIntentStatusFailed:    true,
 	},
-	PaymentIntentStatusCompleted: {},
+	PaymentIntentStatusSucceeded: {},
 	PaymentIntentStatusFailed:    {},
 }
 
@@ -48,5 +48,5 @@ func (from PaymentIntentStatus) ValidatePaymentIntentTransition(pm PaymentMethod
 }
 
 func (s PaymentIntentStatus) IsTerminal() bool {
-	return s == PaymentIntentStatusCompleted || s == PaymentIntentStatusFailed
+	return s == PaymentIntentStatusSucceeded || s == PaymentIntentStatusFailed
 }

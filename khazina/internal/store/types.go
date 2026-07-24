@@ -24,13 +24,13 @@ const (
 type PaymentIntentStatus string
 
 const (
-	PaymentIntentStatusCreated           PaymentIntentStatus = "created"
-	PaymentIntentStatusVerifyingCard     PaymentIntentStatus = "verifying_card"
-	PaymentIntentStatusChallengingCard   PaymentIntentStatus = "challenging_card"
-	PaymentIntentStatusReadyToCapture    PaymentIntentStatus = "ready_to_capture"
-	PaymentIntentStatusProcessingPayment PaymentIntentStatus = "processing_payment"
-	PaymentIntentStatusCompleted         PaymentIntentStatus = "completed"
-	PaymentIntentStatusFailed            PaymentIntentStatus = "failed"
+	PaymentIntentStatusCreated                     PaymentIntentStatus = "created"
+	PaymentIntentStatusReadyToStartChallenge       PaymentIntentStatus = "ready_to_start_challenge"
+	PaymentIntentStatusAwaitingChallengeCompletion PaymentIntentStatus = "awaiting_challenge_completion"
+	PaymentIntentStatusReadyToCapture              PaymentIntentStatus = "ready_to_capture"
+	PaymentIntentStatusCapturingPayment            PaymentIntentStatus = "capturing_payment"
+	PaymentIntentStatusSucceeded                   PaymentIntentStatus = "succeeded"
+	PaymentIntentStatusFailed                      PaymentIntentStatus = "failed"
 )
 
 type PaymentMethod string

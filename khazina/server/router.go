@@ -63,7 +63,7 @@ func mountWebRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
 	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
 	r.Route("/checkout/{invoice_id}/pay/card/{payment_session_id}", func(r chi.Router) {
-		r.Post("/initiate-auth", h.CardInitiateAuthHandler)
+		r.Post("/prepare-challenge", h.CardPrepareChallengeHandler)
 		r.Post("/process-auth", h.CardProcessAuthHandler)
 		r.Post("/finalize", h.CardFinalizeHandler)
 	})

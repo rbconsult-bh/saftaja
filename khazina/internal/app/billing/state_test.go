@@ -14,20 +14,20 @@ func TestValidatePaymentIntentTransition_Card(t *testing.T) {
 		to      PaymentIntentStatus
 		wantErr bool
 	}{
-		{"created to verifying card", PaymentIntentStatusCreated, PaymentIntentStatusVerifyingCard, false},
+		{"created to ready to start challenge", PaymentIntentStatusCreated, PaymentIntentStatusReadyToStartChallenge, false},
 		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
-		{"created cannot skip to processing payment", PaymentIntentStatusCreated, PaymentIntentStatusProcessingPayment, true},
-		{"verifying card to challenging card", PaymentIntentStatusVerifyingCard, PaymentIntentStatusChallengingCard, false},
-		{"verifying card to ready to capture", PaymentIntentStatusVerifyingCard, PaymentIntentStatusReadyToCapture, false},
-		{"verifying card to failed", PaymentIntentStatusVerifyingCard, PaymentIntentStatusFailed, false},
-		{"challenging card to ready to capture", PaymentIntentStatusChallengingCard, PaymentIntentStatusReadyToCapture, false},
-		{"challenging card to failed", PaymentIntentStatusChallengingCard, PaymentIntentStatusFailed, false},
-		{"challenging card cannot capture payment", PaymentIntentStatusChallengingCard, PaymentIntentStatusProcessingPayment, true},
-		{"ready to capture to processing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusProcessingPayment, false},
+		{"created cannot skip to capturing payment", PaymentIntentStatusCreated, PaymentIntentStatusCapturingPayment, true},
+		{"ready to start challenge to awaiting challenge completion", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusAwaitingChallengeCompletion, false},
+		{"ready to start challenge to ready to capture", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusReadyToCapture, false},
+		{"ready to start challenge to failed", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed, false},
+		{"awaiting challenge completion to ready to capture", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusReadyToCapture, false},
+		{"awaiting challenge completion to failed", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusFailed, false},
+		{"awaiting challenge completion cannot capture payment", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusCapturingPayment, true},
+		{"ready to capture to capturing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusCapturingPayment, false},
 		{"ready to capture to failed", PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed, false},
-		{"processing payment to completed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusCompleted, false},
-		{"processing payment to failed", PaymentIntentStatusProcessingPayment, PaymentIntentStatusFailed, false},
-		{"completed is terminal", PaymentIntentStatusCompleted, PaymentIntentStatusFailed, true},
+		{"capturing payment to succeeded", PaymentIntentStatusCapturingPayment, PaymentIntentStatusSucceeded, false},
+		{"capturing payment to failed", PaymentIntentStatusCapturingPayment, PaymentIntentStatusFailed, false},
+		{"succeeded is terminal", PaymentIntentStatusSucceeded, PaymentIntentStatusFailed, true},
 		{"failed is terminal", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
 	}
 
@@ -44,8 +44,8 @@ func TestValidatePaymentIntentTransition_Card(t *testing.T) {
 }
 
 func TestPaymentIntentStatusHelpers(t *testing.T) {
-	assert.True(t, PaymentIntentStatusCompleted.IsTerminal())
+	assert.True(t, PaymentIntentStatusSucceeded.IsTerminal())
 	assert.True(t, PaymentIntentStatusFailed.IsTerminal())
-	assert.False(t, PaymentIntentStatusVerifyingCard.IsTerminal())
-	assert.False(t, PaymentIntentStatusChallengingCard.IsTerminal())
+	assert.False(t, PaymentIntentStatusReadyToStartChallenge.IsTerminal())
+	assert.False(t, PaymentIntentStatusAwaitingChallengeCompletion.IsTerminal())
 }

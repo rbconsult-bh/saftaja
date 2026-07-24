@@ -1,10 +1,10 @@
 package payment
 
 var validSessionTransitions = map[PaymentIntentStatus][]PaymentIntentStatus{
-	PaymentIntentStatusCreated:           {PaymentIntentStatusVerifyingCard, PaymentIntentStatusFailed},
-	PaymentIntentStatusVerifyingCard:     {PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed},
-	PaymentIntentStatusReadyToCapture:    {PaymentIntentStatusProcessingPayment},
-	PaymentIntentStatusProcessingPayment: {PaymentIntentStatusCompleted, PaymentIntentStatusFailed},
+	PaymentIntentStatusCreated:               {PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed},
+	PaymentIntentStatusReadyToStartChallenge: {PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed},
+	PaymentIntentStatusReadyToCapture:        {PaymentIntentStatusCapturingPayment},
+	PaymentIntentStatusCapturingPayment:      {PaymentIntentStatusSucceeded, PaymentIntentStatusFailed},
 }
 
 func ValidateSessionTransition(from, to PaymentIntentStatus) error {
@@ -38,7 +38,7 @@ func ValidateInvoiceTransition(from, to InvoiceStatus) error {
 }
 
 func IsTerminalSessionStatus(s PaymentIntentStatus) bool {
-	return s == PaymentIntentStatusCompleted || s == PaymentIntentStatusFailed
+	return s == PaymentIntentStatusSucceeded || s == PaymentIntentStatusFailed
 }
 
 func IsTerminalInvoiceStatus(s InvoiceStatus) bool {

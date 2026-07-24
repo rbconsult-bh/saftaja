@@ -207,7 +207,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) CardPrepareChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	project := saftajacontext.ProjectFromContext(ctx)
@@ -228,7 +228,7 @@ func (h *handlers) CardInitiateAuthHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	result, err := h.billing.VerifyCard(ctx, billing.VerifyCardRequest{
+	result, err := h.billing.PrepareCardChallenge(ctx, billing.PrepareCardChallengeRequest{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
 		PaymentIntentID: sessionID,
