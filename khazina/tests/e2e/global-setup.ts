@@ -65,7 +65,7 @@ async function globalSetup() {
 
   console.log(`✅ App is live at: ${publicUrl}`);
 
-  await waitForHealthCheck(`${publicUrl}/health`, 15000);
+  await waitForHealthCheck(`${publicUrl}/health`, 60_000);
 
   process.env.KHAZINA_TEST_ENCRYPTION_KEY = encryptionKey;
   process.env.KHAZINA_TEST_DATABASE_URL = databaseUrl;
