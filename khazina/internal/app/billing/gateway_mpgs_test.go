@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMPGSCardGateway_SetupCardPayment(t *testing.T) {
+func TestMPGSCardGateway_SetupCardPayment_Succeeds(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
@@ -51,7 +51,7 @@ func TestMPGSCardGateway_SetupCardPayment(t *testing.T) {
 	assert.Equal(t, "SESSION123", resp.GatewaySetupReference)
 }
 
-func TestMPGSCardGateway_ReturnsSetupCardPaymentCreateSessionError(t *testing.T) {
+func TestMPGSCardGateway_SetupCardPayment_CreateSessionError(t *testing.T) {
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	mpgsClient.EXPECT().
 		CreateSession(mock.Anything, mock.Anything).
@@ -65,7 +65,7 @@ func TestMPGSCardGateway_ReturnsSetupCardPaymentCreateSessionError(t *testing.T)
 	assert.Nil(t, resp)
 }
 
-func TestMPGSCardGateway_ReturnsSetupCardPaymentMissingSetupReferenceError(t *testing.T) {
+func TestMPGSCardGateway_SetupCardPayment_MissingSetupReference(t *testing.T) {
 	tests := []struct {
 		name string
 		resp *mpgsclient.Response[mpgsclient.CreateSessionResponse]
@@ -103,7 +103,7 @@ func TestMPGSCardGateway_ReturnsSetupCardPaymentMissingSetupReferenceError(t *te
 	}
 }
 
-func TestMPGSCardGateway_ReturnsSetupCardPaymentUpdateSessionError(t *testing.T) {
+func TestMPGSCardGateway_SetupCardPayment_UpdateSessionError(t *testing.T) {
 	mpgsClient := mpgsmocks.NewMockClient(t)
 	mpgsClient.EXPECT().
 		CreateSession(mock.Anything, mock.Anything).
@@ -125,7 +125,7 @@ func TestMPGSCardGateway_ReturnsSetupCardPaymentUpdateSessionError(t *testing.T)
 	assert.Nil(t, resp)
 }
 
-func TestMPGSCardGateway_PrepareCardChallenge(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallenge_StartChallenge(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 	rawResp := []byte(`{"result":"SUCCESS"}`)
@@ -176,7 +176,7 @@ func TestMPGSCardGateway_PrepareCardChallenge(t *testing.T) {
 	assert.Equal(t, rawResp, resp.RawResponse)
 }
 
-func TestMPGSCardGateway_PrepareCardChallengeCantContinue(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallenge_CantContinue(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
@@ -208,7 +208,7 @@ func TestMPGSCardGateway_PrepareCardChallengeCantContinue(t *testing.T) {
 	assert.Equal(t, PrepareCardChallengeGatewayNextStepCantContinue, resp.NextStep)
 }
 
-func TestMPGSCardGateway_PrepareCardChallengeCantContinueWhenAuthenticationIsUnavailable(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallenge_AuthenticationUnavailable(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
@@ -243,7 +243,7 @@ func TestMPGSCardGateway_PrepareCardChallengeCantContinueWhenAuthenticationIsUna
 	assert.Equal(t, PrepareCardChallengeGatewayNextStepCantContinue, resp.NextStep)
 }
 
-func TestMPGSCardGateway_PrepareCardChallengeSendError(t *testing.T) {
+func TestMPGSCardGateway_PrepareCardChallenge_SendError(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
 
@@ -268,7 +268,7 @@ func TestMPGSCardGateway_PrepareCardChallengeSendError(t *testing.T) {
 	assert.Nil(t, resp)
 }
 
-func TestMPGSCardGateway_StartCardChallenge(t *testing.T) {
+func TestMPGSCardGateway_StartCardChallenge_CompleteChallenge(t *testing.T) {
 	ctx := context.Background()
 	req := validStartCardChallengeGatewayRequest()
 	rawResp := []byte(`{"result":"PENDING"}`)
@@ -353,7 +353,7 @@ func TestMPGSCardGateway_StartCardChallenge(t *testing.T) {
 	assert.Equal(t, rawResp, resp.RawResponse)
 }
 
-func TestMPGSCardGateway_StartCardChallengeFrictionless(t *testing.T) {
+func TestMPGSCardGateway_StartCardChallenge_Capture(t *testing.T) {
 	for _, authStatus := range []mpgsclient.AuthStatus{
 		mpgsclient.AuthStatusSuccessful,
 		mpgsclient.AuthStatusAttempted,
@@ -396,7 +396,7 @@ func TestMPGSCardGateway_StartCardChallengeFrictionless(t *testing.T) {
 	}
 }
 
-func TestMPGSCardGateway_StartCardChallengeCantContinue(t *testing.T) {
+func TestMPGSCardGateway_StartCardChallenge_CantContinue(t *testing.T) {
 	tests := []struct {
 		name           string
 		result         string
@@ -495,7 +495,7 @@ func TestMPGSCardGateway_StartCardChallengeCantContinue(t *testing.T) {
 	}
 }
 
-func TestMPGSCardGateway_StartCardChallengeSendError(t *testing.T) {
+func TestMPGSCardGateway_StartCardChallenge_SendError(t *testing.T) {
 	ctx := context.Background()
 	req := validStartCardChallengeGatewayRequest()
 	mpgsClient := mpgsmocks.NewMockClient(t)

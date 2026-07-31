@@ -14,21 +14,21 @@ func TestValidatePaymentIntentTransition_Card(t *testing.T) {
 		to      PaymentIntentStatus
 		wantErr bool
 	}{
-		{"created to ready to start challenge", PaymentIntentStatusCreated, PaymentIntentStatusReadyToStartChallenge, false},
-		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
-		{"created cannot skip to capturing payment", PaymentIntentStatusCreated, PaymentIntentStatusCapturingPayment, true},
-		{"ready to start challenge to awaiting challenge completion", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusAwaitingChallengeCompletion, false},
-		{"ready to start challenge to ready to capture", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusReadyToCapture, false},
-		{"ready to start challenge to failed", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed, false},
-		{"awaiting challenge completion to ready to capture", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusReadyToCapture, false},
-		{"awaiting challenge completion to failed", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusFailed, false},
-		{"awaiting challenge completion cannot capture payment", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusCapturingPayment, true},
-		{"ready to capture to capturing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusCapturingPayment, false},
-		{"ready to capture to failed", PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed, false},
-		{"capturing payment to succeeded", PaymentIntentStatusCapturingPayment, PaymentIntentStatusSucceeded, false},
-		{"capturing payment to failed", PaymentIntentStatusCapturingPayment, PaymentIntentStatusFailed, false},
-		{"succeeded is terminal", PaymentIntentStatusSucceeded, PaymentIntentStatusFailed, true},
-		{"failed is terminal", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
+		{"created_to_ready_to_start_challenge", PaymentIntentStatusCreated, PaymentIntentStatusReadyToStartChallenge, false},
+		{"created_to_failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
+		{"created_cannot_skip_to_capturing_payment", PaymentIntentStatusCreated, PaymentIntentStatusCapturingPayment, true},
+		{"ready_to_start_challenge_to_awaiting_challenge_completion", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusAwaitingChallengeCompletion, false},
+		{"ready_to_start_challenge_to_ready_to_capture", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusReadyToCapture, false},
+		{"ready_to_start_challenge_to_failed", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed, false},
+		{"awaiting_challenge_completion_to_ready_to_capture", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusReadyToCapture, false},
+		{"awaiting_challenge_completion_to_failed", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusFailed, false},
+		{"awaiting_challenge_completion_cannot_capture_payment", PaymentIntentStatusAwaitingChallengeCompletion, PaymentIntentStatusCapturingPayment, true},
+		{"ready_to_capture_to_capturing_payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusCapturingPayment, false},
+		{"ready_to_capture_to_failed", PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed, false},
+		{"capturing_payment_to_succeeded", PaymentIntentStatusCapturingPayment, PaymentIntentStatusSucceeded, false},
+		{"capturing_payment_to_failed", PaymentIntentStatusCapturingPayment, PaymentIntentStatusFailed, false},
+		{"succeeded_is_terminal", PaymentIntentStatusSucceeded, PaymentIntentStatusFailed, true},
+		{"failed_is_terminal", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
 	}
 
 	for _, tt := range tests {

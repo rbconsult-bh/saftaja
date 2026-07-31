@@ -246,8 +246,6 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		}, nil
 	}
 
-	// TODO(payments-migration): remove this legacy FinalizePayment path when
-	// internal/app/payment is deleted.
 	authOp, err := s.queries.GetSuccessfulAuthenticatePayerGatewayOperation(ctx, session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("authentication missing: %w", err)
