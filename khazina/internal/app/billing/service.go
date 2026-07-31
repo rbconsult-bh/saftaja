@@ -392,7 +392,205 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 	}
 	defer tx.Rollback(ctx)
 
-	return &StartCardChallengeResponse{}, nil
+	queriesWithTx := s.queries.WithTx(tx)
+
+	paymentIntent, err := queriesWithTx.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate(
+		ctx,
+		store.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdateParams{
+			ID:        r.PaymentIntentID,
+			ProjectID: r.ProjectID,
+			InvoiceID: r.InvoiceID,
+		},
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Ctx(ctx).Info().Msg("payment intent not found")
+			return nil, ErrNotFound
+		}
+
+		log.Ctx(ctx).Error().Err(err).Msg("failed to lock payment intent")
+		return nil, err
+	}
+
+	currentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment intent status to payment intent status")
+		return nil, err
+	}
+	paymentMethod, err := mapStorePaymentMethodToPaymentMethod(paymentIntent.PaymentMethod)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to map store payment method to payment method")
+		return nil, err
+	}
+
+	if currentStatus != PaymentIntentStatusReadyToStartChallenge {
+		err := fmt.Errorf(
+			"%w: StartCardChallenge requires %s, got %s",
+			ErrPaymentIntentInvalidState,
+			PaymentIntentStatusReadyToStartChallenge,
+			currentStatus,
+		)
+
+		log.Ctx(ctx).Info().
+			Err(err).
+			Msg("payment intent invalid status")
+
+		return nil, err
+	}
+
+	if paymentIntent.ExpiresAt.Before(time.Now()) {
+		log.Ctx(ctx).Info().Msg("payment intent expired")
+		return nil, ErrPaymentIntentExpired
+	}
+
+	if paymentIntent.GatewaySetupReference == nil || *paymentIntent.GatewaySetupReference == "" {
+		log.Ctx(ctx).Error().Msg("payment intent is missing gateway setup reference")
+		return nil, fmt.Errorf("%w: payment intent is missing gateway setup reference", ErrPaymentIntentInvalidState)
+	}
+
+	invoice, err := queriesWithTx.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
+		ID:        paymentIntent.InvoiceID,
+		ProjectID: paymentIntent.ProjectID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get invoice by id and project")
+		return nil, err
+	}
+
+	gatewayAccount, err := queriesWithTx.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
+		ID:        paymentIntent.GatewayAccountID,
+		ProjectID: paymentIntent.ProjectID,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get gateway account")
+		return nil, err
+	}
+
+	cardGateway, err := s.gatewayResolver.CardGateway(gatewayAccount)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to resolve card gateway by gateway account")
+		return nil, err
+	}
+
+	initiateAuthOperation, err := s.queries.GetSuccessfulInitiateAuthGatewayOperation(ctx, paymentIntent.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			log.Ctx(ctx).Error().Msg("successful initiate authentication gateway operation not found")
+			return nil, fmt.Errorf(
+				"%w: successful initiate authentication gateway operation is missing",
+				ErrPaymentIntentInvalidState,
+			)
+		}
+
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get successful initiate authentication gateway operation")
+		return nil, err
+	}
+	if initiateAuthOperation.GatewayReference == "" {
+		log.Ctx(ctx).Error().Msg("initiate authentication gateway operation is missing gateway reference")
+		return nil, fmt.Errorf(
+			"%w: initiate authentication gateway operation is missing gateway reference",
+			ErrPaymentIntentInvalidState,
+		)
+	}
+
+	prepared, err := cardGateway.StartCardChallenge(ctx, StartCardChallengeGatewayRequest{
+		InvoiceID:             invoice.ID,
+		Amount:                invoice.Amount,
+		Currency:              invoice.Currency,
+		GatewaySetupReference: *paymentIntent.GatewaySetupReference,
+		GatewayReference:      initiateAuthOperation.GatewayReference,
+		ChallengeReturnURL:    r.ChallengeReturnURL,
+		Browser:               r.Browser,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare start card challenge request")
+		return nil, err
+	}
+
+	gatewayOperation, err := s.queries.CreateGatewayOperation(ctx, store.CreateGatewayOperationParams{
+		PaymentIntentID:  paymentIntent.ID,
+		InvoiceID:        invoice.ID,
+		ProjectID:        paymentIntent.ProjectID,
+		GatewayAccountID: paymentIntent.GatewayAccountID,
+		OperationType:    store.GatewayOperationTypeAuthenticatePayer,
+		GatewayReference: initiateAuthOperation.GatewayReference,
+		Amount:           invoice.Amount,
+		Currency:         invoice.Currency,
+		RawRequest:       prepared.RawRequest,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create authenticate payer gateway operation")
+		return nil, err
+	}
+
+	updateGatewayOperationStatus := func(status store.GatewayOperationStatus, rawResponse []byte) error {
+		return s.queries.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
+			ID:          gatewayOperation.ID,
+			Status:      status,
+			RawResponse: rawResponse,
+		})
+	}
+
+	gatewayResp, err := prepared.Send(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to start card challenge with gateway")
+		if statusErr := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, nil); statusErr != nil {
+			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after start card challenge error")
+		}
+		return nil, err
+	}
+
+	if err := updateGatewayOperationStatus(store.GatewayOperationStatusSuccess, gatewayResp.RawResponse); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update gateway operation status")
+		return nil, err
+	}
+
+	var (
+		nextStep     StartCardChallengeNextStep
+		targetStatus PaymentIntentStatus
+		redirectHTML string
+	)
+	switch gatewayResp.NextStep {
+	case StartCardChallengeGatewayNextStepCompleteChallenge:
+		nextStep = StartCardChallengeNextStepCompleteChallenge
+		targetStatus = PaymentIntentStatusAwaitingChallengeCompletion
+		redirectHTML = gatewayResp.RedirectHTML
+	case StartCardChallengeGatewayNextStepCapture:
+		nextStep = StartCardChallengeNextStepCapture
+		targetStatus = PaymentIntentStatusReadyToCapture
+	case StartCardChallengeGatewayNextStepCantContinue:
+		nextStep = StartCardChallengeNextStepCantContinue
+		targetStatus = PaymentIntentStatusFailed
+	default:
+		return nil, fmt.Errorf("unsupported start card challenge gateway next step %q", gatewayResp.NextStep)
+	}
+
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, targetStatus); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("payment intent invalid transition after start card challenge")
+		return nil, err
+	}
+	targetStoreStatus, err := mapPaymentIntentStatusToStorePaymentIntentStatus(targetStatus)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to map payment intent target status")
+		return nil, err
+	}
+	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
+		ID:     paymentIntent.ID,
+		Status: targetStoreStatus,
+	}); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update payment intent status")
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit started card challenge")
+		return nil, err
+	}
+
+	return &StartCardChallengeResponse{
+		NextStep:     nextStep,
+		RedirectHTML: redirectHTML,
+	}, nil
 }
 
 func (s *service) CompleteCardChallenge(ctx context.Context, r CompleteCardChallengeRequest) (*CompleteCardChallengeResponse, error) {

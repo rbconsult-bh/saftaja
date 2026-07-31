@@ -18,7 +18,15 @@ UPDATE gateway_operations
 SET status = $2, raw_response = $3
 WHERE id = $1;
 
--- name: GetSuccessfulAuthGatewayOperation :one
+-- name: GetSuccessfulInitiateAuthGatewayOperation :one
+SELECT * FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'initiate_authentication'
+AND status = 'success'
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: GetSuccessfulAuthenticatePayerGatewayOperation :one
 SELECT * FROM gateway_operations
 WHERE payment_intent_id = $1
 AND operation_type = 'authenticate_payer'

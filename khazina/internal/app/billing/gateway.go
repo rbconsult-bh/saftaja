@@ -16,6 +16,7 @@ type GatewayResolver interface {
 type CardGateway interface {
 	SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error)
 	PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error)
+	StartCardChallenge(ctx context.Context, r StartCardChallengeGatewayRequest) (*PreparedStartCardChallengeGatewayRequest, error)
 }
 
 type (
@@ -59,6 +60,45 @@ func (p *PreparedCardChallengeGatewayRequest) Send(ctx context.Context) (*Prepar
 	}
 	if p.send == nil {
 		return nil, fmt.Errorf("prepared card challenge request is missing send function")
+	}
+	return p.send(ctx)
+}
+
+type StartCardChallengeGatewayNextStep string
+
+const (
+	StartCardChallengeGatewayNextStepCapture           StartCardChallengeGatewayNextStep = "capture"
+	StartCardChallengeGatewayNextStepCompleteChallenge StartCardChallengeGatewayNextStep = "complete_challenge"
+	StartCardChallengeGatewayNextStepCantContinue      StartCardChallengeGatewayNextStep = "cant_continue"
+)
+
+type (
+	StartCardChallengeGatewayRequest struct {
+		InvoiceID             uuid.UUID
+		Amount                decimal.Decimal
+		Currency              string
+		GatewaySetupReference string
+		GatewayReference      string
+		ChallengeReturnURL    string
+		Browser               ThreeDSBrowser
+	}
+	PreparedStartCardChallengeGatewayRequest struct {
+		RawRequest []byte
+		send       func(ctx context.Context) (*StartCardChallengeGatewayResponse, error)
+	}
+	StartCardChallengeGatewayResponse struct {
+		NextStep     StartCardChallengeGatewayNextStep
+		RedirectHTML string
+		RawResponse  []byte
+	}
+)
+
+func (p *PreparedStartCardChallengeGatewayRequest) Send(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+	if p == nil {
+		return nil, fmt.Errorf("prepared start card challenge request is nil")
+	}
+	if p.send == nil {
+		return nil, fmt.Errorf("prepared start card challenge request is missing send function")
 	}
 	return p.send(ctx)
 }

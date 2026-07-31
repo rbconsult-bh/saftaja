@@ -61,12 +61,14 @@ const (
 	AuthStatusInitiated  AuthStatus = "AUTHENTICATION_INITIATED"
 	AuthStatusAvailable  AuthStatus = "AUTHENTICATION_AVAILABLE"
 	AuthStatusAttempted  AuthStatus = "AUTHENTICATION_ATTEMPTED"
+	AuthStatusPending    AuthStatus = "AUTHENTICATION_PENDING"
 	AuthStatusSuccessful AuthStatus = "AUTHENTICATION_SUCCESSFUL"
 	AuthStatusFailed     AuthStatus = "AUTHENTICATION_FAILED"
 
-	GatewayRecommendationProceed            GatewayRecommendation = "PROCEED"
-	GatewayRecommendationDoNotProceed       GatewayRecommendation = "DO_NOT_PROCEED"
-	GatewayRecommendationResubmitWithAltPay GatewayRecommendation = "RESUBMIT_WITH_ALTERNATIVE_PAYMENT_DETAILS"
+	GatewayRecommendationProceed                  GatewayRecommendation = "PROCEED"
+	GatewayRecommendationDoNotProceed             GatewayRecommendation = "DO_NOT_PROCEED"
+	GatewayRecommendationDoNotProceedAbandonOrder GatewayRecommendation = "DO_NOT_PROCEED_ABANDON_ORDER"
+	GatewayRecommendationResubmitWithAltPay       GatewayRecommendation = "RESUBMIT_WITH_ALTERNATIVE_PAYMENT_DETAILS"
 
 	MethodOutOfBand AuthenticationMethod = "OUT_OF_BAND"
 

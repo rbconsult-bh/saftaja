@@ -37,7 +37,8 @@ type Querier interface {
 	GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyAndProjectParams) (PaymentIntent, error)
 	GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error)
 	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)
-	GetSuccessfulAuthGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
+	GetSuccessfulAuthenticatePayerGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
+	GetSuccessfulInitiateAuthGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)
 	ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error)
 	MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error

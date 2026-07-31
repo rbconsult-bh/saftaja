@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -307,10 +308,12 @@ const (
 type (
 	StartCardChallengeRequest struct {
 		PaymentIntentRef
-		Browser ThreeDSBrowser
+		Browser            ThreeDSBrowser
+		ChallengeReturnURL string
 	}
 	StartCardChallengeResponse struct {
-		NextStep StartCardChallengeNextStep
+		NextStep     StartCardChallengeNextStep
+		RedirectHTML string
 	}
 )
 
@@ -320,6 +323,10 @@ func (r *StartCardChallengeRequest) Validate() error {
 	}
 	if err := r.Browser.Validate(); err != nil {
 		return err
+	}
+	challengeReturnURL, err := url.Parse(r.ChallengeReturnURL)
+	if err != nil || challengeReturnURL.Scheme != "https" || challengeReturnURL.Host == "" {
+		return fmt.Errorf("%w: ChallengeReturnURL must be an absolute HTTPS URL", ErrInvalidArgument)
 	}
 
 	return nil

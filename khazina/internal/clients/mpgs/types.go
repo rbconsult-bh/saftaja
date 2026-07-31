@@ -198,19 +198,19 @@ type (
 		MethodURL      string `json:"methodUrl"`
 	}
 	InitiateAuthenticationResponseOrder struct {
-		AuthenticationStatus  string     `json:"authenticationStatus"`
-		CreationTime          string     `json:"creationTime"`
-		Currency              string     `json:"currency"`
-		ID                    string     `json:"id"`
-		LastUpdatedTime       string     `json:"lastUpdatedTime"`
-		MerchantCategoryCode  string     `json:"merchantCategoryCode"`
-		Status                AuthStatus `json:"status"`
-		TotalAuthorizedAmount decimal.Decimal    `json:"totalAuthorizedAmount"`
-		TotalCapturedAmount   decimal.Decimal    `json:"totalCapturedAmount"`
-		TotalRefundedAmount   decimal.Decimal    `json:"totalRefundedAmount"`
+		AuthenticationStatus  AuthStatus      `json:"authenticationStatus"`
+		CreationTime          string          `json:"creationTime"`
+		Currency              string          `json:"currency"`
+		ID                    string          `json:"id"`
+		LastUpdatedTime       string          `json:"lastUpdatedTime"`
+		MerchantCategoryCode  string          `json:"merchantCategoryCode"`
+		Status                AuthStatus      `json:"status"`
+		TotalAuthorizedAmount decimal.Decimal `json:"totalAuthorizedAmount"`
+		TotalCapturedAmount   decimal.Decimal `json:"totalCapturedAmount"`
+		TotalRefundedAmount   decimal.Decimal `json:"totalRefundedAmount"`
 	}
 	InitiateAuthenticationGatewayResponse struct {
-		GatewayCode           string                `json:"gatewayCode"`
+		GatewayCode           GatewayCode           `json:"gatewayCode"`
 		GatewayRecommendation GatewayRecommendation `json:"gatewayRecommendation"`
 	}
 	InitiateAuthenticationSourceOfFunds struct {
@@ -233,15 +233,15 @@ type (
 	}
 	InitiateAuthenticationTransaction struct {
 		Amount               decimal.Decimal `json:"amount"`
-		AuthenticationStatus string  `json:"authenticationStatus"`
-		Currency             string  `json:"currency"`
-		ID                   string  `json:"id"`
-		Type                 string  `json:"type"`
+		AuthenticationStatus AuthStatus      `json:"authenticationStatus"`
+		Currency             string          `json:"currency"`
+		ID                   string          `json:"id"`
+		Type                 string          `json:"type"`
 	}
 	InitiateAuthenticationResponse struct {
 		Authentication   InitiateAuthenticationRespAuthentication `json:"authentication"`
 		Merchant         string                                   `json:"merchant"`
-		Order            InitiateAuthenticationOrder              `json:"order"`
+		Order            InitiateAuthenticationResponseOrder      `json:"order"`
 		Response         InitiateAuthenticationGatewayResponse    `json:"response"`
 		Result           string                                   `json:"result"`
 		SourceOfFunds    InitiateAuthenticationSourceOfFunds      `json:"sourceOfFunds"`
@@ -319,7 +319,7 @@ type (
 	AuthenticatePayerRespAuthentication struct {
 		ThreeDS          AuthenticatePayerRespThreeDS  `json:"3ds"`
 		ThreeDS2         AuthenticatePayerRespThreeDS2 `json:"3ds2"`
-		Amount           decimal.Decimal                       `json:"amount"`
+		Amount           decimal.Decimal               `json:"amount"`
 		Method           string                        `json:"method"`
 		PayerInteraction string                        `json:"payerInteraction"`
 		Redirect         AuthenticatePayerRespRedirect `json:"redirect"`
@@ -334,21 +334,21 @@ type (
 		AccountType string `json:"accountType"`
 	}
 	AuthenticatePayerRespOrder struct {
-		Amount                decimal.Decimal                        `json:"amount"`
-		AuthenticationStatus  string                         `json:"authenticationStatus"`
+		Amount                decimal.Decimal                `json:"amount"`
+		AuthenticationStatus  AuthStatus                     `json:"authenticationStatus"`
 		CreationTime          string                         `json:"creationTime"`
 		Currency              string                         `json:"currency"`
 		ID                    string                         `json:"id"`
 		LastUpdatedTime       string                         `json:"lastUpdatedTime"`
 		MerchantCategoryCode  string                         `json:"merchantCategoryCode"`
 		Status                AuthStatus                     `json:"status"`
-		TotalAuthorizedAmount decimal.Decimal                        `json:"totalAuthorizedAmount"`
-		TotalCapturedAmount   decimal.Decimal                        `json:"totalCapturedAmount"`
-		TotalRefundedAmount   decimal.Decimal                        `json:"totalRefundedAmount"`
+		TotalAuthorizedAmount decimal.Decimal                `json:"totalAuthorizedAmount"`
+		TotalCapturedAmount   decimal.Decimal                `json:"totalCapturedAmount"`
+		TotalRefundedAmount   decimal.Decimal                `json:"totalRefundedAmount"`
 		ValueTransfer         AuthenticatePayerValueTransfer `json:"valueTransfer"`
 	}
 	AuthenticatePayerGatewayResponse struct {
-		GatewayCode           string                `json:"gatewayCode"`
+		GatewayCode           GatewayCode           `json:"gatewayCode"`
 		GatewayRecommendation GatewayRecommendation `json:"gatewayRecommendation"`
 	}
 	AuthenticatePayerCardExpiry struct {
@@ -375,8 +375,8 @@ type (
 	}
 	AuthenticatePayerRespTransaction struct {
 		Acquirer             AuthenticatePayerAcquirer `json:"acquirer"`
-		Amount               decimal.Decimal                   `json:"amount"`
-		AuthenticationStatus string                    `json:"authenticationStatus"`
+		Amount               decimal.Decimal           `json:"amount"`
+		AuthenticationStatus AuthStatus                `json:"authenticationStatus"`
 		Currency             string                    `json:"currency"`
 		ID                   string                    `json:"id"`
 		Type                 string                    `json:"type"`
@@ -427,7 +427,7 @@ type (
 		ThreeDS          RetrieveTransactionThreeDS  `json:"3ds"`
 		ThreeDS2         RetrieveTransactionThreeDS2 `json:"3ds2"`
 		AcceptVersions   string                      `json:"acceptVersions"` // e.g. "3DS1,3DS2,PASSKEY"
-		Amount           decimal.Decimal                     `json:"amount"`
+		Amount           decimal.Decimal             `json:"amount"`
 		Channel          AuthChannel                 `json:"channel"`
 		Method           AuthenticationMethod        `json:"method"`
 		PayerInteraction PayerInteraction            `json:"payerInteraction"`
@@ -444,7 +444,7 @@ type (
 
 	RetrieveTransactionChargeback struct {
 		Amount   decimal.Decimal `json:"amount"`
-		Currency string  `json:"currency"`
+		Currency string          `json:"currency"`
 	}
 
 	RetrieveTransactionValueTransfer struct {
@@ -452,21 +452,21 @@ type (
 	}
 
 	RetrieveTransactionOrder struct {
-		Amount                decimal.Decimal                          `json:"amount"`
+		Amount                decimal.Decimal                  `json:"amount"`
 		AuthenticationStatus  string                           `json:"authenticationStatus"` // "AUTHENTICATION_SUCCESSFUL", "AUTHENTICATION_PENDING"
 		Chargeback            RetrieveTransactionChargeback    `json:"chargeback"`
 		CreationTime          string                           `json:"creationTime"`
 		Currency              string                           `json:"currency"`
 		ID                    string                           `json:"id"`
 		LastUpdatedTime       string                           `json:"lastUpdatedTime"`
-		MerchantAmount        decimal.Decimal                          `json:"merchantAmount"`
+		MerchantAmount        decimal.Decimal                  `json:"merchantAmount"`
 		MerchantCategoryCode  string                           `json:"merchantCategoryCode"`
 		MerchantCurrency      string                           `json:"merchantCurrency"`
 		Status                string                           `json:"status"` // "AUTHENTICATED", "AUTHENTICATION_INITIATED"
-		TotalAuthorizedAmount decimal.Decimal                          `json:"totalAuthorizedAmount"`
-		TotalCapturedAmount   decimal.Decimal                          `json:"totalCapturedAmount"`
-		TotalDisbursedAmount  decimal.Decimal                          `json:"totalDisbursedAmount"`
-		TotalRefundedAmount   decimal.Decimal                          `json:"totalRefundedAmount"`
+		TotalAuthorizedAmount decimal.Decimal                  `json:"totalAuthorizedAmount"`
+		TotalCapturedAmount   decimal.Decimal                  `json:"totalCapturedAmount"`
+		TotalDisbursedAmount  decimal.Decimal                  `json:"totalDisbursedAmount"`
+		TotalRefundedAmount   decimal.Decimal                  `json:"totalRefundedAmount"`
 		ValueTransfer         RetrieveTransactionValueTransfer `json:"valueTransfer"`
 	}
 
@@ -502,7 +502,7 @@ type (
 
 	RetrieveTransactionTx struct {
 		Acquirer             RetrieveTransactionAcquirer `json:"acquirer"`
-		Amount               decimal.Decimal                     `json:"amount"`
+		Amount               decimal.Decimal             `json:"amount"`
 		AuthenticationStatus AuthStatus                  `json:"authenticationStatus"`
 		Currency             string                      `json:"currency"`
 		ID                   string                      `json:"id"`
@@ -562,17 +562,17 @@ type (
 	}
 	ExecutePayTransaction struct {
 		Acquirer ExecutePayAcquirer `json:"acquirer"`
-		Amount   decimal.Decimal            `json:"amount"`
+		Amount   decimal.Decimal    `json:"amount"`
 		Currency string             `json:"currency"`
 		ID       string             `json:"id"`
 		Type     TransactionType    `json:"type"`
 	}
 	ExecutePayOrder struct {
 		Amount                decimal.Decimal `json:"amount"`
-		AuthenticationStatus  string  `json:"authenticationStatus,omitempty"`
-		CreationTime          string  `json:"creationTime,omitempty"`
-		Currency              string  `json:"currency"`
-		ID                    string  `json:"id,omitempty"`
+		AuthenticationStatus  string          `json:"authenticationStatus,omitempty"`
+		CreationTime          string          `json:"creationTime,omitempty"`
+		Currency              string          `json:"currency"`
+		ID                    string          `json:"id,omitempty"`
 		TotalAuthorizedAmount decimal.Decimal `json:"totalAuthorizedAmount,omitempty"`
 		TotalCapturedAmount   decimal.Decimal `json:"totalCapturedAmount,omitempty"`
 		TotalRefundedAmount   decimal.Decimal `json:"totalRefundedAmount,omitempty"`

@@ -102,6 +102,7 @@ func validStartCardChallengeRequest() StartCardChallengeRequest {
 			ScreenWidth:         1920,
 			TimeZone:            -180,
 		},
+		ChallengeReturnURL: "https://pay.example.com/checkout/complete-challenge",
 	}
 }
 
@@ -752,6 +753,9 @@ func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
 		{"screen width too large", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 1000000 }, "ScreenWidth must be between 1 and 999999"},
 		{"time zone too small", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = -841 }, "TimeZone must be between -840 and 840"},
 		{"time zone too large", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = 841 }, "TimeZone must be between -840 and 840"},
+		{"missing challenge return URL", func(r *StartCardChallengeRequest) { r.ChallengeReturnURL = "" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
+		{"invalid challenge return URL", func(r *StartCardChallengeRequest) { r.ChallengeReturnURL = "://invalid" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
+		{"non-HTTPS challenge return URL", func(r *StartCardChallengeRequest) { r.ChallengeReturnURL = "http://pay.example.com/complete" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
 	}
 
 	for _, tt := range tests {
@@ -767,6 +771,176 @@ func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
 			assert.Contains(t, err.Error(), tt.errorText)
 		})
 	}
+}
+
+func TestStartCardChallenge_CompletesChallenge(t *testing.T) {
+	env := setupTestEnv(t)
+	initiateAuthOperation := createSuccessfulInitiateAuthGatewayOperation(t, env)
+	rawRequest := []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`)
+	rawResponse := []byte(`{"result":"PENDING"}`)
+	redirectHTML := `<div id="threedsChallengeRedirect"></div>`
+	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+		RawRequest: rawRequest,
+		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+			op, err := env.queries.GetLatestGatewayOperation(ctx, uuidPaymentReadyToStartChallenge)
+			require.NoError(t, err)
+			assert.Equal(t, store.GatewayOperationTypeAuthenticatePayer, op.OperationType)
+			assert.Equal(t, store.GatewayOperationStatusPending, op.Status)
+
+			return &StartCardChallengeGatewayResponse{
+				NextStep:     StartCardChallengeGatewayNextStepCompleteChallenge,
+				RedirectHTML: redirectHTML,
+				RawResponse:  rawResponse,
+			}, nil
+		},
+	}
+	req := validStartCardChallengeRequest()
+
+	resp, err := env.svc.StartCardChallenge(env.ctx, req)
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, StartCardChallengeNextStepCompleteChallenge, resp.NextStep)
+	assert.Equal(t, redirectHTML, resp.RedirectHTML)
+	assert.Equal(t, 1, env.cardGateway.startCardChallenge.calls)
+	assert.Equal(t, StartCardChallengeGatewayRequest{
+		InvoiceID:             uuidInvoice,
+		Amount:                decimal.RequireFromString("15.000"),
+		Currency:              "BHD",
+		GatewaySetupReference: "session-ready-to-start-challenge",
+		GatewayReference:      initiateAuthOperation.GatewayReference,
+		ChallengeReturnURL:    req.ChallengeReturnURL,
+		Browser:               req.Browser,
+	}, env.cardGateway.startCardChallenge.req)
+
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.PaymentIntentStatusAwaitingChallengeCompletion, intent.Status)
+
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.GatewayOperationTypeAuthenticatePayer, op.OperationType)
+	assert.Equal(t, store.GatewayOperationStatusSuccess, op.Status)
+	assert.Equal(t, initiateAuthOperation.GatewayReference, op.GatewayReference)
+	assert.JSONEq(t, string(rawRequest), string(op.RawRequest))
+	assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
+}
+
+func TestStartCardChallenge_FrictionlessIsReadyToCapture(t *testing.T) {
+	env := setupTestEnv(t)
+	createSuccessfulInitiateAuthGatewayOperation(t, env)
+	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
+		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+			return &StartCardChallengeGatewayResponse{
+				NextStep:    StartCardChallengeGatewayNextStepCapture,
+				RawResponse: []byte(`{"result":"SUCCESS"}`),
+			}, nil
+		},
+	}
+
+	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, StartCardChallengeNextStepCapture, resp.NextStep)
+	assert.Empty(t, resp.RedirectHTML)
+
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.PaymentIntentStatusReadyToCapture, intent.Status)
+}
+
+func TestStartCardChallenge_CantContinueFailsPaymentIntent(t *testing.T) {
+	env := setupTestEnv(t)
+	createSuccessfulInitiateAuthGatewayOperation(t, env)
+	rawResponse := []byte(`{"result":"FAILURE"}`)
+	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
+		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+			return &StartCardChallengeGatewayResponse{
+				NextStep:    StartCardChallengeGatewayNextStepCantContinue,
+				RawResponse: rawResponse,
+			}, nil
+		},
+	}
+
+	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, StartCardChallengeNextStepCantContinue, resp.NextStep)
+	assert.Empty(t, resp.RedirectHTML)
+
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.PaymentIntentStatusFailed, intent.Status)
+
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.GatewayOperationStatusSuccess, op.Status)
+	assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
+}
+
+func TestStartCardChallenge_GatewayErrorKeepsPaymentIntentReadyForRetry(t *testing.T) {
+	env := setupTestEnv(t)
+	createSuccessfulInitiateAuthGatewayOperation(t, env)
+	errGateway := errors.New("gateway unavailable")
+	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
+		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+			return nil, errGateway
+		},
+	}
+
+	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, errGateway)
+
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.PaymentIntentStatusReadyToStartChallenge, intent.Status)
+
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToStartChallenge)
+	require.NoError(t, err)
+	assert.Equal(t, store.GatewayOperationStatusFailed, op.Status)
+}
+
+func TestStartCardChallenge_RequiresSuccessfulInitiateAuthentication(t *testing.T) {
+	env := setupTestEnv(t)
+
+	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+
+	assert.Nil(t, resp)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
+	assert.Contains(t, err.Error(), "successful initiate authentication gateway operation is missing")
+	assert.Equal(t, 0, env.cardGateway.startCardChallenge.calls)
+}
+
+func createSuccessfulInitiateAuthGatewayOperation(t *testing.T, env testEnv) store.GatewayOperation {
+	t.Helper()
+
+	op, err := env.queries.CreateGatewayOperation(env.ctx, store.CreateGatewayOperationParams{
+		PaymentIntentID:  uuidPaymentReadyToStartChallenge,
+		InvoiceID:        uuidInvoice,
+		ProjectID:        uuidProject,
+		GatewayAccountID: uuidGateway,
+		OperationType:    store.GatewayOperationTypeInitiateAuth,
+		GatewayReference: "gw-init-auth-ready",
+		Amount:           decimal.RequireFromString("15.000"),
+		Currency:         "BHD",
+		RawRequest:       []byte(`{"apiOperation":"INITIATE_AUTHENTICATION"}`),
+	})
+	require.NoError(t, err)
+	require.NoError(t, env.queries.UpdateGatewayOperationStatus(env.ctx, store.UpdateGatewayOperationStatusParams{
+		ID:          op.ID,
+		Status:      store.GatewayOperationStatusSuccess,
+		RawResponse: []byte(`{"result":"SUCCESS"}`),
+	}))
+
+	return op
 }
 
 type fakeGatewayResolver struct {
@@ -785,6 +959,7 @@ func (f *fakeGatewayResolver) CardGateway(account store.GatewayAccount) (CardGat
 type fakeCardGateway struct {
 	setupCardPayment     fakeSetupCardPaymentCall
 	prepareCardChallenge fakePrepareCardChallengeCall
+	startCardChallenge   fakeStartCardChallengeCall
 }
 
 type fakeSetupCardPaymentCall struct {
@@ -798,6 +973,13 @@ type fakePrepareCardChallengeCall struct {
 	calls int
 	req   PrepareCardChallengeGatewayRequest
 	resp  *PreparedCardChallengeGatewayRequest
+	err   error
+}
+
+type fakeStartCardChallengeCall struct {
+	calls int
+	req   StartCardChallengeGatewayRequest
+	resp  *PreparedStartCardChallengeGatewayRequest
 	err   error
 }
 
@@ -817,4 +999,13 @@ func (f *fakeCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareCar
 		return nil, f.prepareCardChallenge.err
 	}
 	return f.prepareCardChallenge.resp, nil
+}
+
+func (f *fakeCardGateway) StartCardChallenge(ctx context.Context, r StartCardChallengeGatewayRequest) (*PreparedStartCardChallengeGatewayRequest, error) {
+	f.startCardChallenge.calls++
+	f.startCardChallenge.req = r
+	if f.startCardChallenge.err != nil {
+		return nil, f.startCardChallenge.err
+	}
+	return f.startCardChallenge.resp, nil
 }

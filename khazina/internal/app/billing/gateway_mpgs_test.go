@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	mpgsmocks "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/crypto"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -163,6 +161,9 @@ func TestMPGSCardGateway_PrepareCardChallenge(t *testing.T) {
 				Response: mpgsclient.InitiateAuthenticationGatewayResponse{
 					GatewayRecommendation: mpgsclient.GatewayRecommendationProceed,
 				},
+				Transaction: mpgsclient.InitiateAuthenticationTransaction{
+					AuthenticationStatus: mpgsclient.AuthStatusAvailable,
+				},
 			},
 			RawBody: rawResp,
 		}, nil)
@@ -207,6 +208,41 @@ func TestMPGSCardGateway_PrepareCardChallengeCantContinue(t *testing.T) {
 	assert.Equal(t, PrepareCardChallengeGatewayNextStepCantContinue, resp.NextStep)
 }
 
+func TestMPGSCardGateway_PrepareCardChallengeCantContinueWhenAuthenticationIsUnavailable(t *testing.T) {
+	ctx := context.Background()
+	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
+
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	gateway := &mpgsCardGateway{client: mpgsClient}
+
+	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
+		InvoiceID:             invoiceID,
+		Currency:              "BHD",
+		GatewaySetupReference: "SESSION123",
+	})
+	require.NoError(t, err)
+
+	mpgsClient.EXPECT().
+		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.Anything).
+		Return(&mpgsclient.Response[mpgsclient.InitiateAuthenticationResponse]{
+			Data: mpgsclient.InitiateAuthenticationResponse{
+				Result: mpgsclient.ResultSuccess,
+				Response: mpgsclient.InitiateAuthenticationGatewayResponse{
+					GatewayRecommendation: mpgsclient.GatewayRecommendationProceed,
+				},
+				Transaction: mpgsclient.InitiateAuthenticationTransaction{
+					AuthenticationStatus: mpgsclient.AuthStatusFailed,
+				},
+			},
+		}, nil)
+
+	resp, err := prepared.Send(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, PrepareCardChallengeGatewayNextStepCantContinue, resp.NextStep)
+}
+
 func TestMPGSCardGateway_PrepareCardChallengeSendError(t *testing.T) {
 	ctx := context.Background()
 	invoiceID := uuid.MustParse("00000000-0000-0000-0000-000000003001")
@@ -232,62 +268,251 @@ func TestMPGSCardGateway_PrepareCardChallengeSendError(t *testing.T) {
 	assert.Nil(t, resp)
 }
 
-func TestGatewayResolver_CardGateway(t *testing.T) {
-	encryptionKey := []byte("12345678901234567890123456789012")
-	account := validMPGSGatewayAccount(t, encryptionKey, []byte(`{
-		"base_url": "https://test.gateway.mastercard.com",
-		"merchant_id": "TESTMERCHANT"
-	}`), []byte(`{
-		"api_password": "secret"
-	}`))
+func TestMPGSCardGateway_StartCardChallenge(t *testing.T) {
+	ctx := context.Background()
+	req := validStartCardChallengeGatewayRequest()
+	rawResp := []byte(`{"result":"PENDING"}`)
+	redirectHTML := `<div id="threedsChallengeRedirect"></div>`
 
-	resolver := NewGatewayResolver(encryptionKey)
-	cardGateway, err := resolver.CardGateway(account)
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	gateway := &mpgsCardGateway{client: mpgsClient}
+
+	prepared, err := gateway.StartCardChallenge(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, prepared)
+	assert.JSONEq(t, `{
+		"apiOperation": "AUTHENTICATE_PAYER",
+		"authentication": {
+			"redirectResponseUrl": "https://pay.example.com/checkout/3001/complete-challenge"
+		},
+		"device": {
+			"browser": "Mozilla/5.0",
+			"browserDetails": {
+				"3DSecureChallengeWindowSize": "FULL_SCREEN",
+				"acceptHeaders": "text/html,application/xhtml+xml",
+				"colorDepth": 24,
+				"javaEnabled": false,
+				"language": "en-US",
+				"screenHeight": 1080,
+				"screenWidth": 1920,
+				"timeZone": 180
+			},
+			"ipAddress": "192.0.2.1"
+		},
+		"order": {
+			"amount": "15",
+			"currency": "BHD"
+		},
+		"session": {
+			"id": "SESSION123"
+		}
+	}`, string(prepared.RawRequest))
+
+	mpgsClient.EXPECT().
+		AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.MatchedBy(func(got *mpgsclient.AuthenticatePayerRequest) bool {
+			return got.APIOperation == mpgsclient.OperationAuthenticatePayer &&
+				got.Authentication.RedirectResponseURL == req.ChallengeReturnURL &&
+				got.Device.Browser == req.Browser.UserAgent &&
+				got.Device.BrowserDetails != nil &&
+				got.Device.BrowserDetails.ThreeDSecureChallengeWindowSize == string(req.Browser.ChallengeWindowSize) &&
+				got.Device.BrowserDetails.AcceptHeaders == req.Browser.AcceptHeader &&
+				got.Device.BrowserDetails.ColorDepth == req.Browser.ColorDepth &&
+				got.Device.BrowserDetails.JavaEnabled == req.Browser.JavaEnabled &&
+				got.Device.BrowserDetails.Language == req.Browser.Language &&
+				got.Device.BrowserDetails.ScreenHeight == req.Browser.ScreenHeight &&
+				got.Device.BrowserDetails.ScreenWidth == req.Browser.ScreenWidth &&
+				got.Device.BrowserDetails.TimeZone == req.Browser.TimeZone &&
+				got.Device.IPAddress == req.Browser.IPAddress &&
+				got.Order.Amount == req.Amount.String() &&
+				got.Order.Currency == req.Currency &&
+				got.Session.ID == req.GatewaySetupReference
+		})).
+		Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
+			Data: mpgsclient.AuthenticatePayerResponse{
+				Authentication: mpgsclient.AuthenticatePayerRespAuthentication{
+					Redirect: mpgsclient.AuthenticatePayerRespRedirect{HTML: redirectHTML},
+				},
+				Response: mpgsclient.AuthenticatePayerGatewayResponse{
+					GatewayCode:           mpgsclient.CodePending,
+					GatewayRecommendation: mpgsclient.GatewayRecommendationProceed,
+				},
+				Result: mpgsclient.ResultPending,
+				Transaction: mpgsclient.AuthenticatePayerRespTransaction{
+					AuthenticationStatus: mpgsclient.AuthStatusPending,
+				},
+			},
+			RawBody: rawResp,
+		}, nil)
+
+	resp, err := prepared.Send(ctx)
 
 	require.NoError(t, err)
-	assert.IsType(t, &mpgsCardGateway{}, cardGateway)
+	require.NotNil(t, resp)
+	assert.Equal(t, StartCardChallengeGatewayNextStepCompleteChallenge, resp.NextStep)
+	assert.Equal(t, redirectHTML, resp.RedirectHTML)
+	assert.Equal(t, rawResp, resp.RawResponse)
 }
 
-func TestGatewayResolver_RejectsUnsupportedCardGateway(t *testing.T) {
-	resolver := NewGatewayResolver(testEncryptionKey)
+func TestMPGSCardGateway_StartCardChallengeFrictionless(t *testing.T) {
+	for _, authStatus := range []mpgsclient.AuthStatus{
+		mpgsclient.AuthStatusSuccessful,
+		mpgsclient.AuthStatusAttempted,
+	} {
+		t.Run(string(authStatus), func(t *testing.T) {
+			ctx := context.Background()
+			req := validStartCardChallengeGatewayRequest()
+			rawResp := []byte(`{"result":"SUCCESS"}`)
 
-	cardGateway, err := resolver.CardGateway(store.GatewayAccount{
-		ConnectorType: "unsupported",
-	})
+			mpgsClient := mpgsmocks.NewMockClient(t)
+			gateway := &mpgsCardGateway{client: mpgsClient}
 
-	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrUnsupportedGateway)
-	assert.Nil(t, cardGateway)
+			prepared, err := gateway.StartCardChallenge(ctx, req)
+			require.NoError(t, err)
+
+			mpgsClient.EXPECT().
+				AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.Anything).
+				Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
+					Data: mpgsclient.AuthenticatePayerResponse{
+						Response: mpgsclient.AuthenticatePayerGatewayResponse{
+							GatewayCode:           mpgsclient.CodeApproved,
+							GatewayRecommendation: mpgsclient.GatewayRecommendationProceed,
+						},
+						Result: mpgsclient.ResultSuccess,
+						Transaction: mpgsclient.AuthenticatePayerRespTransaction{
+							AuthenticationStatus: authStatus,
+						},
+					},
+					RawBody: rawResp,
+				}, nil)
+
+			resp, err := prepared.Send(ctx)
+
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.Equal(t, StartCardChallengeGatewayNextStepCapture, resp.NextStep)
+			assert.Empty(t, resp.RedirectHTML)
+			assert.Equal(t, rawResp, resp.RawResponse)
+		})
+	}
 }
 
-func TestGatewayResolver_RejectsInvalidMPGSConfig(t *testing.T) {
-	resolver := NewGatewayResolver(testEncryptionKey)
+func TestMPGSCardGateway_StartCardChallengeCantContinue(t *testing.T) {
+	tests := []struct {
+		name           string
+		result         string
+		recommendation mpgsclient.GatewayRecommendation
+		authStatus     mpgsclient.AuthStatus
+		redirectHTML   string
+	}{
+		{
+			name:           "alternative_payment_details",
+			result:         mpgsclient.ResultFailure,
+			recommendation: mpgsclient.GatewayRecommendationResubmitWithAltPay,
+			authStatus:     mpgsclient.AuthStatusFailed,
+		},
+		{
+			name:           "abandon_order",
+			result:         mpgsclient.ResultFailure,
+			recommendation: mpgsclient.GatewayRecommendationDoNotProceedAbandonOrder,
+			authStatus:     mpgsclient.AuthStatusFailed,
+		},
+		{
+			name:       "missing_recommendation",
+			result:     mpgsclient.ResultSuccess,
+			authStatus: mpgsclient.AuthStatusSuccessful,
+		},
+		{
+			name:           "pending_without_redirect_html",
+			result:         mpgsclient.ResultPending,
+			recommendation: mpgsclient.GatewayRecommendationProceed,
+			authStatus:     mpgsclient.AuthStatusPending,
+		},
+		{
+			name:           "pending_without_pending_authentication_status",
+			result:         mpgsclient.ResultPending,
+			recommendation: mpgsclient.GatewayRecommendationProceed,
+			redirectHTML:   `<div></div>`,
+		},
+		{
+			name:           "success_without_authentication_status",
+			result:         mpgsclient.ResultSuccess,
+			recommendation: mpgsclient.GatewayRecommendationProceed,
+		},
+		{
+			name:           "success_with_pending_authentication_status",
+			result:         mpgsclient.ResultSuccess,
+			recommendation: mpgsclient.GatewayRecommendationProceed,
+			authStatus:     mpgsclient.AuthStatusPending,
+			redirectHTML:   `<div></div>`,
+		},
+		{
+			name:           "success_with_failed_authentication_status",
+			result:         mpgsclient.ResultSuccess,
+			recommendation: mpgsclient.GatewayRecommendationProceed,
+			authStatus:     mpgsclient.AuthStatusFailed,
+		},
+		{
+			name:           "unknown_result",
+			result:         mpgsclient.ResultUnknown,
+			recommendation: mpgsclient.GatewayRecommendationProceed,
+			authStatus:     mpgsclient.AuthStatusSuccessful,
+		},
+	}
 
-	cardGateway, err := resolver.CardGateway(store.GatewayAccount{
-		ConnectorType: store.ConnectorTypeMPGS,
-		Config:        []byte(`{`),
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			req := validStartCardChallengeGatewayRequest()
+			mpgsClient := mpgsmocks.NewMockClient(t)
+			gateway := &mpgsCardGateway{client: mpgsClient}
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid mpgs config")
-	assert.Nil(t, cardGateway)
+			prepared, err := gateway.StartCardChallenge(ctx, req)
+			require.NoError(t, err)
+
+			mpgsClient.EXPECT().
+				AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.Anything).
+				Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
+					Data: mpgsclient.AuthenticatePayerResponse{
+						Authentication: mpgsclient.AuthenticatePayerRespAuthentication{
+							Redirect: mpgsclient.AuthenticatePayerRespRedirect{HTML: tt.redirectHTML},
+						},
+						Response: mpgsclient.AuthenticatePayerGatewayResponse{
+							GatewayRecommendation: tt.recommendation,
+						},
+						Result: tt.result,
+						Transaction: mpgsclient.AuthenticatePayerRespTransaction{
+							AuthenticationStatus: tt.authStatus,
+						},
+					},
+				}, nil)
+
+			resp, err := prepared.Send(ctx)
+
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.Equal(t, StartCardChallengeGatewayNextStepCantContinue, resp.NextStep)
+		})
+	}
 }
 
-func TestGatewayResolver_RejectsInvalidMPGSSecret(t *testing.T) {
-	resolver := NewGatewayResolver(testEncryptionKey)
+func TestMPGSCardGateway_StartCardChallengeSendError(t *testing.T) {
+	ctx := context.Background()
+	req := validStartCardChallengeGatewayRequest()
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	gateway := &mpgsCardGateway{client: mpgsClient}
 
-	cardGateway, err := resolver.CardGateway(store.GatewayAccount{
-		ConnectorType: store.ConnectorTypeMPGS,
-		Config: []byte(`{
-			"base_url": "https://test.gateway.mastercard.com",
-			"merchant_id": "TESTMERCHANT"
-		}`),
-		Secret: []byte("not encrypted"),
-	})
+	prepared, err := gateway.StartCardChallenge(ctx, req)
+	require.NoError(t, err)
+
+	mpgsClient.EXPECT().
+		AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.Anything).
+		Return(nil, errors.New("authenticate failed"))
+
+	resp, err := prepared.Send(ctx)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid mpgs secret")
-	assert.Nil(t, cardGateway)
+	assert.Contains(t, err.Error(), "failed to authenticate payer")
+	assert.Nil(t, resp)
 }
 
 func validSetupCardPaymentGatewayRequest() SetupCardPaymentGatewayRequest {
@@ -298,15 +523,25 @@ func validSetupCardPaymentGatewayRequest() SetupCardPaymentGatewayRequest {
 	}
 }
 
-func validMPGSGatewayAccount(t *testing.T, encryptionKey, config, secret []byte) store.GatewayAccount {
-	t.Helper()
-
-	encryptedSecret, err := crypto.Encrypt(secret, encryptionKey)
-	require.NoError(t, err)
-
-	return store.GatewayAccount{
-		ConnectorType: store.ConnectorTypeMPGS,
-		Config:        config,
-		Secret:        encryptedSecret,
+func validStartCardChallengeGatewayRequest() StartCardChallengeGatewayRequest {
+	return StartCardChallengeGatewayRequest{
+		InvoiceID:             uuid.MustParse("00000000-0000-0000-0000-000000003001"),
+		Amount:                decimal.RequireFromString("15.000"),
+		Currency:              "BHD",
+		GatewaySetupReference: "SESSION123",
+		GatewayReference:      "AUTHENTICATION123",
+		ChallengeReturnURL:    "https://pay.example.com/checkout/3001/complete-challenge",
+		Browser: ThreeDSBrowser{
+			IPAddress:           "192.0.2.1",
+			UserAgent:           "Mozilla/5.0",
+			AcceptHeader:        "text/html,application/xhtml+xml",
+			ChallengeWindowSize: ThreeDSChallengeWindowSizeFullScreen,
+			ColorDepth:          24,
+			JavaEnabled:         false,
+			Language:            "en-US",
+			ScreenHeight:        1080,
+			ScreenWidth:         1920,
+			TimeZone:            180,
+		},
 	}
 }
