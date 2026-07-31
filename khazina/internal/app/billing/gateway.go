@@ -17,66 +17,67 @@ type PaymentMethodReference string
 type AuthenticationReference string
 
 type CardGateway interface {
-	SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error)
-	PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error)
-	StartCardChallenge(ctx context.Context, r StartCardChallengeGatewayRequest) (*PreparedStartCardChallengeGatewayRequest, error)
+	SetupCardPaymentMethod(ctx context.Context, r SetupCardPaymentMethodGatewayRequest) (*SetupCardPaymentMethodGatewayResponse, error)
+	PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationGatewayRequest) (*PreparedCardAuthenticationGatewayRequest, error)
+	AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderGatewayRequest) (*PreparedAuthenticateCardholderGatewayRequest, error)
+	GetCardAuthenticationResult(ctx context.Context, r GetCardAuthenticationResultGatewayRequest) (*PreparedGetCardAuthenticationResultGatewayRequest, error)
 }
 
 type (
-	SetupCardPaymentGatewayRequest struct {
+	SetupCardPaymentMethodGatewayRequest struct {
 		InvoiceID uuid.UUID
 		Amount    decimal.Decimal
 		Currency  string
 	}
-	SetupCardPaymentGatewayResponse struct {
+	SetupCardPaymentMethodGatewayResponse struct {
 		PaymentMethodReference PaymentMethodReference
 	}
 )
 
-type PrepareCardChallengeGatewayNextStep string
+type PrepareCardAuthenticationGatewayNextStep string
 
 const (
-	PrepareCardChallengeGatewayNextStepStartChallenge PrepareCardChallengeGatewayNextStep = "start_challenge"
-	PrepareCardChallengeGatewayNextStepCantContinue   PrepareCardChallengeGatewayNextStep = "cant_continue"
+	PrepareCardAuthenticationGatewayNextStepAuthenticate PrepareCardAuthenticationGatewayNextStep = "authenticate"
+	PrepareCardAuthenticationGatewayNextStepCantContinue PrepareCardAuthenticationGatewayNextStep = "cant_continue"
 )
 
 type (
-	PrepareCardChallengeGatewayRequest struct {
+	PrepareCardAuthenticationGatewayRequest struct {
 		InvoiceID              uuid.UUID
 		Currency               string
 		PaymentMethodReference PaymentMethodReference
 	}
-	PreparedCardChallengeGatewayRequest struct {
+	PreparedCardAuthenticationGatewayRequest struct {
 		AuthenticationReference AuthenticationReference
 		RawRequest              []byte
-		send                    func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error)
+		send                    func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error)
 	}
-	PrepareCardChallengeGatewayResponse struct {
-		NextStep    PrepareCardChallengeGatewayNextStep
+	PrepareCardAuthenticationGatewayResponse struct {
+		NextStep    PrepareCardAuthenticationGatewayNextStep
 		RawResponse []byte
 	}
 )
 
-func (p *PreparedCardChallengeGatewayRequest) Send(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
+func (p *PreparedCardAuthenticationGatewayRequest) Send(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
 	if p == nil {
-		return nil, fmt.Errorf("prepared card challenge request is nil")
+		return nil, fmt.Errorf("prepared card authentication request is nil")
 	}
 	if p.send == nil {
-		return nil, fmt.Errorf("prepared card challenge request is missing send function")
+		return nil, fmt.Errorf("prepared card authentication request is missing send function")
 	}
 	return p.send(ctx)
 }
 
-type StartCardChallengeGatewayNextStep string
+type AuthenticateCardholderGatewayNextStep string
 
 const (
-	StartCardChallengeGatewayNextStepCapture           StartCardChallengeGatewayNextStep = "capture"
-	StartCardChallengeGatewayNextStepCompleteChallenge StartCardChallengeGatewayNextStep = "complete_challenge"
-	StartCardChallengeGatewayNextStepCantContinue      StartCardChallengeGatewayNextStep = "cant_continue"
+	AuthenticateCardholderGatewayNextStepCapture      AuthenticateCardholderGatewayNextStep = "capture"
+	AuthenticateCardholderGatewayNextStepChallenge    AuthenticateCardholderGatewayNextStep = "challenge"
+	AuthenticateCardholderGatewayNextStepCantContinue AuthenticateCardholderGatewayNextStep = "cant_continue"
 )
 
 type (
-	StartCardChallengeGatewayRequest struct {
+	AuthenticateCardholderGatewayRequest struct {
 		InvoiceID               uuid.UUID
 		Amount                  decimal.Decimal
 		Currency                string
@@ -85,23 +86,58 @@ type (
 		ChallengeReturnURL      string
 		Browser                 ThreeDSBrowser
 	}
-	PreparedStartCardChallengeGatewayRequest struct {
+	PreparedAuthenticateCardholderGatewayRequest struct {
 		RawRequest []byte
-		send       func(ctx context.Context) (*StartCardChallengeGatewayResponse, error)
+		send       func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error)
 	}
-	StartCardChallengeGatewayResponse struct {
-		NextStep     StartCardChallengeGatewayNextStep
+	AuthenticateCardholderGatewayResponse struct {
+		NextStep     AuthenticateCardholderGatewayNextStep
 		RedirectHTML string
 		RawResponse  []byte
 	}
 )
 
-func (p *PreparedStartCardChallengeGatewayRequest) Send(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+func (p *PreparedAuthenticateCardholderGatewayRequest) Send(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
 	if p == nil {
-		return nil, fmt.Errorf("prepared start card challenge request is nil")
+		return nil, fmt.Errorf("prepared authenticate cardholder request is nil")
 	}
 	if p.send == nil {
-		return nil, fmt.Errorf("prepared start card challenge request is missing send function")
+		return nil, fmt.Errorf("prepared authenticate cardholder request is missing send function")
+	}
+	return p.send(ctx)
+}
+
+type CardAuthenticationResult string
+
+const (
+	CardAuthenticationResultProceed      CardAuthenticationResult = "proceed"
+	CardAuthenticationResultPending      CardAuthenticationResult = "pending"
+	CardAuthenticationResultCantContinue CardAuthenticationResult = "cant_continue"
+)
+
+type (
+	GetCardAuthenticationResultGatewayRequest struct {
+		InvoiceID               uuid.UUID
+		Amount                  decimal.Decimal
+		Currency                string
+		AuthenticationReference AuthenticationReference
+	}
+	PreparedGetCardAuthenticationResultGatewayRequest struct {
+		RawRequest []byte
+		send       func(ctx context.Context) (*GetCardAuthenticationResultGatewayResponse, error)
+	}
+	GetCardAuthenticationResultGatewayResponse struct {
+		Result      CardAuthenticationResult
+		RawResponse []byte
+	}
+)
+
+func (p *PreparedGetCardAuthenticationResultGatewayRequest) Send(ctx context.Context) (*GetCardAuthenticationResultGatewayResponse, error) {
+	if p == nil {
+		return nil, fmt.Errorf("prepared get card authentication result request is nil")
+	}
+	if p.send == nil {
+		return nil, fmt.Errorf("prepared get card authentication result request is missing send function")
 	}
 	return p.send(ctx)
 }

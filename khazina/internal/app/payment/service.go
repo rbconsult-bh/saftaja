@@ -214,7 +214,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		}
 	}
 
-	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusCapturingPayment); err != nil {
+	if err := ValidateSessionTransition(session.Status, PaymentIntentStatusCapturing); err != nil {
 		return nil, err
 	}
 

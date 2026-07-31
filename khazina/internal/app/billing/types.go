@@ -33,12 +33,12 @@ var (
 type Service interface {
 	GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvoiceResponse, error)
 
-	StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error)
-	CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error)
+	CreatePaymentIntent(ctx context.Context, r CreatePaymentIntentRequest) (*CreatePaymentIntentResponse, error)
+	CapturePaymentIntent(ctx context.Context, r CapturePaymentIntentRequest) (*CapturePaymentIntentResponse, error)
 
-	PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeRequest) (*PrepareCardChallengeResponse, error)
-	StartCardChallenge(ctx context.Context, r StartCardChallengeRequest) (*StartCardChallengeResponse, error)
-	CompleteCardChallenge(ctx context.Context, r CompleteCardChallengeRequest) (*CompleteCardChallengeResponse, error)
+	PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationRequest) (*PrepareCardAuthenticationResponse, error)
+	AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderRequest) (*AuthenticateCardholderResponse, error)
+	VerifyCardAuthentication(ctx context.Context, r VerifyCardAuthenticationRequest) (*VerifyCardAuthenticationResponse, error)
 }
 
 type PaymentIntentRef struct {
@@ -64,13 +64,13 @@ func (r *PaymentIntentRef) Validate() error {
 type PaymentIntentStatus string
 
 const (
-	PaymentIntentStatusCreated                     PaymentIntentStatus = "created"
-	PaymentIntentStatusReadyToStartChallenge       PaymentIntentStatus = "ready_to_start_challenge"
-	PaymentIntentStatusAwaitingChallengeCompletion PaymentIntentStatus = "awaiting_challenge_completion"
-	PaymentIntentStatusReadyToCapture              PaymentIntentStatus = "ready_to_capture"
-	PaymentIntentStatusCapturingPayment            PaymentIntentStatus = "capturing_payment"
-	PaymentIntentStatusSucceeded                   PaymentIntentStatus = "succeeded"
-	PaymentIntentStatusFailed                      PaymentIntentStatus = "failed"
+	PaymentIntentStatusCreated                      PaymentIntentStatus = "created"
+	PaymentIntentStatusReadyToAuthenticate          PaymentIntentStatus = "ready_to_authenticate"
+	PaymentIntentStatusAwaitingAuthenticationResult PaymentIntentStatus = "awaiting_authentication_result"
+	PaymentIntentStatusReadyToCapture               PaymentIntentStatus = "ready_to_capture"
+	PaymentIntentStatusCapturing                    PaymentIntentStatus = "capturing"
+	PaymentIntentStatusSucceeded                    PaymentIntentStatus = "succeeded"
+	PaymentIntentStatusFailed                       PaymentIntentStatus = "failed"
 )
 
 type PaymentMethod string
@@ -139,7 +139,7 @@ func (r *GetInvoiceRequest) Validate() error {
 }
 
 type (
-	StartPaymentRequest struct {
+	CreatePaymentIntentRequest struct {
 		InvoiceID      uuid.UUID
 		ProjectID      uuid.UUID
 		IdempotencyKey string
@@ -151,13 +151,13 @@ type (
 		PayerIP          string
 		PayerUserAgent   string
 	}
-	StartPaymentResponse struct {
+	CreatePaymentIntentResponse struct {
 		PaymentIntentID        uuid.UUID
 		PaymentMethodReference *PaymentMethodReference
 	}
 )
 
-func (r *StartPaymentRequest) Validate() error {
+func (r *CreatePaymentIntentRequest) Validate() error {
 	if r.InvoiceID == uuid.Nil {
 		return fmt.Errorf("%w: InvoiceID is required", ErrInvalidArgument)
 	}
@@ -186,29 +186,29 @@ func (r *StartPaymentRequest) Validate() error {
 }
 
 type (
-	CapturePaymentRequest  struct{}
-	CapturePaymentResponse struct{}
+	CapturePaymentIntentRequest  struct{}
+	CapturePaymentIntentResponse struct{}
 )
 
-type PrepareCardChallengeNextStep string
+type PrepareCardAuthenticationNextStep string
 
 const (
-	PrepareCardChallengeNextStepStartChallenge PrepareCardChallengeNextStep = "start_challenge"
-	PrepareCardChallengeNextStepCantContinue   PrepareCardChallengeNextStep = "cant_continue"
+	PrepareCardAuthenticationNextStepAuthenticate PrepareCardAuthenticationNextStep = "authenticate"
+	PrepareCardAuthenticationNextStepCantContinue PrepareCardAuthenticationNextStep = "cant_continue"
 )
 
 type (
-	PrepareCardChallengeRequest struct {
+	PrepareCardAuthenticationRequest struct {
 		ProjectID       uuid.UUID
 		InvoiceID       uuid.UUID
 		PaymentIntentID uuid.UUID
 	}
-	PrepareCardChallengeResponse struct {
-		NextStep PrepareCardChallengeNextStep
+	PrepareCardAuthenticationResponse struct {
+		NextStep PrepareCardAuthenticationNextStep
 	}
 )
 
-func (r *PrepareCardChallengeRequest) Validate() error {
+func (r *PrepareCardAuthenticationRequest) Validate() error {
 	if r.ProjectID == uuid.Nil {
 		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
 	}
@@ -297,27 +297,27 @@ func (r ThreeDSBrowser) Validate() error {
 	return nil
 }
 
-type StartCardChallengeNextStep string
+type AuthenticateCardholderNextStep string
 
 const (
-	StartCardChallengeNextStepCompleteChallenge StartCardChallengeNextStep = "complete_challenge"
-	StartCardChallengeNextStepCapture           StartCardChallengeNextStep = "capture"
-	StartCardChallengeNextStepCantContinue      StartCardChallengeNextStep = "cant_continue"
+	AuthenticateCardholderNextStepChallenge    AuthenticateCardholderNextStep = "challenge"
+	AuthenticateCardholderNextStepCapture      AuthenticateCardholderNextStep = "capture"
+	AuthenticateCardholderNextStepCantContinue AuthenticateCardholderNextStep = "cant_continue"
 )
 
 type (
-	StartCardChallengeRequest struct {
+	AuthenticateCardholderRequest struct {
 		PaymentIntentRef
 		Browser            ThreeDSBrowser
 		ChallengeReturnURL string
 	}
-	StartCardChallengeResponse struct {
-		NextStep     StartCardChallengeNextStep
+	AuthenticateCardholderResponse struct {
+		NextStep     AuthenticateCardholderNextStep
 		RedirectHTML string
 	}
 )
 
-func (r *StartCardChallengeRequest) Validate() error {
+func (r *AuthenticateCardholderRequest) Validate() error {
 	if err := r.PaymentIntentRef.Validate(); err != nil {
 		return err
 	}
@@ -332,7 +332,23 @@ func (r *StartCardChallengeRequest) Validate() error {
 	return nil
 }
 
-type (
-	CompleteCardChallengeRequest  struct{}
-	CompleteCardChallengeResponse struct{}
+type VerifyCardAuthenticationNextStep string
+
+const (
+	VerifyCardAuthenticationNextStepPending      VerifyCardAuthenticationNextStep = "pending"
+	VerifyCardAuthenticationNextStepCapture      VerifyCardAuthenticationNextStep = "capture"
+	VerifyCardAuthenticationNextStepCantContinue VerifyCardAuthenticationNextStep = "cant_continue"
 )
+
+type (
+	VerifyCardAuthenticationRequest struct {
+		PaymentIntentRef
+	}
+	VerifyCardAuthenticationResponse struct {
+		NextStep VerifyCardAuthenticationNextStep
+	}
+)
+
+func (r *VerifyCardAuthenticationRequest) Validate() error {
+	return r.PaymentIntentRef.Validate()
+}

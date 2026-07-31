@@ -115,7 +115,7 @@ CREATE TABLE payment_sessions (
 
     gateway_session_id VARCHAR(100) NOT NULL,
 
-    status VARCHAR(30) NOT NULL DEFAULT 'created', -- created, ready_to_start_challenge, awaiting_challenge_completion, ready_to_capture, capturing_payment, succeeded, failed
+    status VARCHAR(30) NOT NULL DEFAULT 'created', -- created, ready_to_authenticate, awaiting_authentication_result, ready_to_capture, capturing, succeeded, failed
 
     payment_method VARCHAR(30) NOT NULL DEFAULT 'card', -- card, apple_pay
 

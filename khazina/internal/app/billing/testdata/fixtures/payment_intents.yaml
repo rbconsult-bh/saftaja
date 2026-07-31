@@ -63,7 +63,7 @@
   project_id: 00000000-0000-0000-0000-000000001001
   gateway_account_id: 00000000-0000-0000-0000-000000002001
   gateway_setup_reference: session-ready-to-start-challenge
-  status: ready_to_start_challenge
+  status: ready_to_authenticate
   payment_method: card
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0

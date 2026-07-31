@@ -232,7 +232,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 	gatewayAccountID := uuid.New()
 	sessionID := uuid.New()
 
-	f.Billing.EXPECT().StartPayment(mock.Anything, billing.StartPaymentRequest{
+	f.Billing.EXPECT().CreatePaymentIntent(mock.Anything, billing.CreatePaymentIntentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
@@ -240,7 +240,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
-	}).Return(&billing.StartPaymentResponse{
+	}).Return(&billing.CreatePaymentIntentResponse{
 		PaymentIntentID:        sessionID,
 		PaymentMethodReference: ptr.To(billing.PaymentMethodReference("MPGS_SESSION_123")),
 	}, nil)
@@ -288,14 +288,14 @@ func TestInitiateSessionHandler_NoTenantContext(t *testing.T) {
 	}
 }
 
-func TestInitiateSessionHandler_InvalidStartPaymentRequest(t *testing.T) {
+func TestInitiateSessionHandler_InvalidCreatePaymentIntentRequest(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	f.Billing.EXPECT().StartPayment(mock.Anything, billing.StartPaymentRequest{
+	f.Billing.EXPECT().CreatePaymentIntent(mock.Anything, billing.CreatePaymentIntentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
@@ -330,7 +330,7 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	f.Billing.EXPECT().StartPayment(mock.Anything, billing.StartPaymentRequest{
+	f.Billing.EXPECT().CreatePaymentIntent(mock.Anything, billing.CreatePaymentIntentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,

@@ -186,7 +186,7 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := h.billing.StartPayment(ctx, billing.StartPaymentRequest{
+	result, err := h.billing.CreatePaymentIntent(ctx, billing.CreatePaymentIntentRequest{
 		InvoiceID:        invoiceID,
 		ProjectID:        project.ID,
 		IdempotencyKey:   r.Header.Get("Idempotency-Key"),
@@ -228,7 +228,7 @@ func (h *handlers) CardPrepareChallengeHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	result, err := h.billing.PrepareCardChallenge(ctx, billing.PrepareCardChallengeRequest{
+	result, err := h.billing.PrepareCardAuthentication(ctx, billing.PrepareCardAuthenticationRequest{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
 		PaymentIntentID: sessionID,

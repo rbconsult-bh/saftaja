@@ -57,7 +57,7 @@ func (s *service) GetInvoice(ctx context.Context, r GetInvoiceRequest) (*GetInvo
 	}, nil
 }
 
-func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*StartPaymentResponse, error) {
+func (s *service) CreatePaymentIntent(ctx context.Context, r CreatePaymentIntentRequest) (*CreatePaymentIntentResponse, error) {
 	if err := r.Validate(); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
 		return nil, err
@@ -88,7 +88,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		}
 
 		log.Ctx(ctx).Info().Msg("returning idempotent response")
-		return &StartPaymentResponse{
+		return &CreatePaymentIntentResponse{
 			PaymentIntentID:        existingIntent.ID,
 			PaymentMethodReference: mapStorePaymentMethodReferenceToPaymentMethodReference(existingIntent.GatewaySetupReference),
 		}, nil
@@ -172,7 +172,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 
 		createPaymentIntentParams.PaymentMethod = store.PaymentMethodCard
 
-		setupResp, err := cardGateway.SetupCardPayment(ctx, SetupCardPaymentGatewayRequest{
+		setupResp, err := cardGateway.SetupCardPaymentMethod(ctx, SetupCardPaymentMethodGatewayRequest{
 			InvoiceID: invoice.ID,
 			Amount:    invoice.Amount,
 			Currency:  invoice.Currency,
@@ -182,7 +182,7 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 				Err(err).
 				Str("gateway_account_id", gatewayAccount.ID.String()).
 				Str("invoice_id", invoice.ID.String()).
-				Msg("failed to setup card payment")
+				Msg("failed to set up card payment method")
 			return nil, err
 		}
 		storedPaymentMethodReference := string(setupResp.PaymentMethodReference)
@@ -207,17 +207,17 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 		return nil, err
 	}
 
-	return &StartPaymentResponse{
+	return &CreatePaymentIntentResponse{
 		PaymentIntentID:        resp.ID,
 		PaymentMethodReference: mapStorePaymentMethodReferenceToPaymentMethodReference(resp.GatewaySetupReference),
 	}, nil
 }
 
-func (s *service) CapturePayment(ctx context.Context, r CapturePaymentRequest) (*CapturePaymentResponse, error) {
-	return &CapturePaymentResponse{}, nil
+func (s *service) CapturePaymentIntent(ctx context.Context, r CapturePaymentIntentRequest) (*CapturePaymentIntentResponse, error) {
+	return &CapturePaymentIntentResponse{}, nil
 }
 
-func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeRequest) (*PrepareCardChallengeResponse, error) {
+func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationRequest) (*PrepareCardAuthenticationResponse, error) {
 	if err := r.Validate(); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
 		return nil, err
@@ -262,7 +262,7 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 		return nil, err
 	}
 
-	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusReadyToStartChallenge); err != nil {
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusReadyToAuthenticate); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid transition")
 		return nil, err
 	}
@@ -301,13 +301,13 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 		return nil, err
 	}
 
-	prepared, err := cardGateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
+	prepared, err := cardGateway.PrepareCardAuthentication(ctx, PrepareCardAuthenticationGatewayRequest{
 		InvoiceID:              invoice.ID,
 		Currency:               invoice.Currency,
 		PaymentMethodReference: PaymentMethodReference(*paymentIntent.GatewaySetupReference),
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card challenge")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card authentication")
 		return nil, err
 	}
 
@@ -337,23 +337,23 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 
 	gatewayResp, err := prepared.Send(ctx)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card challenge with gateway")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card authentication with gateway")
 		if statusErr := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, nil); statusErr != nil {
-			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after prepare card challenge error")
+			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after prepare card authentication error")
 		}
 		return nil, err
 	}
 
-	if gatewayResp.NextStep != PrepareCardChallengeGatewayNextStepStartChallenge {
+	if gatewayResp.NextStep != PrepareCardAuthenticationGatewayNextStepAuthenticate {
 		// The gateway call completed successfully, but its decision was "can't continue."
 		// Keep the payment intent in created so the customer can update the card and
-		// retry PrepareCardChallenge. The raw gateway decision is stored on this operation.
+		// retry PrepareCardAuthentication. The raw gateway decision is stored on this operation.
 		if err := updateGatewayOperationStatus(store.GatewayOperationStatusSuccess, gatewayResp.RawResponse); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update gateway operation status")
 			return nil, err
 		}
-		return &PrepareCardChallengeResponse{
-			NextStep: PrepareCardChallengeNextStepCantContinue,
+		return &PrepareCardAuthenticationResponse{
+			NextStep: PrepareCardAuthenticationNextStepCantContinue,
 		}, nil
 	}
 
@@ -364,23 +364,23 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 
 	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 		ID:     paymentIntent.ID,
-		Status: store.PaymentIntentStatusReadyToStartChallenge,
+		Status: store.PaymentIntentStatusReadyToAuthenticate,
 	}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update payment intent status")
 		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to commit prepared card challenge")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit prepared card authentication")
 		return nil, err
 	}
 
-	return &PrepareCardChallengeResponse{
-		NextStep: PrepareCardChallengeNextStepStartChallenge,
+	return &PrepareCardAuthenticationResponse{
+		NextStep: PrepareCardAuthenticationNextStepAuthenticate,
 	}, nil
 }
 
-func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRequest) (*StartCardChallengeResponse, error) {
+func (s *service) AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderRequest) (*AuthenticateCardholderResponse, error) {
 	if err := r.Validate(); err != nil {
 		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
 		return nil, err
@@ -424,11 +424,11 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 		return nil, err
 	}
 
-	if currentStatus != PaymentIntentStatusReadyToStartChallenge {
+	if currentStatus != PaymentIntentStatusReadyToAuthenticate {
 		err := fmt.Errorf(
-			"%w: StartCardChallenge requires %s, got %s",
+			"%w: AuthenticateCardholder requires %s, got %s",
 			ErrPaymentIntentInvalidState,
-			PaymentIntentStatusReadyToStartChallenge,
+			PaymentIntentStatusReadyToAuthenticate,
 			currentStatus,
 		)
 
@@ -494,7 +494,7 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 		)
 	}
 
-	prepared, err := cardGateway.StartCardChallenge(ctx, StartCardChallengeGatewayRequest{
+	prepared, err := cardGateway.AuthenticateCardholder(ctx, AuthenticateCardholderGatewayRequest{
 		InvoiceID:               invoice.ID,
 		Amount:                  invoice.Amount,
 		Currency:                invoice.Currency,
@@ -504,7 +504,7 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 		Browser:                 r.Browser,
 	})
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare start card challenge request")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare authenticate cardholder request")
 		return nil, err
 	}
 
@@ -534,9 +534,9 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 
 	gatewayResp, err := prepared.Send(ctx)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to start card challenge with gateway")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to authenticate cardholder with gateway")
 		if statusErr := updateGatewayOperationStatus(store.GatewayOperationStatusFailed, nil); statusErr != nil {
-			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after start card challenge error")
+			log.Ctx(ctx).Error().Err(statusErr).Msg("failed to update gateway operation status after authenticate cardholder error")
 		}
 		return nil, err
 	}
@@ -547,27 +547,27 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 	}
 
 	var (
-		nextStep     StartCardChallengeNextStep
+		nextStep     AuthenticateCardholderNextStep
 		targetStatus PaymentIntentStatus
 		redirectHTML string
 	)
 	switch gatewayResp.NextStep {
-	case StartCardChallengeGatewayNextStepCompleteChallenge:
-		nextStep = StartCardChallengeNextStepCompleteChallenge
-		targetStatus = PaymentIntentStatusAwaitingChallengeCompletion
+	case AuthenticateCardholderGatewayNextStepChallenge:
+		nextStep = AuthenticateCardholderNextStepChallenge
+		targetStatus = PaymentIntentStatusAwaitingAuthenticationResult
 		redirectHTML = gatewayResp.RedirectHTML
-	case StartCardChallengeGatewayNextStepCapture:
-		nextStep = StartCardChallengeNextStepCapture
+	case AuthenticateCardholderGatewayNextStepCapture:
+		nextStep = AuthenticateCardholderNextStepCapture
 		targetStatus = PaymentIntentStatusReadyToCapture
-	case StartCardChallengeGatewayNextStepCantContinue:
-		nextStep = StartCardChallengeNextStepCantContinue
+	case AuthenticateCardholderGatewayNextStepCantContinue:
+		nextStep = AuthenticateCardholderNextStepCantContinue
 		targetStatus = PaymentIntentStatusFailed
 	default:
-		return nil, fmt.Errorf("unsupported start card challenge gateway next step %q", gatewayResp.NextStep)
+		return nil, fmt.Errorf("unsupported authenticate cardholder gateway next step %q", gatewayResp.NextStep)
 	}
 
 	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, targetStatus); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("payment intent invalid transition after start card challenge")
+		log.Ctx(ctx).Error().Err(err).Msg("payment intent invalid transition after authenticating cardholder")
 		return nil, err
 	}
 	targetStoreStatus, err := mapPaymentIntentStatusToStorePaymentIntentStatus(targetStatus)
@@ -584,16 +584,16 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to commit started card challenge")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit authenticated cardholder result")
 		return nil, err
 	}
 
-	return &StartCardChallengeResponse{
+	return &AuthenticateCardholderResponse{
 		NextStep:     nextStep,
 		RedirectHTML: redirectHTML,
 	}, nil
 }
 
-func (s *service) CompleteCardChallenge(ctx context.Context, r CompleteCardChallengeRequest) (*CompleteCardChallengeResponse, error) {
-	return &CompleteCardChallengeResponse{}, nil
+func (s *service) VerifyCardAuthentication(ctx context.Context, r VerifyCardAuthenticationRequest) (*VerifyCardAuthenticationResponse, error) {
+	return &VerifyCardAuthenticationResponse{}, nil
 }

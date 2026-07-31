@@ -564,7 +564,7 @@ templ CheckoutForm(data CheckoutPageData) {
 			return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 		}
 
-		function startPaymentIdempotencyKey(accountId, type) {
+		function createPaymentIntentIdempotencyKey(accountId, type) {
 			const key = `saftaja:start-payment:${INVOICE_ID}:${accountId}:${type}`;
 			try {
 				let id = sessionStorage.getItem(key);
@@ -620,7 +620,7 @@ templ CheckoutForm(data CheckoutPageData) {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Idempotency-Key': startPaymentIdempotencyKey(accountId, type)
+						'Idempotency-Key': createPaymentIntentIdempotencyKey(accountId, type)
 					},
 					body: JSON.stringify({
 						gateway_account_id: accountId,
@@ -782,7 +782,7 @@ templ CheckoutForm(data CheckoutPageData) {
 			try {
 				const prepareRes = await fetch(url, { method: "POST" }).then(r => r.json());
 
-				if (prepareRes.next_step === "start_challenge") {
+				if (prepareRes.next_step === "authenticate") {
 					doAuthenticatePayer();
 				} else if (prepareRes.next_step === "cant_continue") {
 					showError({{ MsgPaymentDeclined.Get(data.Lang) }});

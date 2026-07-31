@@ -1,10 +1,10 @@
 package payment
 
 var validSessionTransitions = map[PaymentIntentStatus][]PaymentIntentStatus{
-	PaymentIntentStatusCreated:               {PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed},
-	PaymentIntentStatusReadyToStartChallenge: {PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed},
-	PaymentIntentStatusReadyToCapture:        {PaymentIntentStatusCapturingPayment},
-	PaymentIntentStatusCapturingPayment:      {PaymentIntentStatusSucceeded, PaymentIntentStatusFailed},
+	PaymentIntentStatusCreated:             {PaymentIntentStatusReadyToAuthenticate, PaymentIntentStatusFailed},
+	PaymentIntentStatusReadyToAuthenticate: {PaymentIntentStatusReadyToCapture, PaymentIntentStatusFailed},
+	PaymentIntentStatusReadyToCapture:      {PaymentIntentStatusCapturing},
+	PaymentIntentStatusCapturing:           {PaymentIntentStatusSucceeded, PaymentIntentStatusFailed},
 }
 
 func ValidateSessionTransition(from, to PaymentIntentStatus) error {

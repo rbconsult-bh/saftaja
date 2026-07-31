@@ -11,15 +11,15 @@ func TestValidateSessionTransition(t *testing.T) {
 		to   PaymentIntentStatus
 		err  bool
 	}{
-		{"created to ready to start challenge", PaymentIntentStatusCreated, PaymentIntentStatusReadyToStartChallenge, false},
+		{"created to ready to start challenge", PaymentIntentStatusCreated, PaymentIntentStatusReadyToAuthenticate, false},
 		{"created to failed", PaymentIntentStatusCreated, PaymentIntentStatusFailed, false},
 		{"created to succeeded", PaymentIntentStatusCreated, PaymentIntentStatusSucceeded, true},
-		{"ready to start challenge to ready to capture", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusReadyToCapture, false},
-		{"ready to start challenge to failed", PaymentIntentStatusReadyToStartChallenge, PaymentIntentStatusFailed, false},
-		{"ready to capture to capturing payment", PaymentIntentStatusReadyToCapture, PaymentIntentStatusCapturingPayment, false},
-		{"capturing payment to succeeded", PaymentIntentStatusCapturingPayment, PaymentIntentStatusSucceeded, false},
-		{"capturing payment to failed", PaymentIntentStatusCapturingPayment, PaymentIntentStatusFailed, false},
-		{"succeeded to anything", PaymentIntentStatusSucceeded, PaymentIntentStatusReadyToStartChallenge, true},
+		{"ready to start challenge to ready to capture", PaymentIntentStatusReadyToAuthenticate, PaymentIntentStatusReadyToCapture, false},
+		{"ready to start challenge to failed", PaymentIntentStatusReadyToAuthenticate, PaymentIntentStatusFailed, false},
+		{"ready to capture to capturing", PaymentIntentStatusReadyToCapture, PaymentIntentStatusCapturing, false},
+		{"capturing to succeeded", PaymentIntentStatusCapturing, PaymentIntentStatusSucceeded, false},
+		{"capturing to failed", PaymentIntentStatusCapturing, PaymentIntentStatusFailed, false},
+		{"succeeded to anything", PaymentIntentStatusSucceeded, PaymentIntentStatusReadyToAuthenticate, true},
 		{"failed to anything", PaymentIntentStatusFailed, PaymentIntentStatusCreated, true},
 	}
 
@@ -63,7 +63,7 @@ func TestIsTerminalSessionStatus(t *testing.T) {
 	if !IsTerminalSessionStatus(PaymentIntentStatusFailed) {
 		t.Error("failed should be terminal")
 	}
-	if IsTerminalSessionStatus(PaymentIntentStatusReadyToStartChallenge) {
+	if IsTerminalSessionStatus(PaymentIntentStatusReadyToAuthenticate) {
 		t.Error("ready to start challenge should not be terminal")
 	}
 }

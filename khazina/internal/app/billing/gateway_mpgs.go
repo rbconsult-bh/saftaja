@@ -37,7 +37,7 @@ func newMPGSCardGateway(account store.GatewayAccount, encryptionKey []byte) (Car
 	}, nil
 }
 
-func (mcg *mpgsCardGateway) SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error) {
+func (mcg *mpgsCardGateway) SetupCardPaymentMethod(ctx context.Context, r SetupCardPaymentMethodGatewayRequest) (*SetupCardPaymentMethodGatewayResponse, error) {
 	createSessionResp, err := mcg.client.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
 			AuthenticationLimit: ptr.To[int32](25),
@@ -61,12 +61,12 @@ func (mcg *mpgsCardGateway) SetupCardPayment(ctx context.Context, r SetupCardPay
 		return nil, fmt.Errorf("failed to update mpgs session: %w", err)
 	}
 
-	return &SetupCardPaymentGatewayResponse{
+	return &SetupCardPaymentMethodGatewayResponse{
 		PaymentMethodReference: PaymentMethodReference(createSessionResp.Data.Session.ID),
 	}, nil
 }
 
-func (mcg *mpgsCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error) {
+func (mcg *mpgsCardGateway) PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationGatewayRequest) (*PreparedCardAuthenticationGatewayRequest, error) {
 	gatewayReference := uuid.NewString()
 	mpgsReq := &mpgsclient.InitiateAuthenticationRequest{
 		APIOperation: mpgsclient.OperationInitiateAuthentication,
@@ -86,22 +86,22 @@ func (mcg *mpgsCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareC
 		return nil, fmt.Errorf("failed to marshal initiate authentication request: %w", err)
 	}
 
-	return &PreparedCardChallengeGatewayRequest{
+	return &PreparedCardAuthenticationGatewayRequest{
 		AuthenticationReference: AuthenticationReference(gatewayReference),
 		RawRequest:              rawReq,
-		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
+		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
 			resp, err := mcg.client.InitiateAuthentication(ctx, r.InvoiceID.String(), gatewayReference, mpgsReq)
 			if err != nil {
 				return nil, fmt.Errorf("failed to initiate authentication: %w", err)
 			}
-			nextStep := PrepareCardChallengeGatewayNextStepCantContinue
+			nextStep := PrepareCardAuthenticationGatewayNextStepCantContinue
 			if resp.Data.Result == mpgsclient.ResultSuccess &&
 				resp.Data.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed &&
 				resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusAvailable {
-				nextStep = PrepareCardChallengeGatewayNextStepStartChallenge
+				nextStep = PrepareCardAuthenticationGatewayNextStepAuthenticate
 			}
 
-			return &PrepareCardChallengeGatewayResponse{
+			return &PrepareCardAuthenticationGatewayResponse{
 				NextStep:    nextStep,
 				RawResponse: resp.RawBody,
 			}, nil
@@ -109,7 +109,7 @@ func (mcg *mpgsCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareC
 	}, nil
 }
 
-func (mcg *mpgsCardGateway) StartCardChallenge(ctx context.Context, r StartCardChallengeGatewayRequest) (*PreparedStartCardChallengeGatewayRequest, error) {
+func (mcg *mpgsCardGateway) AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderGatewayRequest) (*PreparedAuthenticateCardholderGatewayRequest, error) {
 	mpgsReq := &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
@@ -143,33 +143,38 @@ func (mcg *mpgsCardGateway) StartCardChallenge(ctx context.Context, r StartCardC
 		return nil, fmt.Errorf("failed to marshal authenticate payer request: %w", err)
 	}
 
-	return &PreparedStartCardChallengeGatewayRequest{
+	return &PreparedAuthenticateCardholderGatewayRequest{
 		RawRequest: rawReq,
-		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
 			resp, err := mcg.client.AuthenticatePayer(ctx, r.InvoiceID.String(), string(r.AuthenticationReference), mpgsReq)
 			if err != nil {
 				return nil, fmt.Errorf("failed to authenticate payer: %w", err)
 			}
 
-			nextStep := StartCardChallengeGatewayNextStepCantContinue
+			nextStep := AuthenticateCardholderGatewayNextStepCantContinue
 			if resp.Data.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed {
 				switch {
 				case resp.Data.Result == mpgsclient.ResultPending &&
 					resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusPending &&
 					resp.Data.Authentication.Redirect.HTML != "":
-					nextStep = StartCardChallengeGatewayNextStepCompleteChallenge
+					nextStep = AuthenticateCardholderGatewayNextStepChallenge
 				case resp.Data.Result == mpgsclient.ResultSuccess &&
 					(resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusSuccessful ||
 						resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusAttempted):
-					nextStep = StartCardChallengeGatewayNextStepCapture
+					nextStep = AuthenticateCardholderGatewayNextStepCapture
 				}
 			}
 
-			return &StartCardChallengeGatewayResponse{
+			return &AuthenticateCardholderGatewayResponse{
 				NextStep:     nextStep,
 				RedirectHTML: resp.Data.Authentication.Redirect.HTML,
 				RawResponse:  resp.RawBody,
 			}, nil
 		},
 	}, nil
+}
+
+func (mcg *mpgsCardGateway) GetCardAuthenticationResult(ctx context.Context, r GetCardAuthenticationResultGatewayRequest) (*PreparedGetCardAuthenticationResultGatewayRequest, error) {
+	// TODO: retrieve the MPGS authentication transaction and map its result.
+	return nil, fmt.Errorf("get card authentication result is not implemented")
 }

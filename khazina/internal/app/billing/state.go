@@ -4,23 +4,23 @@ import "fmt"
 
 var cardPaymentIntentTransitions = map[PaymentIntentStatus]map[PaymentIntentStatus]bool{
 	PaymentIntentStatusCreated: {
-		PaymentIntentStatusReadyToStartChallenge: true,
-		PaymentIntentStatusFailed:                true,
+		PaymentIntentStatusReadyToAuthenticate: true,
+		PaymentIntentStatusFailed:              true,
 	},
-	PaymentIntentStatusReadyToStartChallenge: {
-		PaymentIntentStatusAwaitingChallengeCompletion: true,
-		PaymentIntentStatusReadyToCapture:              true,
-		PaymentIntentStatusFailed:                      true,
+	PaymentIntentStatusReadyToAuthenticate: {
+		PaymentIntentStatusAwaitingAuthenticationResult: true,
+		PaymentIntentStatusReadyToCapture:               true,
+		PaymentIntentStatusFailed:                       true,
 	},
-	PaymentIntentStatusAwaitingChallengeCompletion: {
+	PaymentIntentStatusAwaitingAuthenticationResult: {
 		PaymentIntentStatusReadyToCapture: true,
 		PaymentIntentStatusFailed:         true,
 	},
 	PaymentIntentStatusReadyToCapture: {
-		PaymentIntentStatusCapturingPayment: true,
-		PaymentIntentStatusFailed:           true,
+		PaymentIntentStatusCapturing: true,
+		PaymentIntentStatusFailed:    true,
 	},
-	PaymentIntentStatusCapturingPayment: {
+	PaymentIntentStatusCapturing: {
 		PaymentIntentStatusSucceeded: true,
 		PaymentIntentStatusFailed:    true,
 	},

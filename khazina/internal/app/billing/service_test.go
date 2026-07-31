@@ -16,17 +16,17 @@ import (
 )
 
 var (
-	uuidProject                      = uuid.MustParse("00000000-0000-0000-0000-000000001001")
-	uuidGateway                      = uuid.MustParse("00000000-0000-0000-0000-000000002001")
-	uuidInvoice                      = uuid.MustParse("00000000-0000-0000-0000-000000003001")
-	uuidInvoiceNoItems               = uuid.MustParse("00000000-0000-0000-0000-000000003002")
-	uuidInvoicePaid                  = uuid.MustParse("00000000-0000-0000-0000-000000003003")
-	uuidInvoiceCancelled             = uuid.MustParse("00000000-0000-0000-0000-000000003004")
-	uuidPaymentIntent                = uuid.MustParse("00000000-0000-0000-0000-000000005001")
-	uuidPaymentExpired               = uuid.MustParse("00000000-0000-0000-0000-000000005002")
-	uuidPaymentReadyToStartChallenge = uuid.MustParse("00000000-0000-0000-0000-000000005005")
-	uuidPaymentNoSetup               = uuid.MustParse("00000000-0000-0000-0000-000000005006")
-	uuidNotExist                     = uuid.MustParse("00000000-0000-0000-0000-00000000ffff")
+	uuidProject                    = uuid.MustParse("00000000-0000-0000-0000-000000001001")
+	uuidGateway                    = uuid.MustParse("00000000-0000-0000-0000-000000002001")
+	uuidInvoice                    = uuid.MustParse("00000000-0000-0000-0000-000000003001")
+	uuidInvoiceNoItems             = uuid.MustParse("00000000-0000-0000-0000-000000003002")
+	uuidInvoicePaid                = uuid.MustParse("00000000-0000-0000-0000-000000003003")
+	uuidInvoiceCancelled           = uuid.MustParse("00000000-0000-0000-0000-000000003004")
+	uuidPaymentIntent              = uuid.MustParse("00000000-0000-0000-0000-000000005001")
+	uuidPaymentExpired             = uuid.MustParse("00000000-0000-0000-0000-000000005002")
+	uuidPaymentReadyToAuthenticate = uuid.MustParse("00000000-0000-0000-0000-000000005005")
+	uuidPaymentNoSetup             = uuid.MustParse("00000000-0000-0000-0000-000000005006")
+	uuidNotExist                   = uuid.MustParse("00000000-0000-0000-0000-00000000ffff")
 )
 
 var testEncryptionKey = []byte("12345678901234567890123456789012")
@@ -46,8 +46,8 @@ func setupTestEnv(t *testing.T) testEnv {
 	db := testutil.SetupIsolatedDBWithFixtures(t, "./testdata/fixtures")
 	queries := store.NewTransactionQuerier(db.Pool)
 	cardGateway := &fakeCardGateway{
-		setupCardPayment: fakeSetupCardPaymentCall{
-			resp: &SetupCardPaymentGatewayResponse{PaymentMethodReference: "session-test-123"},
+		setupCardPaymentMethod: fakeSetupCardPaymentMethodCall{
+			resp: &SetupCardPaymentMethodGatewayResponse{PaymentMethodReference: "session-test-123"},
 		},
 	}
 	gatewayResolver := &fakeGatewayResolver{
@@ -71,8 +71,8 @@ func validGetInvoiceRequest() GetInvoiceRequest {
 	}
 }
 
-func validStartPaymentRequest(idempotencyKey string) StartPaymentRequest {
-	return StartPaymentRequest{
+func validCreatePaymentIntentRequest(idempotencyKey string) CreatePaymentIntentRequest {
+	return CreatePaymentIntentRequest{
 		InvoiceID:        uuidInvoice,
 		ProjectID:        uuidProject,
 		IdempotencyKey:   idempotencyKey,
@@ -83,12 +83,12 @@ func validStartPaymentRequest(idempotencyKey string) StartPaymentRequest {
 	}
 }
 
-func validStartCardChallengeRequest() StartCardChallengeRequest {
-	return StartCardChallengeRequest{
+func validAuthenticateCardholderRequest() AuthenticateCardholderRequest {
+	return AuthenticateCardholderRequest{
 		PaymentIntentRef: PaymentIntentRef{
 			ProjectID:       uuidProject,
 			InvoiceID:       uuidInvoice,
-			PaymentIntentID: uuidPaymentReadyToStartChallenge,
+			PaymentIntentID: uuidPaymentReadyToAuthenticate,
 		},
 		Browser: ThreeDSBrowser{
 			IPAddress:           "192.0.2.1",
@@ -116,12 +116,12 @@ func countPaymentIntents(t *testing.T, env testEnv) int {
 	return count
 }
 
-func assertStartPaymentErrorWithoutNewIntent(t *testing.T, env testEnv, req StartPaymentRequest, wantErr error) {
+func assertCreatePaymentIntentErrorWithoutNewIntent(t *testing.T, env testEnv, req CreatePaymentIntentRequest, wantErr error) {
 	t.Helper()
 
 	before := countPaymentIntents(t, env)
 
-	resp, err := env.svc.StartPayment(env.ctx, req)
+	resp, err := env.svc.CreatePaymentIntent(env.ctx, req)
 
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, wantErr)
@@ -213,136 +213,136 @@ func TestGetInvoice_NotFound(t *testing.T) {
 	}
 }
 
-func TestStartPayment_RejectsInvalidRequestBeforeSideEffects(t *testing.T) {
+func TestCreatePaymentIntent_RejectsInvalidRequestBeforeSideEffects(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
 		name     string
-		modifier func(*StartPaymentRequest)
+		modifier func(*CreatePaymentIntentRequest)
 		err      error
 	}{
 		{
 			name:     "missing_invoice_ID",
-			modifier: func(r *StartPaymentRequest) { r.InvoiceID = uuid.Nil },
+			modifier: func(r *CreatePaymentIntentRequest) { r.InvoiceID = uuid.Nil },
 			err:      ErrInvalidArgument,
 		},
 		{
 			name:     "missing_project_ID",
-			modifier: func(r *StartPaymentRequest) { r.ProjectID = uuid.Nil },
+			modifier: func(r *CreatePaymentIntentRequest) { r.ProjectID = uuid.Nil },
 			err:      ErrInvalidArgument,
 		},
 		{
 			name:     "missing_idempotency_key",
-			modifier: func(r *StartPaymentRequest) { r.IdempotencyKey = "" },
+			modifier: func(r *CreatePaymentIntentRequest) { r.IdempotencyKey = "" },
 			err:      ErrInvalidArgument,
 		},
 		{
 			name:     "missing_gateway_account_ID",
-			modifier: func(r *StartPaymentRequest) { r.GatewayAccountID = uuid.Nil },
+			modifier: func(r *CreatePaymentIntentRequest) { r.GatewayAccountID = uuid.Nil },
 			err:      ErrInvalidArgument,
 		},
 		{
 			name:     "unsupported_payment_method",
-			modifier: func(r *StartPaymentRequest) { r.PaymentMethod = "CASH_ON_DELIVERY" },
+			modifier: func(r *CreatePaymentIntentRequest) { r.PaymentMethod = "CASH_ON_DELIVERY" },
 			err:      ErrInvalidArgument,
 		},
 		{
 			name:     "missing_payer_IP",
-			modifier: func(r *StartPaymentRequest) { r.PayerIP = "" },
+			modifier: func(r *CreatePaymentIntentRequest) { r.PayerIP = "" },
 			err:      ErrInvalidArgument,
 		},
 		{
 			name:     "missing_payer_user_agent",
-			modifier: func(r *StartPaymentRequest) { r.PayerUserAgent = "" },
+			modifier: func(r *CreatePaymentIntentRequest) { r.PayerUserAgent = "" },
 			err:      ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := validStartPaymentRequest("key-val")
+			req := validCreatePaymentIntentRequest("key-val")
 			tt.modifier(&req)
 
-			assertStartPaymentErrorWithoutNewIntent(t, env, req, tt.err)
+			assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, tt.err)
 		})
 	}
 }
 
-func TestStartPayment_RejectsMissingInvoice(t *testing.T) {
+func TestCreatePaymentIntent_RejectsMissingInvoice(t *testing.T) {
 	env := setupTestEnv(t)
-	req := validStartPaymentRequest("key-missing-invoice")
+	req := validCreatePaymentIntentRequest("key-missing-invoice")
 	req.InvoiceID = uuidNotExist
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrInvoiceNotFound)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrInvoiceNotFound)
 }
 
-func TestStartPayment_RejectsPaidInvoice(t *testing.T) {
+func TestCreatePaymentIntent_RejectsPaidInvoice(t *testing.T) {
 	env := setupTestEnv(t)
-	req := validStartPaymentRequest("key-paid-invoice")
+	req := validCreatePaymentIntentRequest("key-paid-invoice")
 	req.InvoiceID = uuidInvoicePaid
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrInvoiceAlreadyPaid)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrInvoiceAlreadyPaid)
 }
 
-func TestStartPayment_RejectsCancelledInvoice(t *testing.T) {
+func TestCreatePaymentIntent_RejectsCancelledInvoice(t *testing.T) {
 	env := setupTestEnv(t)
-	req := validStartPaymentRequest("key-cancelled-invoice")
+	req := validCreatePaymentIntentRequest("key-cancelled-invoice")
 	req.InvoiceID = uuidInvoiceCancelled
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrInvoiceCancelled)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrInvoiceCancelled)
 }
 
-func TestStartPayment_RejectsUnknownGatewayAccount(t *testing.T) {
+func TestCreatePaymentIntent_RejectsUnknownGatewayAccount(t *testing.T) {
 	env := setupTestEnv(t)
-	req := validStartPaymentRequest("key-no-gw")
+	req := validCreatePaymentIntentRequest("key-no-gw")
 	req.GatewayAccountID = uuidNotExist
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrGatewayAccountNotFound)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrGatewayAccountNotFound)
 }
 
-func TestStartPayment_ReplaysExistingIntent(t *testing.T) {
+func TestCreatePaymentIntent_ReplaysExistingIntent(t *testing.T) {
 	env := setupTestEnv(t)
 	before := countPaymentIntents(t, env)
 
-	resp, err := env.svc.StartPayment(env.ctx, validStartPaymentRequest("idem-created"))
+	resp, err := env.svc.CreatePaymentIntent(env.ctx, validCreatePaymentIntentRequest("idem-created"))
 
 	require.NoError(t, err)
 	assert.Equal(t, uuid.MustParse("00000000-0000-0000-0000-000000005001"), resp.PaymentIntentID)
 	require.NotNil(t, resp.PaymentMethodReference)
 	assert.Equal(t, PaymentMethodReference("session-existing-abc"), *resp.PaymentMethodReference)
 	assert.Equal(t, before, countPaymentIntents(t, env))
-	assert.Equal(t, 0, env.cardGateway.setupCardPayment.calls)
+	assert.Equal(t, 0, env.cardGateway.setupCardPaymentMethod.calls)
 }
 
-func TestStartPayment_RejectsExistingIntentWithUnknownPaymentMethod(t *testing.T) {
+func TestCreatePaymentIntent_RejectsExistingIntentWithUnknownPaymentMethod(t *testing.T) {
 	env := setupTestEnv(t)
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, validStartPaymentRequest("idem-unknown-method"), ErrPaymentIntentInvalidState)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, validCreatePaymentIntentRequest("idem-unknown-method"), ErrPaymentIntentInvalidState)
 }
 
-func TestStartPayment_RejectsIdempotencyMismatch(t *testing.T) {
+func TestCreatePaymentIntent_RejectsIdempotencyMismatch(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
 		name   string
-		change func(*StartPaymentRequest)
+		change func(*CreatePaymentIntentRequest)
 	}{
 		{
 			name: "invoice",
-			change: func(r *StartPaymentRequest) {
+			change: func(r *CreatePaymentIntentRequest) {
 				r.IdempotencyKey = "idem-mismatch"
 			},
 		},
 		{
 			name: "gateway_account",
-			change: func(r *StartPaymentRequest) {
+			change: func(r *CreatePaymentIntentRequest) {
 				r.IdempotencyKey = "idem-created"
 				r.GatewayAccountID = uuidNotExist
 			},
 		},
 		{
 			name: "payment_method",
-			change: func(r *StartPaymentRequest) {
+			change: func(r *CreatePaymentIntentRequest) {
 				r.IdempotencyKey = "idem-created"
 				r.PaymentMethod = PaymentMethodApplePay
 			},
@@ -351,26 +351,26 @@ func TestStartPayment_RejectsIdempotencyMismatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := validStartPaymentRequest("unused")
+			req := validCreatePaymentIntentRequest("unused")
 			tt.change(&req)
 
-			assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrIdempotencyMismatch)
+			assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrIdempotencyMismatch)
 		})
 	}
 }
 
-func TestStartPayment_RejectsExpiredIntent(t *testing.T) {
+func TestCreatePaymentIntent_RejectsExpiredIntent(t *testing.T) {
 	env := setupTestEnv(t)
-	req := validStartPaymentRequest("idem-expired")
+	req := validCreatePaymentIntentRequest("idem-expired")
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrPaymentIntentExpired)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrPaymentIntentExpired)
 }
 
-func TestStartPayment_CreatesCardIntent(t *testing.T) {
+func TestCreatePaymentIntent_CreatesCardIntent(t *testing.T) {
 	env := setupTestEnv(t)
 	before := countPaymentIntents(t, env)
 
-	resp, err := env.svc.StartPayment(env.ctx, validStartPaymentRequest("key-card-success"))
+	resp, err := env.svc.CreatePaymentIntent(env.ctx, validCreatePaymentIntentRequest("key-card-success"))
 
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, resp.PaymentIntentID)
@@ -391,85 +391,85 @@ func TestStartPayment_CreatesCardIntent(t *testing.T) {
 	assert.Equal(t, 1, env.gatewayResolver.calls)
 	assert.Equal(t, uuidGateway, env.gatewayResolver.account.ID)
 
-	assert.Equal(t, 1, env.cardGateway.setupCardPayment.calls)
-	assert.Equal(t, uuidInvoice, env.cardGateway.setupCardPayment.req.InvoiceID)
-	assert.Equal(t, "BHD", env.cardGateway.setupCardPayment.req.Currency)
-	assert.True(t, decimal.RequireFromString("15.000").Equal(env.cardGateway.setupCardPayment.req.Amount))
+	assert.Equal(t, 1, env.cardGateway.setupCardPaymentMethod.calls)
+	assert.Equal(t, uuidInvoice, env.cardGateway.setupCardPaymentMethod.req.InvoiceID)
+	assert.Equal(t, "BHD", env.cardGateway.setupCardPaymentMethod.req.Currency)
+	assert.True(t, decimal.RequireFromString("15.000").Equal(env.cardGateway.setupCardPaymentMethod.req.Amount))
 
 	require.NotNil(t, resp.PaymentMethodReference)
 	assert.Equal(t, PaymentMethodReference("session-test-123"), *resp.PaymentMethodReference)
 }
 
-func TestStartPayment_DoesNotCreateIntentWhenCardGatewayFails(t *testing.T) {
+func TestCreatePaymentIntent_DoesNotCreateIntentWhenCardGatewayFails(t *testing.T) {
 	env := setupTestEnv(t)
 	errGateway := errors.New("gateway down")
-	env.cardGateway.setupCardPayment.err = errGateway
+	env.cardGateway.setupCardPaymentMethod.err = errGateway
 
-	req := validStartPaymentRequest("key-gateway-fails")
+	req := validCreatePaymentIntentRequest("key-gateway-fails")
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, errGateway)
-	assert.Equal(t, 1, env.cardGateway.setupCardPayment.calls)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, errGateway)
+	assert.Equal(t, 1, env.cardGateway.setupCardPaymentMethod.calls)
 }
 
-func TestStartPayment_RejectsUnsupportedCardGateway(t *testing.T) {
+func TestCreatePaymentIntent_RejectsUnsupportedCardGateway(t *testing.T) {
 	env := setupTestEnv(t)
 	env.gatewayResolver.err = ErrUnsupportedGateway
 
-	req := validStartPaymentRequest("key-unsupported-gateway")
+	req := validCreatePaymentIntentRequest("key-unsupported-gateway")
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
 	assert.Equal(t, 1, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.setupCardPayment.calls)
+	assert.Equal(t, 0, env.cardGateway.setupCardPaymentMethod.calls)
 }
 
-func TestStartPayment_ReturnsGatewayResolverError(t *testing.T) {
+func TestCreatePaymentIntent_ReturnsGatewayResolverError(t *testing.T) {
 	env := setupTestEnv(t)
 	errResolver := errors.New("resolver failed")
 	env.gatewayResolver.err = errResolver
 
-	req := validStartPaymentRequest("key-resolver-error")
+	req := validCreatePaymentIntentRequest("key-resolver-error")
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, errResolver)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, errResolver)
 	assert.Equal(t, 1, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.setupCardPayment.calls)
+	assert.Equal(t, 0, env.cardGateway.setupCardPaymentMethod.calls)
 }
 
-func TestStartPayment_RejectsApplePayUntilSupported(t *testing.T) {
+func TestCreatePaymentIntent_RejectsApplePayUntilSupported(t *testing.T) {
 	env := setupTestEnv(t)
-	req := validStartPaymentRequest("key-apple-pay")
+	req := validCreatePaymentIntentRequest("key-apple-pay")
 	req.PaymentMethod = PaymentMethodApplePay
 
-	assertStartPaymentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
+	assertCreatePaymentIntentErrorWithoutNewIntent(t, env, req, ErrUnsupportedPaymentMethod)
 }
 
-func TestPrepareCardChallenge_RejectsInvalidRequest(t *testing.T) {
+func TestPrepareCardAuthentication_RejectsInvalidRequest(t *testing.T) {
 	env := setupTestEnv(t)
 
 	tests := []struct {
 		name string
-		req  PrepareCardChallengeRequest
+		req  PrepareCardAuthenticationRequest
 		err  error
 	}{
 		{
 			name: "missing_project_ID",
-			req:  PrepareCardChallengeRequest{InvoiceID: uuidInvoice},
+			req:  PrepareCardAuthenticationRequest{InvoiceID: uuidInvoice},
 			err:  ErrInvalidArgument,
 		},
 		{
 			name: "missing_invoice_ID",
-			req:  PrepareCardChallengeRequest{ProjectID: uuidProject},
+			req:  PrepareCardAuthenticationRequest{ProjectID: uuidProject},
 			err:  ErrInvalidArgument,
 		},
 		{
 			name: "missing_payment_intent_ID",
-			req:  PrepareCardChallengeRequest{InvoiceID: uuidInvoice, ProjectID: uuidProject},
+			req:  PrepareCardAuthenticationRequest{InvoiceID: uuidInvoice, ProjectID: uuidProject},
 			err:  ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := env.svc.PrepareCardChallenge(env.ctx, tt.req)
+			resp, err := env.svc.PrepareCardAuthentication(env.ctx, tt.req)
 
 			assert.Nil(t, resp)
 			assert.ErrorIs(t, err, tt.err)
@@ -477,10 +477,10 @@ func TestPrepareCardChallenge_RejectsInvalidRequest(t *testing.T) {
 	}
 }
 
-func TestPrepareCardChallenge_ReturnsNotFound(t *testing.T) {
+func TestPrepareCardAuthentication_ReturnsNotFound(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidNotExist,
@@ -489,28 +489,28 @@ func TestPrepareCardChallenge_ReturnsNotFound(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrNotFound)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardAuthentication.calls)
 }
 
-func TestPrepareCardChallenge_RejectsInvalidStateTransition(t *testing.T) {
+func TestPrepareCardAuthentication_RejectsInvalidStateTransition(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
-		PaymentIntentID: uuidPaymentReadyToStartChallenge,
+		PaymentIntentID: uuidPaymentReadyToAuthenticate,
 	})
 
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrPaymentIntentInvalidTransition)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardAuthentication.calls)
 }
 
-func TestPrepareCardChallenge_RejectsExpiredIntent(t *testing.T) {
+func TestPrepareCardAuthentication_RejectsExpiredIntent(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentExpired,
@@ -519,13 +519,13 @@ func TestPrepareCardChallenge_RejectsExpiredIntent(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrPaymentIntentExpired)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardAuthentication.calls)
 }
 
-func TestPrepareCardChallenge_RejectsMissingPaymentMethodReference(t *testing.T) {
+func TestPrepareCardAuthentication_RejectsMissingPaymentMethodReference(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentNoSetup,
@@ -534,15 +534,15 @@ func TestPrepareCardChallenge_RejectsMissingPaymentMethodReference(t *testing.T)
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
 	assert.Equal(t, 0, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardAuthentication.calls)
 }
 
-func TestPrepareCardChallenge_ReturnsGatewayResolverError(t *testing.T) {
+func TestPrepareCardAuthentication_ReturnsGatewayResolverError(t *testing.T) {
 	env := setupTestEnv(t)
 	errResolver := errors.New("resolver failed")
 	env.gatewayResolver.err = errResolver
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -551,18 +551,18 @@ func TestPrepareCardChallenge_ReturnsGatewayResolverError(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, errResolver)
 	assert.Equal(t, 1, env.gatewayResolver.calls)
-	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, 0, env.cardGateway.prepareCardAuthentication.calls)
 
 	_, err = env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	assert.Error(t, err)
 }
 
-func TestPrepareCardChallenge_ReturnsPrepareCardChallengeErrorBeforeCreatingOperation(t *testing.T) {
+func TestPrepareCardAuthentication_ReturnsPrepareCardAuthenticationErrorBeforeCreatingOperation(t *testing.T) {
 	env := setupTestEnv(t)
 	errPrepare := errors.New("prepare failed")
-	env.cardGateway.prepareCardChallenge.err = errPrepare
+	env.cardGateway.prepareCardAuthentication.err = errPrepare
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -570,7 +570,7 @@ func TestPrepareCardChallenge_ReturnsPrepareCardChallengeErrorBeforeCreatingOper
 
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, errPrepare)
-	assert.Equal(t, 1, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, 1, env.cardGateway.prepareCardAuthentication.calls)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -580,15 +580,15 @@ func TestPrepareCardChallenge_ReturnsPrepareCardChallengeErrorBeforeCreatingOper
 	assert.Error(t, err)
 }
 
-func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
+func TestPrepareCardAuthentication_RecordsPendingGatewayOperationBeforeSending(t *testing.T) {
 	env := setupTestEnv(t)
 	rawReq := []byte(`{"prepared":true}`)
 	rawResp := []byte(`{"result":"SUCCESS"}`)
 
-	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
+	env.cardGateway.prepareCardAuthentication.resp = &PreparedCardAuthenticationGatewayRequest{
 		AuthenticationReference: "gw-init-auth-123",
 		RawRequest:              rawReq,
-		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
+		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
 			intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 			require.NoError(t, err)
 			assert.Equal(t, store.PaymentIntentStatusCreated, intent.Status)
@@ -599,14 +599,14 @@ func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *tes
 			assert.JSONEq(t, string(rawReq), string(op.RawRequest))
 			assert.Equal(t, "gw-init-auth-123", op.GatewayReference)
 
-			return &PrepareCardChallengeGatewayResponse{
-				NextStep:    PrepareCardChallengeGatewayNextStepStartChallenge,
+			return &PrepareCardAuthenticationGatewayResponse{
+				NextStep:    PrepareCardAuthenticationGatewayNextStepAuthenticate,
 				RawResponse: rawResp,
 			}, nil
 		},
 	}
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -614,15 +614,15 @@ func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *tes
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, PrepareCardChallengeNextStepStartChallenge, resp.NextStep)
-	assert.Equal(t, 1, env.cardGateway.prepareCardChallenge.calls)
-	assert.Equal(t, uuidInvoice, env.cardGateway.prepareCardChallenge.req.InvoiceID)
-	assert.Equal(t, "BHD", env.cardGateway.prepareCardChallenge.req.Currency)
-	assert.Equal(t, PaymentMethodReference("session-existing-abc"), env.cardGateway.prepareCardChallenge.req.PaymentMethodReference)
+	assert.Equal(t, PrepareCardAuthenticationNextStepAuthenticate, resp.NextStep)
+	assert.Equal(t, 1, env.cardGateway.prepareCardAuthentication.calls)
+	assert.Equal(t, uuidInvoice, env.cardGateway.prepareCardAuthentication.req.InvoiceID)
+	assert.Equal(t, "BHD", env.cardGateway.prepareCardAuthentication.req.Currency)
+	assert.Equal(t, PaymentMethodReference("session-existing-abc"), env.cardGateway.prepareCardAuthentication.req.PaymentMethodReference)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
-	assert.Equal(t, store.PaymentIntentStatusReadyToStartChallenge, intent.Status)
+	assert.Equal(t, store.PaymentIntentStatusReadyToAuthenticate, intent.Status)
 
 	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -630,31 +630,31 @@ func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *tes
 	assert.JSONEq(t, string(rawResp), string(op.RawResponse))
 }
 
-func TestPrepareCardChallenge_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.T) {
+func TestPrepareCardAuthentication_RecordsCantContinueGatewayResponseAndAllowsRetry(t *testing.T) {
 	env := setupTestEnv(t)
 	rawResp := []byte(`{"result":"FAILURE"}`)
-	req := PrepareCardChallengeRequest{
+	req := PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
 	}
 
-	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
+	env.cardGateway.prepareCardAuthentication.resp = &PreparedCardAuthenticationGatewayRequest{
 		AuthenticationReference: "gw-init-auth-failed",
 		RawRequest:              []byte(`{"prepared":true}`),
-		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
-			return &PrepareCardChallengeGatewayResponse{
-				NextStep:    PrepareCardChallengeGatewayNextStepCantContinue,
+		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
+			return &PrepareCardAuthenticationGatewayResponse{
+				NextStep:    PrepareCardAuthenticationGatewayNextStepCantContinue,
 				RawResponse: rawResp,
 			}, nil
 		},
 	}
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, req)
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, PrepareCardChallengeNextStepCantContinue, resp.NextStep)
+	assert.Equal(t, PrepareCardAuthenticationNextStepCantContinue, resp.NextStep)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -666,27 +666,27 @@ func TestPrepareCardChallenge_RecordsCantContinueGatewayResponseAndAllowsRetry(t
 	assert.JSONEq(t, string(rawResp), string(op.RawResponse))
 
 	retryRawResp := []byte(`{"result":"SUCCESS"}`)
-	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
+	env.cardGateway.prepareCardAuthentication.resp = &PreparedCardAuthenticationGatewayRequest{
 		AuthenticationReference: "gw-init-auth-retry",
 		RawRequest:              []byte(`{"prepared":"retry"}`),
-		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
-			return &PrepareCardChallengeGatewayResponse{
-				NextStep:    PrepareCardChallengeGatewayNextStepStartChallenge,
+		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
+			return &PrepareCardAuthenticationGatewayResponse{
+				NextStep:    PrepareCardAuthenticationGatewayNextStepAuthenticate,
 				RawResponse: retryRawResp,
 			}, nil
 		},
 	}
 
-	resp, err = env.svc.PrepareCardChallenge(env.ctx, req)
+	resp, err = env.svc.PrepareCardAuthentication(env.ctx, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, PrepareCardChallengeNextStepStartChallenge, resp.NextStep)
-	assert.Equal(t, 2, env.cardGateway.prepareCardChallenge.calls)
+	assert.Equal(t, PrepareCardAuthenticationNextStepAuthenticate, resp.NextStep)
+	assert.Equal(t, 2, env.cardGateway.prepareCardAuthentication.calls)
 
 	intent, err = env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
-	assert.Equal(t, store.PaymentIntentStatusReadyToStartChallenge, intent.Status)
+	assert.Equal(t, store.PaymentIntentStatusReadyToAuthenticate, intent.Status)
 
 	op, err = env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -695,18 +695,18 @@ func TestPrepareCardChallenge_RecordsCantContinueGatewayResponseAndAllowsRetry(t
 	assert.JSONEq(t, string(retryRawResp), string(op.RawResponse))
 }
 
-func TestPrepareCardChallenge_RecordsFailedOperationWhenGatewaySendFails(t *testing.T) {
+func TestPrepareCardAuthentication_RecordsFailedOperationWhenGatewaySendFails(t *testing.T) {
 	env := setupTestEnv(t)
 	errGateway := errors.New("gateway unavailable")
-	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
+	env.cardGateway.prepareCardAuthentication.resp = &PreparedCardAuthenticationGatewayRequest{
 		AuthenticationReference: "gw-init-auth-error",
 		RawRequest:              []byte(`{"prepared":true}`),
-		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
+		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
 			return nil, errGateway
 		},
 	}
 
-	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
+	resp, err := env.svc.PrepareCardAuthentication(env.ctx, PrepareCardAuthenticationRequest{
 		ProjectID:       uuidProject,
 		InvoiceID:       uuidInvoice,
 		PaymentIntentID: uuidPaymentIntent,
@@ -725,45 +725,45 @@ func TestPrepareCardChallenge_RecordsFailedOperationWhenGatewaySendFails(t *test
 	assert.JSONEq(t, `{"prepared":true}`, string(op.RawRequest))
 }
 
-func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
+func TestAuthenticateCardholder_RejectsInvalidRequest(t *testing.T) {
 	svc := New(nil, nil, nil)
 
 	tests := []struct {
 		name      string
-		change    func(*StartCardChallengeRequest)
+		change    func(*AuthenticateCardholderRequest)
 		errorText string
 	}{
-		{"missing_project_ID", func(r *StartCardChallengeRequest) { r.ProjectID = uuid.Nil }, "ProjectID is required"},
-		{"missing_invoice_ID", func(r *StartCardChallengeRequest) { r.InvoiceID = uuid.Nil }, "InvoiceID is required"},
-		{"missing_payment_intent_ID", func(r *StartCardChallengeRequest) { r.PaymentIntentID = uuid.Nil }, "PaymentIntentID is required"},
-		{"missing_IP_address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "" }, "IPAddress is required"},
-		{"invalid_IP_address", func(r *StartCardChallengeRequest) { r.Browser.IPAddress = "invalid" }, "IPAddress is invalid"},
-		{"missing_user_agent", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = "" }, "UserAgent is required"},
-		{"user_agent_too_long", func(r *StartCardChallengeRequest) { r.Browser.UserAgent = strings.Repeat("a", 2049) }, "UserAgent must not exceed 2048 characters"},
-		{"missing_accept_header", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = "" }, "AcceptHeader is required"},
-		{"accept_header_too_long", func(r *StartCardChallengeRequest) { r.Browser.AcceptHeader = strings.Repeat("a", 2049) }, "AcceptHeader must not exceed 2048 characters"},
-		{"unsupported_challenge_size", func(r *StartCardChallengeRequest) { r.Browser.ChallengeWindowSize = "100_X_100" }, "unsupported ChallengeWindowSize"},
-		{"color_depth_too_small", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 0 }, "ColorDepth must be between 1 and 48"},
-		{"color_depth_too_large", func(r *StartCardChallengeRequest) { r.Browser.ColorDepth = 49 }, "ColorDepth must be between 1 and 48"},
-		{"missing_language", func(r *StartCardChallengeRequest) { r.Browser.Language = "" }, "Language is required"},
-		{"language_too_long", func(r *StartCardChallengeRequest) { r.Browser.Language = "zh-Hant-HK" }, "Language must not exceed 8 characters"},
-		{"screen_height_too_small", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 0 }, "ScreenHeight must be between 1 and 999999"},
-		{"screen_height_too_large", func(r *StartCardChallengeRequest) { r.Browser.ScreenHeight = 1000000 }, "ScreenHeight must be between 1 and 999999"},
-		{"screen_width_too_small", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 0 }, "ScreenWidth must be between 1 and 999999"},
-		{"screen_width_too_large", func(r *StartCardChallengeRequest) { r.Browser.ScreenWidth = 1000000 }, "ScreenWidth must be between 1 and 999999"},
-		{"time_zone_too_small", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = -841 }, "TimeZone must be between -840 and 840"},
-		{"time_zone_too_large", func(r *StartCardChallengeRequest) { r.Browser.TimeZone = 841 }, "TimeZone must be between -840 and 840"},
-		{"missing_challenge_return_URL", func(r *StartCardChallengeRequest) { r.ChallengeReturnURL = "" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
-		{"invalid_challenge_return_URL", func(r *StartCardChallengeRequest) { r.ChallengeReturnURL = "://invalid" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
-		{"non_HTTPS_challenge_return_URL", func(r *StartCardChallengeRequest) { r.ChallengeReturnURL = "http://pay.example.com/complete" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
+		{"missing_project_ID", func(r *AuthenticateCardholderRequest) { r.ProjectID = uuid.Nil }, "ProjectID is required"},
+		{"missing_invoice_ID", func(r *AuthenticateCardholderRequest) { r.InvoiceID = uuid.Nil }, "InvoiceID is required"},
+		{"missing_payment_intent_ID", func(r *AuthenticateCardholderRequest) { r.PaymentIntentID = uuid.Nil }, "PaymentIntentID is required"},
+		{"missing_IP_address", func(r *AuthenticateCardholderRequest) { r.Browser.IPAddress = "" }, "IPAddress is required"},
+		{"invalid_IP_address", func(r *AuthenticateCardholderRequest) { r.Browser.IPAddress = "invalid" }, "IPAddress is invalid"},
+		{"missing_user_agent", func(r *AuthenticateCardholderRequest) { r.Browser.UserAgent = "" }, "UserAgent is required"},
+		{"user_agent_too_long", func(r *AuthenticateCardholderRequest) { r.Browser.UserAgent = strings.Repeat("a", 2049) }, "UserAgent must not exceed 2048 characters"},
+		{"missing_accept_header", func(r *AuthenticateCardholderRequest) { r.Browser.AcceptHeader = "" }, "AcceptHeader is required"},
+		{"accept_header_too_long", func(r *AuthenticateCardholderRequest) { r.Browser.AcceptHeader = strings.Repeat("a", 2049) }, "AcceptHeader must not exceed 2048 characters"},
+		{"unsupported_challenge_size", func(r *AuthenticateCardholderRequest) { r.Browser.ChallengeWindowSize = "100_X_100" }, "unsupported ChallengeWindowSize"},
+		{"color_depth_too_small", func(r *AuthenticateCardholderRequest) { r.Browser.ColorDepth = 0 }, "ColorDepth must be between 1 and 48"},
+		{"color_depth_too_large", func(r *AuthenticateCardholderRequest) { r.Browser.ColorDepth = 49 }, "ColorDepth must be between 1 and 48"},
+		{"missing_language", func(r *AuthenticateCardholderRequest) { r.Browser.Language = "" }, "Language is required"},
+		{"language_too_long", func(r *AuthenticateCardholderRequest) { r.Browser.Language = "zh-Hant-HK" }, "Language must not exceed 8 characters"},
+		{"screen_height_too_small", func(r *AuthenticateCardholderRequest) { r.Browser.ScreenHeight = 0 }, "ScreenHeight must be between 1 and 999999"},
+		{"screen_height_too_large", func(r *AuthenticateCardholderRequest) { r.Browser.ScreenHeight = 1000000 }, "ScreenHeight must be between 1 and 999999"},
+		{"screen_width_too_small", func(r *AuthenticateCardholderRequest) { r.Browser.ScreenWidth = 0 }, "ScreenWidth must be between 1 and 999999"},
+		{"screen_width_too_large", func(r *AuthenticateCardholderRequest) { r.Browser.ScreenWidth = 1000000 }, "ScreenWidth must be between 1 and 999999"},
+		{"time_zone_too_small", func(r *AuthenticateCardholderRequest) { r.Browser.TimeZone = -841 }, "TimeZone must be between -840 and 840"},
+		{"time_zone_too_large", func(r *AuthenticateCardholderRequest) { r.Browser.TimeZone = 841 }, "TimeZone must be between -840 and 840"},
+		{"missing_challenge_return_URL", func(r *AuthenticateCardholderRequest) { r.ChallengeReturnURL = "" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
+		{"invalid_challenge_return_URL", func(r *AuthenticateCardholderRequest) { r.ChallengeReturnURL = "://invalid" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
+		{"non_HTTPS_challenge_return_URL", func(r *AuthenticateCardholderRequest) { r.ChallengeReturnURL = "http://pay.example.com/complete" }, "ChallengeReturnURL must be an absolute HTTPS URL"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := validStartCardChallengeRequest()
+			req := validAuthenticateCardholderRequest()
 			tt.change(&req)
 
-			resp, err := svc.StartCardChallenge(t.Context(), req)
+			resp, err := svc.AuthenticateCardholder(t.Context(), req)
 
 			assert.Nil(t, resp)
 			require.Error(t, err)
@@ -773,37 +773,37 @@ func TestStartCardChallenge_RejectsInvalidRequest(t *testing.T) {
 	}
 }
 
-func TestStartCardChallenge_CompletesChallenge(t *testing.T) {
+func TestAuthenticateCardholder_CompletesChallenge(t *testing.T) {
 	env := setupTestEnv(t)
 	initiateAuthOperation := createSuccessfulInitiateAuthGatewayOperation(t, env)
 	rawRequest := []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`)
 	rawResponse := []byte(`{"result":"PENDING"}`)
 	redirectHTML := `<div id="threedsChallengeRedirect"></div>`
-	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+	env.cardGateway.authenticateCardholder.resp = &PreparedAuthenticateCardholderGatewayRequest{
 		RawRequest: rawRequest,
-		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
-			op, err := env.queries.GetLatestGatewayOperation(ctx, uuidPaymentReadyToStartChallenge)
+		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
+			op, err := env.queries.GetLatestGatewayOperation(ctx, uuidPaymentReadyToAuthenticate)
 			require.NoError(t, err)
 			assert.Equal(t, store.GatewayOperationTypeAuthenticatePayer, op.OperationType)
 			assert.Equal(t, store.GatewayOperationStatusPending, op.Status)
 
-			return &StartCardChallengeGatewayResponse{
-				NextStep:     StartCardChallengeGatewayNextStepCompleteChallenge,
+			return &AuthenticateCardholderGatewayResponse{
+				NextStep:     AuthenticateCardholderGatewayNextStepChallenge,
 				RedirectHTML: redirectHTML,
 				RawResponse:  rawResponse,
 			}, nil
 		},
 	}
-	req := validStartCardChallengeRequest()
+	req := validAuthenticateCardholderRequest()
 
-	resp, err := env.svc.StartCardChallenge(env.ctx, req)
+	resp, err := env.svc.AuthenticateCardholder(env.ctx, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, StartCardChallengeNextStepCompleteChallenge, resp.NextStep)
+	assert.Equal(t, AuthenticateCardholderNextStepChallenge, resp.NextStep)
 	assert.Equal(t, redirectHTML, resp.RedirectHTML)
-	assert.Equal(t, 1, env.cardGateway.startCardChallenge.calls)
-	assert.Equal(t, StartCardChallengeGatewayRequest{
+	assert.Equal(t, 1, env.cardGateway.authenticateCardholder.calls)
+	assert.Equal(t, AuthenticateCardholderGatewayRequest{
 		InvoiceID:               uuidInvoice,
 		Amount:                  decimal.RequireFromString("15.000"),
 		Currency:                "BHD",
@@ -811,13 +811,13 @@ func TestStartCardChallenge_CompletesChallenge(t *testing.T) {
 		AuthenticationReference: AuthenticationReference(initiateAuthOperation.GatewayReference),
 		ChallengeReturnURL:      req.ChallengeReturnURL,
 		Browser:                 req.Browser,
-	}, env.cardGateway.startCardChallenge.req)
+	}, env.cardGateway.authenticateCardholder.req)
 
-	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
-	assert.Equal(t, store.PaymentIntentStatusAwaitingChallengeCompletion, intent.Status)
+	assert.Equal(t, store.PaymentIntentStatusAwaitingAuthenticationResult, intent.Status)
 
-	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToStartChallenge)
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
 	assert.Equal(t, store.GatewayOperationTypeAuthenticatePayer, op.OperationType)
 	assert.Equal(t, store.GatewayOperationStatusSuccess, op.Status)
@@ -826,104 +826,104 @@ func TestStartCardChallenge_CompletesChallenge(t *testing.T) {
 	assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
 }
 
-func TestStartCardChallenge_FrictionlessIsReadyToCapture(t *testing.T) {
+func TestAuthenticateCardholder_FrictionlessIsReadyToCapture(t *testing.T) {
 	env := setupTestEnv(t)
 	createSuccessfulInitiateAuthGatewayOperation(t, env)
-	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+	env.cardGateway.authenticateCardholder.resp = &PreparedAuthenticateCardholderGatewayRequest{
 		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
-		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
-			return &StartCardChallengeGatewayResponse{
-				NextStep:    StartCardChallengeGatewayNextStepCapture,
+		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
+			return &AuthenticateCardholderGatewayResponse{
+				NextStep:    AuthenticateCardholderGatewayNextStepCapture,
 				RawResponse: []byte(`{"result":"SUCCESS"}`),
 			}, nil
 		},
 	}
 
-	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+	resp, err := env.svc.AuthenticateCardholder(env.ctx, validAuthenticateCardholderRequest())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, StartCardChallengeNextStepCapture, resp.NextStep)
+	assert.Equal(t, AuthenticateCardholderNextStepCapture, resp.NextStep)
 	assert.Empty(t, resp.RedirectHTML)
 
-	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
 	assert.Equal(t, store.PaymentIntentStatusReadyToCapture, intent.Status)
 }
 
-func TestStartCardChallenge_CantContinueFailsPaymentIntent(t *testing.T) {
+func TestAuthenticateCardholder_CantContinueFailsPaymentIntent(t *testing.T) {
 	env := setupTestEnv(t)
 	createSuccessfulInitiateAuthGatewayOperation(t, env)
 	rawResponse := []byte(`{"result":"FAILURE"}`)
-	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+	env.cardGateway.authenticateCardholder.resp = &PreparedAuthenticateCardholderGatewayRequest{
 		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
-		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
-			return &StartCardChallengeGatewayResponse{
-				NextStep:    StartCardChallengeGatewayNextStepCantContinue,
+		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
+			return &AuthenticateCardholderGatewayResponse{
+				NextStep:    AuthenticateCardholderGatewayNextStepCantContinue,
 				RawResponse: rawResponse,
 			}, nil
 		},
 	}
 
-	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+	resp, err := env.svc.AuthenticateCardholder(env.ctx, validAuthenticateCardholderRequest())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, StartCardChallengeNextStepCantContinue, resp.NextStep)
+	assert.Equal(t, AuthenticateCardholderNextStepCantContinue, resp.NextStep)
 	assert.Empty(t, resp.RedirectHTML)
 
-	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
 	assert.Equal(t, store.PaymentIntentStatusFailed, intent.Status)
 
-	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToStartChallenge)
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
 	assert.Equal(t, store.GatewayOperationStatusSuccess, op.Status)
 	assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
 }
 
-func TestStartCardChallenge_GatewayErrorKeepsPaymentIntentReadyForRetry(t *testing.T) {
+func TestAuthenticateCardholder_GatewayErrorKeepsPaymentIntentReadyForRetry(t *testing.T) {
 	env := setupTestEnv(t)
 	createSuccessfulInitiateAuthGatewayOperation(t, env)
 	errGateway := errors.New("gateway unavailable")
-	env.cardGateway.startCardChallenge.resp = &PreparedStartCardChallengeGatewayRequest{
+	env.cardGateway.authenticateCardholder.resp = &PreparedAuthenticateCardholderGatewayRequest{
 		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
-		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
+		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
 			return nil, errGateway
 		},
 	}
 
-	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+	resp, err := env.svc.AuthenticateCardholder(env.ctx, validAuthenticateCardholderRequest())
 
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, errGateway)
 
-	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
-	assert.Equal(t, store.PaymentIntentStatusReadyToStartChallenge, intent.Status)
+	assert.Equal(t, store.PaymentIntentStatusReadyToAuthenticate, intent.Status)
 
-	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToStartChallenge)
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToAuthenticate)
 	require.NoError(t, err)
 	assert.Equal(t, store.GatewayOperationStatusFailed, op.Status)
 }
 
-func TestStartCardChallenge_RequiresSuccessfulInitiateAuthentication(t *testing.T) {
+func TestAuthenticateCardholder_RequiresSuccessfulInitiateAuthentication(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp, err := env.svc.StartCardChallenge(env.ctx, validStartCardChallengeRequest())
+	resp, err := env.svc.AuthenticateCardholder(env.ctx, validAuthenticateCardholderRequest())
 
 	assert.Nil(t, resp)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
 	assert.Contains(t, err.Error(), "successful initiate authentication gateway operation is missing")
-	assert.Equal(t, 0, env.cardGateway.startCardChallenge.calls)
+	assert.Equal(t, 0, env.cardGateway.authenticateCardholder.calls)
 }
 
 func createSuccessfulInitiateAuthGatewayOperation(t *testing.T, env testEnv) store.GatewayOperation {
 	t.Helper()
 
 	op, err := env.queries.CreateGatewayOperation(env.ctx, store.CreateGatewayOperationParams{
-		PaymentIntentID:  uuidPaymentReadyToStartChallenge,
+		PaymentIntentID:  uuidPaymentReadyToAuthenticate,
 		InvoiceID:        uuidInvoice,
 		ProjectID:        uuidProject,
 		GatewayAccountID: uuidGateway,
@@ -957,55 +957,72 @@ func (f *fakeGatewayResolver) CardGateway(account store.GatewayAccount) (CardGat
 }
 
 type fakeCardGateway struct {
-	setupCardPayment     fakeSetupCardPaymentCall
-	prepareCardChallenge fakePrepareCardChallengeCall
-	startCardChallenge   fakeStartCardChallengeCall
+	setupCardPaymentMethod      fakeSetupCardPaymentMethodCall
+	prepareCardAuthentication   fakePrepareCardAuthenticationCall
+	authenticateCardholder      fakeAuthenticateCardholderCall
+	getCardAuthenticationResult fakeGetCardAuthenticationResultCall
 }
 
-type fakeSetupCardPaymentCall struct {
+type fakeSetupCardPaymentMethodCall struct {
 	calls int
-	req   SetupCardPaymentGatewayRequest
-	resp  *SetupCardPaymentGatewayResponse
+	req   SetupCardPaymentMethodGatewayRequest
+	resp  *SetupCardPaymentMethodGatewayResponse
 	err   error
 }
 
-type fakePrepareCardChallengeCall struct {
+type fakePrepareCardAuthenticationCall struct {
 	calls int
-	req   PrepareCardChallengeGatewayRequest
-	resp  *PreparedCardChallengeGatewayRequest
+	req   PrepareCardAuthenticationGatewayRequest
+	resp  *PreparedCardAuthenticationGatewayRequest
 	err   error
 }
 
-type fakeStartCardChallengeCall struct {
+type fakeAuthenticateCardholderCall struct {
 	calls int
-	req   StartCardChallengeGatewayRequest
-	resp  *PreparedStartCardChallengeGatewayRequest
+	req   AuthenticateCardholderGatewayRequest
+	resp  *PreparedAuthenticateCardholderGatewayRequest
 	err   error
 }
 
-func (f *fakeCardGateway) SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error) {
-	f.setupCardPayment.calls++
-	f.setupCardPayment.req = r
-	if f.setupCardPayment.err != nil {
-		return nil, f.setupCardPayment.err
-	}
-	return f.setupCardPayment.resp, nil
+type fakeGetCardAuthenticationResultCall struct {
+	calls int
+	req   GetCardAuthenticationResultGatewayRequest
+	resp  *PreparedGetCardAuthenticationResultGatewayRequest
+	err   error
 }
 
-func (f *fakeCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error) {
-	f.prepareCardChallenge.calls++
-	f.prepareCardChallenge.req = r
-	if f.prepareCardChallenge.err != nil {
-		return nil, f.prepareCardChallenge.err
+func (f *fakeCardGateway) SetupCardPaymentMethod(ctx context.Context, r SetupCardPaymentMethodGatewayRequest) (*SetupCardPaymentMethodGatewayResponse, error) {
+	f.setupCardPaymentMethod.calls++
+	f.setupCardPaymentMethod.req = r
+	if f.setupCardPaymentMethod.err != nil {
+		return nil, f.setupCardPaymentMethod.err
 	}
-	return f.prepareCardChallenge.resp, nil
+	return f.setupCardPaymentMethod.resp, nil
 }
 
-func (f *fakeCardGateway) StartCardChallenge(ctx context.Context, r StartCardChallengeGatewayRequest) (*PreparedStartCardChallengeGatewayRequest, error) {
-	f.startCardChallenge.calls++
-	f.startCardChallenge.req = r
-	if f.startCardChallenge.err != nil {
-		return nil, f.startCardChallenge.err
+func (f *fakeCardGateway) PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationGatewayRequest) (*PreparedCardAuthenticationGatewayRequest, error) {
+	f.prepareCardAuthentication.calls++
+	f.prepareCardAuthentication.req = r
+	if f.prepareCardAuthentication.err != nil {
+		return nil, f.prepareCardAuthentication.err
 	}
-	return f.startCardChallenge.resp, nil
+	return f.prepareCardAuthentication.resp, nil
+}
+
+func (f *fakeCardGateway) AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderGatewayRequest) (*PreparedAuthenticateCardholderGatewayRequest, error) {
+	f.authenticateCardholder.calls++
+	f.authenticateCardholder.req = r
+	if f.authenticateCardholder.err != nil {
+		return nil, f.authenticateCardholder.err
+	}
+	return f.authenticateCardholder.resp, nil
+}
+
+func (f *fakeCardGateway) GetCardAuthenticationResult(ctx context.Context, r GetCardAuthenticationResultGatewayRequest) (*PreparedGetCardAuthenticationResultGatewayRequest, error) {
+	f.getCardAuthenticationResult.calls++
+	f.getCardAuthenticationResult.req = r
+	if f.getCardAuthenticationResult.err != nil {
+		return nil, f.getCardAuthenticationResult.err
+	}
+	return f.getCardAuthenticationResult.resp, nil
 }
