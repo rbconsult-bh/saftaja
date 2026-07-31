@@ -89,8 +89,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 
 		log.Ctx(ctx).Info().Msg("returning idempotent response")
 		return &StartPaymentResponse{
-			PaymentIntentID:       existingIntent.ID,
-			GatewaySetupReference: existingIntent.GatewaySetupReference,
+			PaymentIntentID:        existingIntent.ID,
+			PaymentMethodReference: mapStorePaymentMethodReferenceToPaymentMethodReference(existingIntent.GatewaySetupReference),
 		}, nil
 	case errors.Is(err, pgx.ErrNoRows):
 		// we are good :)
@@ -185,7 +185,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 				Msg("failed to setup card payment")
 			return nil, err
 		}
-		createPaymentIntentParams.GatewaySetupReference = &setupResp.GatewaySetupReference
+		storedPaymentMethodReference := string(setupResp.PaymentMethodReference)
+		createPaymentIntentParams.GatewaySetupReference = &storedPaymentMethodReference
 
 	case PaymentMethodApplePay:
 		log.Ctx(ctx).Info().
@@ -207,8 +208,8 @@ func (s *service) StartPayment(ctx context.Context, r StartPaymentRequest) (*Sta
 	}
 
 	return &StartPaymentResponse{
-		PaymentIntentID:       resp.ID,
-		GatewaySetupReference: resp.GatewaySetupReference,
+		PaymentIntentID:        resp.ID,
+		PaymentMethodReference: mapStorePaymentMethodReferenceToPaymentMethodReference(resp.GatewaySetupReference),
 	}, nil
 }
 
@@ -272,8 +273,8 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 	}
 
 	if paymentIntent.GatewaySetupReference == nil || *paymentIntent.GatewaySetupReference == "" {
-		log.Ctx(ctx).Error().Msg("payment intent is missing gateway setup reference")
-		return nil, fmt.Errorf("%w: payment intent is missing gateway setup reference", ErrPaymentIntentInvalidState)
+		log.Ctx(ctx).Error().Msg("payment intent is missing payment method reference")
+		return nil, fmt.Errorf("%w: payment intent is missing payment method reference", ErrPaymentIntentInvalidState)
 	}
 
 	invoice, err := queriesWithTx.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
@@ -301,9 +302,9 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 	}
 
 	prepared, err := cardGateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
-		InvoiceID:             invoice.ID,
-		Currency:              invoice.Currency,
-		GatewaySetupReference: *paymentIntent.GatewaySetupReference,
+		InvoiceID:              invoice.ID,
+		Currency:               invoice.Currency,
+		PaymentMethodReference: PaymentMethodReference(*paymentIntent.GatewaySetupReference),
 	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare card challenge")
@@ -316,7 +317,7 @@ func (s *service) PrepareCardChallenge(ctx context.Context, r PrepareCardChallen
 		ProjectID:        paymentIntent.ProjectID,
 		GatewayAccountID: paymentIntent.GatewayAccountID,
 		OperationType:    store.GatewayOperationTypeInitiateAuth,
-		GatewayReference: prepared.GatewayReference,
+		GatewayReference: string(prepared.AuthenticationReference),
 		Amount:           invoice.Amount,
 		Currency:         invoice.Currency,
 		RawRequest:       prepared.RawRequest,
@@ -444,8 +445,8 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 	}
 
 	if paymentIntent.GatewaySetupReference == nil || *paymentIntent.GatewaySetupReference == "" {
-		log.Ctx(ctx).Error().Msg("payment intent is missing gateway setup reference")
-		return nil, fmt.Errorf("%w: payment intent is missing gateway setup reference", ErrPaymentIntentInvalidState)
+		log.Ctx(ctx).Error().Msg("payment intent is missing payment method reference")
+		return nil, fmt.Errorf("%w: payment intent is missing payment method reference", ErrPaymentIntentInvalidState)
 	}
 
 	invoice, err := queriesWithTx.GetInvoiceByIDAndProject(ctx, store.GetInvoiceByIDAndProjectParams{
@@ -494,13 +495,13 @@ func (s *service) StartCardChallenge(ctx context.Context, r StartCardChallengeRe
 	}
 
 	prepared, err := cardGateway.StartCardChallenge(ctx, StartCardChallengeGatewayRequest{
-		InvoiceID:             invoice.ID,
-		Amount:                invoice.Amount,
-		Currency:              invoice.Currency,
-		GatewaySetupReference: *paymentIntent.GatewaySetupReference,
-		GatewayReference:      initiateAuthOperation.GatewayReference,
-		ChallengeReturnURL:    r.ChallengeReturnURL,
-		Browser:               r.Browser,
+		InvoiceID:               invoice.ID,
+		Amount:                  invoice.Amount,
+		Currency:                invoice.Currency,
+		PaymentMethodReference:  PaymentMethodReference(*paymentIntent.GatewaySetupReference),
+		AuthenticationReference: AuthenticationReference(initiateAuthOperation.GatewayReference),
+		ChallengeReturnURL:      r.ChallengeReturnURL,
+		Browser:                 r.Browser,
 	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to prepare start card challenge request")

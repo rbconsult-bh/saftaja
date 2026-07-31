@@ -48,7 +48,7 @@ func TestMPGSCardGateway_SetupCardPayment_Succeeds(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, "SESSION123", resp.GatewaySetupReference)
+	assert.Equal(t, PaymentMethodReference("SESSION123"), resp.PaymentMethodReference)
 }
 
 func TestMPGSCardGateway_SetupCardPayment_CreateSessionError(t *testing.T) {
@@ -134,13 +134,13 @@ func TestMPGSCardGateway_PrepareCardChallenge_StartChallenge(t *testing.T) {
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
 	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
-		InvoiceID:             invoiceID,
-		Currency:              "BHD",
-		GatewaySetupReference: "SESSION123",
+		InvoiceID:              invoiceID,
+		Currency:               "BHD",
+		PaymentMethodReference: "SESSION123",
 	})
 	require.NoError(t, err)
 	require.NotNil(t, prepared)
-	assert.NotEmpty(t, prepared.GatewayReference)
+	assert.NotEmpty(t, prepared.AuthenticationReference)
 	assert.JSONEq(t, `{
 		"apiOperation": "INITIATE_AUTHENTICATION",
 		"authentication": {"channel": "PAYER_BROWSER"},
@@ -149,7 +149,7 @@ func TestMPGSCardGateway_PrepareCardChallenge_StartChallenge(t *testing.T) {
 	}`, string(prepared.RawRequest))
 
 	mpgsClient.EXPECT().
-		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.MatchedBy(func(req *mpgsclient.InitiateAuthenticationRequest) bool {
+		InitiateAuthentication(mock.Anything, invoiceID.String(), string(prepared.AuthenticationReference), mock.MatchedBy(func(req *mpgsclient.InitiateAuthenticationRequest) bool {
 			return req.APIOperation == mpgsclient.OperationInitiateAuthentication &&
 				req.Authentication.Channel == mpgsclient.ChannelPayerBrowser &&
 				req.Order.Currency == "BHD" &&
@@ -184,14 +184,14 @@ func TestMPGSCardGateway_PrepareCardChallenge_CantContinue(t *testing.T) {
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
 	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
-		InvoiceID:             invoiceID,
-		Currency:              "BHD",
-		GatewaySetupReference: "SESSION123",
+		InvoiceID:              invoiceID,
+		Currency:               "BHD",
+		PaymentMethodReference: "SESSION123",
 	})
 	require.NoError(t, err)
 
 	mpgsClient.EXPECT().
-		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.Anything).
+		InitiateAuthentication(mock.Anything, invoiceID.String(), string(prepared.AuthenticationReference), mock.Anything).
 		Return(&mpgsclient.Response[mpgsclient.InitiateAuthenticationResponse]{
 			Data: mpgsclient.InitiateAuthenticationResponse{
 				Result: mpgsclient.ResultFailure,
@@ -216,14 +216,14 @@ func TestMPGSCardGateway_PrepareCardChallenge_AuthenticationUnavailable(t *testi
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
 	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
-		InvoiceID:             invoiceID,
-		Currency:              "BHD",
-		GatewaySetupReference: "SESSION123",
+		InvoiceID:              invoiceID,
+		Currency:               "BHD",
+		PaymentMethodReference: "SESSION123",
 	})
 	require.NoError(t, err)
 
 	mpgsClient.EXPECT().
-		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.Anything).
+		InitiateAuthentication(mock.Anything, invoiceID.String(), string(prepared.AuthenticationReference), mock.Anything).
 		Return(&mpgsclient.Response[mpgsclient.InitiateAuthenticationResponse]{
 			Data: mpgsclient.InitiateAuthenticationResponse{
 				Result: mpgsclient.ResultSuccess,
@@ -251,14 +251,14 @@ func TestMPGSCardGateway_PrepareCardChallenge_SendError(t *testing.T) {
 	gateway := &mpgsCardGateway{client: mpgsClient}
 
 	prepared, err := gateway.PrepareCardChallenge(ctx, PrepareCardChallengeGatewayRequest{
-		InvoiceID:             invoiceID,
-		Currency:              "BHD",
-		GatewaySetupReference: "SESSION123",
+		InvoiceID:              invoiceID,
+		Currency:               "BHD",
+		PaymentMethodReference: "SESSION123",
 	})
 	require.NoError(t, err)
 
 	mpgsClient.EXPECT().
-		InitiateAuthentication(mock.Anything, invoiceID.String(), prepared.GatewayReference, mock.Anything).
+		InitiateAuthentication(mock.Anything, invoiceID.String(), string(prepared.AuthenticationReference), mock.Anything).
 		Return(nil, errors.New("init auth failed"))
 
 	resp, err := prepared.Send(ctx)
@@ -309,7 +309,7 @@ func TestMPGSCardGateway_StartCardChallenge_CompleteChallenge(t *testing.T) {
 	}`, string(prepared.RawRequest))
 
 	mpgsClient.EXPECT().
-		AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.MatchedBy(func(got *mpgsclient.AuthenticatePayerRequest) bool {
+		AuthenticatePayer(mock.Anything, req.InvoiceID.String(), string(req.AuthenticationReference), mock.MatchedBy(func(got *mpgsclient.AuthenticatePayerRequest) bool {
 			return got.APIOperation == mpgsclient.OperationAuthenticatePayer &&
 				got.Authentication.RedirectResponseURL == req.ChallengeReturnURL &&
 				got.Device.Browser == req.Browser.UserAgent &&
@@ -325,7 +325,7 @@ func TestMPGSCardGateway_StartCardChallenge_CompleteChallenge(t *testing.T) {
 				got.Device.IPAddress == req.Browser.IPAddress &&
 				got.Order.Amount == req.Amount.String() &&
 				got.Order.Currency == req.Currency &&
-				got.Session.ID == req.GatewaySetupReference
+				got.Session.ID == string(req.PaymentMethodReference)
 		})).
 		Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
 			Data: mpgsclient.AuthenticatePayerResponse{
@@ -370,7 +370,7 @@ func TestMPGSCardGateway_StartCardChallenge_Capture(t *testing.T) {
 			require.NoError(t, err)
 
 			mpgsClient.EXPECT().
-				AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.Anything).
+				AuthenticatePayer(mock.Anything, req.InvoiceID.String(), string(req.AuthenticationReference), mock.Anything).
 				Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
 					Data: mpgsclient.AuthenticatePayerResponse{
 						Response: mpgsclient.AuthenticatePayerGatewayResponse{
@@ -470,7 +470,7 @@ func TestMPGSCardGateway_StartCardChallenge_CantContinue(t *testing.T) {
 			require.NoError(t, err)
 
 			mpgsClient.EXPECT().
-				AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.Anything).
+				AuthenticatePayer(mock.Anything, req.InvoiceID.String(), string(req.AuthenticationReference), mock.Anything).
 				Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
 					Data: mpgsclient.AuthenticatePayerResponse{
 						Authentication: mpgsclient.AuthenticatePayerRespAuthentication{
@@ -505,7 +505,7 @@ func TestMPGSCardGateway_StartCardChallenge_SendError(t *testing.T) {
 	require.NoError(t, err)
 
 	mpgsClient.EXPECT().
-		AuthenticatePayer(mock.Anything, req.InvoiceID.String(), req.GatewayReference, mock.Anything).
+		AuthenticatePayer(mock.Anything, req.InvoiceID.String(), string(req.AuthenticationReference), mock.Anything).
 		Return(nil, errors.New("authenticate failed"))
 
 	resp, err := prepared.Send(ctx)
@@ -525,12 +525,12 @@ func validSetupCardPaymentGatewayRequest() SetupCardPaymentGatewayRequest {
 
 func validStartCardChallengeGatewayRequest() StartCardChallengeGatewayRequest {
 	return StartCardChallengeGatewayRequest{
-		InvoiceID:             uuid.MustParse("00000000-0000-0000-0000-000000003001"),
-		Amount:                decimal.RequireFromString("15.000"),
-		Currency:              "BHD",
-		GatewaySetupReference: "SESSION123",
-		GatewayReference:      "AUTHENTICATION123",
-		ChallengeReturnURL:    "https://pay.example.com/checkout/3001/complete-challenge",
+		InvoiceID:               uuid.MustParse("00000000-0000-0000-0000-000000003001"),
+		Amount:                  decimal.RequireFromString("15.000"),
+		Currency:                "BHD",
+		PaymentMethodReference:  "SESSION123",
+		AuthenticationReference: "AUTHENTICATION123",
+		ChallengeReturnURL:      "https://pay.example.com/checkout/3001/complete-challenge",
 		Browser: ThreeDSBrowser{
 			IPAddress:           "192.0.2.1",
 			UserAgent:           "Mozilla/5.0",

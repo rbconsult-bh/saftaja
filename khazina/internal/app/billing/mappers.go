@@ -77,6 +77,15 @@ func mapStorePaymentMethodToPaymentMethod(spm store.PaymentMethod) (PaymentMetho
 	}
 }
 
+func mapStorePaymentMethodReferenceToPaymentMethodReference(reference *string) *PaymentMethodReference {
+	if reference == nil {
+		return nil
+	}
+
+	paymentMethodReference := PaymentMethodReference(*reference)
+	return &paymentMethodReference
+}
+
 func mapStorePaymentIntentStatusToPaymentIntentStatus(s store.PaymentIntentStatus) (PaymentIntentStatus, error) {
 	switch s {
 	case store.PaymentIntentStatusCreated:

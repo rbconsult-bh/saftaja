@@ -62,7 +62,7 @@ func (mcg *mpgsCardGateway) SetupCardPayment(ctx context.Context, r SetupCardPay
 	}
 
 	return &SetupCardPaymentGatewayResponse{
-		GatewaySetupReference: createSessionResp.Data.Session.ID,
+		PaymentMethodReference: PaymentMethodReference(createSessionResp.Data.Session.ID),
 	}, nil
 }
 
@@ -77,7 +77,7 @@ func (mcg *mpgsCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareC
 			Currency: r.Currency,
 		},
 		Session: mpgsclient.InitiateAuthenticationSession{
-			ID: r.GatewaySetupReference,
+			ID: string(r.PaymentMethodReference),
 		},
 	}
 
@@ -87,8 +87,8 @@ func (mcg *mpgsCardGateway) PrepareCardChallenge(ctx context.Context, r PrepareC
 	}
 
 	return &PreparedCardChallengeGatewayRequest{
-		GatewayReference: gatewayReference,
-		RawRequest:       rawReq,
+		AuthenticationReference: AuthenticationReference(gatewayReference),
+		RawRequest:              rawReq,
 		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			resp, err := mcg.client.InitiateAuthentication(ctx, r.InvoiceID.String(), gatewayReference, mpgsReq)
 			if err != nil {
@@ -134,7 +134,7 @@ func (mcg *mpgsCardGateway) StartCardChallenge(ctx context.Context, r StartCardC
 			Currency: r.Currency,
 		},
 		Session: mpgsclient.AuthenticatePayerReqSession{
-			ID: r.GatewaySetupReference,
+			ID: string(r.PaymentMethodReference),
 		},
 	}
 
@@ -146,7 +146,7 @@ func (mcg *mpgsCardGateway) StartCardChallenge(ctx context.Context, r StartCardC
 	return &PreparedStartCardChallengeGatewayRequest{
 		RawRequest: rawReq,
 		send: func(ctx context.Context) (*StartCardChallengeGatewayResponse, error) {
-			resp, err := mcg.client.AuthenticatePayer(ctx, r.InvoiceID.String(), r.GatewayReference, mpgsReq)
+			resp, err := mcg.client.AuthenticatePayer(ctx, r.InvoiceID.String(), string(r.AuthenticationReference), mpgsReq)
 			if err != nil {
 				return nil, fmt.Errorf("failed to authenticate payer: %w", err)
 			}

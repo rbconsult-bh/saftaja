@@ -241,8 +241,8 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
 	}).Return(&billing.StartPaymentResponse{
-		PaymentIntentID:       sessionID,
-		GatewaySetupReference: ptr.To("MPGS_SESSION_123"),
+		PaymentIntentID:        sessionID,
+		PaymentMethodReference: ptr.To(billing.PaymentMethodReference("MPGS_SESSION_123")),
 	}, nil)
 
 	body := map[string]any{
@@ -271,8 +271,8 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 	if resp["payment_session_id"] != sessionID.String() {
 		t.Errorf("expected payment_session_id %s, got %v", sessionID.String(), resp["payment_session_id"])
 	}
-	if resp["gateway_setup_reference"] != "MPGS_SESSION_123" {
-		t.Errorf("expected gateway_setup_reference %s, got %v", "MPGS_SESSION_123", resp["gateway_setup_reference"])
+	if resp["payment_method_reference"] != "MPGS_SESSION_123" {
+		t.Errorf("expected payment_method_reference %s, got %v", "MPGS_SESSION_123", resp["payment_method_reference"])
 	}
 }
 

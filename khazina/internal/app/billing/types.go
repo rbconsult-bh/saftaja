@@ -152,8 +152,8 @@ type (
 		PayerUserAgent   string
 	}
 	StartPaymentResponse struct {
-		PaymentIntentID       uuid.UUID
-		GatewaySetupReference *string
+		PaymentIntentID        uuid.UUID
+		PaymentMethodReference *PaymentMethodReference
 	}
 )
 

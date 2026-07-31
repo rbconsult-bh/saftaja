@@ -13,6 +13,9 @@ type GatewayResolver interface {
 	CardGateway(account store.GatewayAccount) (CardGateway, error)
 }
 
+type PaymentMethodReference string
+type AuthenticationReference string
+
 type CardGateway interface {
 	SetupCardPayment(ctx context.Context, r SetupCardPaymentGatewayRequest) (*SetupCardPaymentGatewayResponse, error)
 	PrepareCardChallenge(ctx context.Context, r PrepareCardChallengeGatewayRequest) (*PreparedCardChallengeGatewayRequest, error)
@@ -26,7 +29,7 @@ type (
 		Currency  string
 	}
 	SetupCardPaymentGatewayResponse struct {
-		GatewaySetupReference string
+		PaymentMethodReference PaymentMethodReference
 	}
 )
 
@@ -39,14 +42,14 @@ const (
 
 type (
 	PrepareCardChallengeGatewayRequest struct {
-		InvoiceID             uuid.UUID
-		Currency              string
-		GatewaySetupReference string
+		InvoiceID              uuid.UUID
+		Currency               string
+		PaymentMethodReference PaymentMethodReference
 	}
 	PreparedCardChallengeGatewayRequest struct {
-		GatewayReference string
-		RawRequest       []byte
-		send             func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error)
+		AuthenticationReference AuthenticationReference
+		RawRequest              []byte
+		send                    func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error)
 	}
 	PrepareCardChallengeGatewayResponse struct {
 		NextStep    PrepareCardChallengeGatewayNextStep
@@ -74,13 +77,13 @@ const (
 
 type (
 	StartCardChallengeGatewayRequest struct {
-		InvoiceID             uuid.UUID
-		Amount                decimal.Decimal
-		Currency              string
-		GatewaySetupReference string
-		GatewayReference      string
-		ChallengeReturnURL    string
-		Browser               ThreeDSBrowser
+		InvoiceID               uuid.UUID
+		Amount                  decimal.Decimal
+		Currency                string
+		PaymentMethodReference  PaymentMethodReference
+		AuthenticationReference AuthenticationReference
+		ChallengeReturnURL      string
+		Browser                 ThreeDSBrowser
 	}
 	PreparedStartCardChallengeGatewayRequest struct {
 		RawRequest []byte

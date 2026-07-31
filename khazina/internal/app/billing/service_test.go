@@ -47,7 +47,7 @@ func setupTestEnv(t *testing.T) testEnv {
 	queries := store.NewTransactionQuerier(db.Pool)
 	cardGateway := &fakeCardGateway{
 		setupCardPayment: fakeSetupCardPaymentCall{
-			resp: &SetupCardPaymentGatewayResponse{GatewaySetupReference: "session-test-123"},
+			resp: &SetupCardPaymentGatewayResponse{PaymentMethodReference: "session-test-123"},
 		},
 	}
 	gatewayResolver := &fakeGatewayResolver{
@@ -308,8 +308,8 @@ func TestStartPayment_ReplaysExistingIntent(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, uuid.MustParse("00000000-0000-0000-0000-000000005001"), resp.PaymentIntentID)
-	require.NotNil(t, resp.GatewaySetupReference)
-	assert.Equal(t, "session-existing-abc", *resp.GatewaySetupReference)
+	require.NotNil(t, resp.PaymentMethodReference)
+	assert.Equal(t, PaymentMethodReference("session-existing-abc"), *resp.PaymentMethodReference)
 	assert.Equal(t, before, countPaymentIntents(t, env))
 	assert.Equal(t, 0, env.cardGateway.setupCardPayment.calls)
 }
@@ -374,7 +374,7 @@ func TestStartPayment_CreatesCardIntent(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, resp.PaymentIntentID)
-	require.NotNil(t, resp.GatewaySetupReference)
+	require.NotNil(t, resp.PaymentMethodReference)
 	assert.Equal(t, before+1, countPaymentIntents(t, env))
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, resp.PaymentIntentID)
@@ -396,8 +396,8 @@ func TestStartPayment_CreatesCardIntent(t *testing.T) {
 	assert.Equal(t, "BHD", env.cardGateway.setupCardPayment.req.Currency)
 	assert.True(t, decimal.RequireFromString("15.000").Equal(env.cardGateway.setupCardPayment.req.Amount))
 
-	require.NotNil(t, resp.GatewaySetupReference)
-	assert.Equal(t, "session-test-123", *resp.GatewaySetupReference)
+	require.NotNil(t, resp.PaymentMethodReference)
+	assert.Equal(t, PaymentMethodReference("session-test-123"), *resp.PaymentMethodReference)
 }
 
 func TestStartPayment_DoesNotCreateIntentWhenCardGatewayFails(t *testing.T) {
@@ -522,7 +522,7 @@ func TestPrepareCardChallenge_RejectsExpiredIntent(t *testing.T) {
 	assert.Equal(t, 0, env.cardGateway.prepareCardChallenge.calls)
 }
 
-func TestPrepareCardChallenge_RejectsMissingGatewaySetupReference(t *testing.T) {
+func TestPrepareCardChallenge_RejectsMissingPaymentMethodReference(t *testing.T) {
 	env := setupTestEnv(t)
 
 	resp, err := env.svc.PrepareCardChallenge(env.ctx, PrepareCardChallengeRequest{
@@ -586,8 +586,8 @@ func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *tes
 	rawResp := []byte(`{"result":"SUCCESS"}`)
 
 	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
-		GatewayReference: "gw-init-auth-123",
-		RawRequest:       rawReq,
+		AuthenticationReference: "gw-init-auth-123",
+		RawRequest:              rawReq,
 		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 			require.NoError(t, err)
@@ -618,7 +618,7 @@ func TestPrepareCardChallenge_RecordsPendingGatewayOperationBeforeSending(t *tes
 	assert.Equal(t, 1, env.cardGateway.prepareCardChallenge.calls)
 	assert.Equal(t, uuidInvoice, env.cardGateway.prepareCardChallenge.req.InvoiceID)
 	assert.Equal(t, "BHD", env.cardGateway.prepareCardChallenge.req.Currency)
-	assert.Equal(t, "session-existing-abc", env.cardGateway.prepareCardChallenge.req.GatewaySetupReference)
+	assert.Equal(t, PaymentMethodReference("session-existing-abc"), env.cardGateway.prepareCardChallenge.req.PaymentMethodReference)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
 	require.NoError(t, err)
@@ -640,8 +640,8 @@ func TestPrepareCardChallenge_RecordsCantContinueGatewayResponseAndAllowsRetry(t
 	}
 
 	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
-		GatewayReference: "gw-init-auth-failed",
-		RawRequest:       []byte(`{"prepared":true}`),
+		AuthenticationReference: "gw-init-auth-failed",
+		RawRequest:              []byte(`{"prepared":true}`),
 		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			return &PrepareCardChallengeGatewayResponse{
 				NextStep:    PrepareCardChallengeGatewayNextStepCantContinue,
@@ -667,8 +667,8 @@ func TestPrepareCardChallenge_RecordsCantContinueGatewayResponseAndAllowsRetry(t
 
 	retryRawResp := []byte(`{"result":"SUCCESS"}`)
 	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
-		GatewayReference: "gw-init-auth-retry",
-		RawRequest:       []byte(`{"prepared":"retry"}`),
+		AuthenticationReference: "gw-init-auth-retry",
+		RawRequest:              []byte(`{"prepared":"retry"}`),
 		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			return &PrepareCardChallengeGatewayResponse{
 				NextStep:    PrepareCardChallengeGatewayNextStepStartChallenge,
@@ -699,8 +699,8 @@ func TestPrepareCardChallenge_RecordsFailedOperationWhenGatewaySendFails(t *test
 	env := setupTestEnv(t)
 	errGateway := errors.New("gateway unavailable")
 	env.cardGateway.prepareCardChallenge.resp = &PreparedCardChallengeGatewayRequest{
-		GatewayReference: "gw-init-auth-error",
-		RawRequest:       []byte(`{"prepared":true}`),
+		AuthenticationReference: "gw-init-auth-error",
+		RawRequest:              []byte(`{"prepared":true}`),
 		send: func(ctx context.Context) (*PrepareCardChallengeGatewayResponse, error) {
 			return nil, errGateway
 		},
@@ -804,13 +804,13 @@ func TestStartCardChallenge_CompletesChallenge(t *testing.T) {
 	assert.Equal(t, redirectHTML, resp.RedirectHTML)
 	assert.Equal(t, 1, env.cardGateway.startCardChallenge.calls)
 	assert.Equal(t, StartCardChallengeGatewayRequest{
-		InvoiceID:             uuidInvoice,
-		Amount:                decimal.RequireFromString("15.000"),
-		Currency:              "BHD",
-		GatewaySetupReference: "session-ready-to-start-challenge",
-		GatewayReference:      initiateAuthOperation.GatewayReference,
-		ChallengeReturnURL:    req.ChallengeReturnURL,
-		Browser:               req.Browser,
+		InvoiceID:               uuidInvoice,
+		Amount:                  decimal.RequireFromString("15.000"),
+		Currency:                "BHD",
+		PaymentMethodReference:  "session-ready-to-start-challenge",
+		AuthenticationReference: AuthenticationReference(initiateAuthOperation.GatewayReference),
+		ChallengeReturnURL:      req.ChallengeReturnURL,
+		Browser:                 req.Browser,
 	}, env.cardGateway.startCardChallenge.req)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToStartChallenge)
