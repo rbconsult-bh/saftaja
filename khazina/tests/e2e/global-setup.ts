@@ -31,7 +31,7 @@ async function globalSetup() {
     .fromDockerfile(path.resolve(__dirname, '../..'), 'Dockerfile')
     .build();
 
-  console.log('💰 Starting pay...');
+  console.log('💰 Starting khazina...');
   const payPort = 8080;
   const payContainer = await payImage
     .withNetwork(sharedNetwork)
