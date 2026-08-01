@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
@@ -21,15 +21,15 @@ import (
 )
 
 type handlers struct {
-	billing            billing.Service
+	payment            payment.Service
 	tenantService      tenant.Service
 	gatewayService     gateway.Service
 	verifyDomainSecret string
 }
 
-func New(billing billing.Service, tenantService tenant.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
+func New(paymentService payment.Service, tenantService tenant.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
 	return &handlers{
-		billing:            billing,
+		payment:            paymentService,
 		tenantService:      tenantService,
 		gatewayService:     gatewayService,
 		verifyDomainSecret: verifyDomainSecret,
@@ -54,16 +54,16 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutData, err := h.billing.GetInvoice(ctx, billing.GetInvoiceRequest{
+	checkoutData, err := h.payment.GetInvoice(ctx, payment.GetInvoiceRequest{
 		InvoiceID: invoiceID,
 		ProjectID: project.ID,
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, billing.ErrInvalidArgument):
+		case errors.Is(err, payment.ErrInvalidArgument):
 			log.Ctx(ctx).Error().Err(err).Msg("invalid argument")
 			http.Error(w, "invalid argument", http.StatusBadRequest)
-		case errors.Is(err, billing.ErrNotFound):
+		case errors.Is(err, payment.ErrNotFound):
 			log.Ctx(ctx).Info().Msg("invoice not found")
 			http.Error(w, "invoice not found", http.StatusNotFound)
 		default:
@@ -73,7 +73,7 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if checkoutData.Invoice.Status == billing.InvoiceStatusPaid {
+	if checkoutData.Invoice.Status == payment.InvoiceStatusPaid {
 		data := templfiles.CheckoutPageData{
 			Invoice: templfiles.CheckoutInvoice{
 				ID:            checkoutData.Invoice.ID.String(),
@@ -188,12 +188,12 @@ func (h *handlers) CreatePaymentIntentHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	result, err := h.billing.CreatePaymentIntent(ctx, billing.CreatePaymentIntentRequest{
+	result, err := h.payment.CreatePaymentIntent(ctx, payment.CreatePaymentIntentRequest{
 		InvoiceID:        invoiceID,
 		ProjectID:        project.ID,
 		IdempotencyKey:   r.Header.Get("Idempotency-Key"),
 		GatewayAccountID: req.GatewayAccountID,
-		PaymentMethod:    billing.PaymentMethod(req.PaymentMethod),
+		PaymentMethod:    payment.PaymentMethod(req.PaymentMethod),
 		PayerIP:          payerIP,
 		PayerUserAgent:   r.Header.Get("User-Agent"),
 	})
@@ -230,7 +230,7 @@ func (h *handlers) PrepareCardAuthenticationHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	result, err := h.billing.PrepareCardAuthentication(ctx, billing.PrepareCardAuthenticationRequest{
+	result, err := h.payment.PrepareCardAuthentication(ctx, payment.PrepareCardAuthenticationRequest{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
 		PaymentIntentID: paymentIntentID,
@@ -267,7 +267,7 @@ func (h *handlers) AuthenticateCardholderHandler(w http.ResponseWriter, r *http.
 	}
 
 	var browserDetails struct {
-		ChallengeWindowSize billing.ThreeDSChallengeWindowSize `json:"challenge_window_size"`
+		ChallengeWindowSize payment.ThreeDSChallengeWindowSize `json:"challenge_window_size"`
 		ColorDepth          int                                `json:"color_depth"`
 		JavaEnabled         bool                               `json:"java_enabled"`
 		Language            string                             `json:"language"`
@@ -299,13 +299,13 @@ func (h *handlers) AuthenticateCardholderHandler(w http.ResponseWriter, r *http.
 		Path:   returnPath,
 	}).String()
 
-	result, err := h.billing.AuthenticateCardholder(ctx, billing.AuthenticateCardholderRequest{
-		PaymentIntentRef: billing.PaymentIntentRef{
+	result, err := h.payment.AuthenticateCardholder(ctx, payment.AuthenticateCardholderRequest{
+		PaymentIntentRef: payment.PaymentIntentRef{
 			ProjectID:       project.ID,
 			InvoiceID:       invoiceID,
 			PaymentIntentID: paymentIntentID,
 		},
-		Browser: billing.ThreeDSBrowser{
+		Browser: payment.ThreeDSBrowser{
 			IPAddress:           payerIP,
 			UserAgent:           r.Header.Get("User-Agent"),
 			AcceptHeader:        r.Header.Get("Accept"),
@@ -375,8 +375,8 @@ func (h *handlers) VerifyCardAuthenticationHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	result, err := h.billing.VerifyCardAuthentication(ctx, billing.VerifyCardAuthenticationRequest{
-		PaymentIntentRef: billing.PaymentIntentRef{
+	result, err := h.payment.VerifyCardAuthentication(ctx, payment.VerifyCardAuthenticationRequest{
+		PaymentIntentRef: payment.PaymentIntentRef{
 			ProjectID:       project.ID,
 			InvoiceID:       invoiceID,
 			PaymentIntentID: paymentIntentID,
@@ -413,8 +413,8 @@ func (h *handlers) CapturePaymentIntentHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	result, err := h.billing.CapturePaymentIntent(ctx, billing.CapturePaymentIntentRequest{
-		PaymentIntentRef: billing.PaymentIntentRef{
+	result, err := h.payment.CapturePaymentIntent(ctx, payment.CapturePaymentIntentRequest{
+		PaymentIntentRef: payment.PaymentIntentRef{
 			ProjectID:       project.ID,
 			InvoiceID:       invoiceID,
 			PaymentIntentID: paymentIntentID,

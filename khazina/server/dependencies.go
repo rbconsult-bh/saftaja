@@ -10,9 +10,9 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/auth"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
@@ -30,7 +30,7 @@ import (
 type dependencies struct {
 	dbPool                *pgxpool.Pool
 	tenantSvc             tenant.Service
-	billingSvc            billing.Service
+	paymentSvc            payment.Service
 	gatewaySvc            gateway.Service
 	authSvc               auth.AuthService
 	dashboardAuthSvc      authpbv1connect.AuthServiceHandler
@@ -75,10 +75,10 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 		return nil, fmt.Errorf("failed to get encryption key: %w", err)
 	}
 
-	gatewayResolver := billing.NewGatewayResolver(encryptionKey)
+	gatewayResolver := payment.NewGatewayResolver(encryptionKey)
 
 	tenantSvc := tenant.NewService(queries)
-	billingSvc := billing.New(dbPool, queries, gatewayResolver)
+	paymentSvc := payment.New(dbPool, queries, gatewayResolver)
 	gatewaySvc := gateway.New(queries, encryptionKey)
 
 	emailer, err := initEmailer(cfg)
@@ -105,7 +105,7 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	return &dependencies{
 		dbPool:                dbPool,
 		tenantSvc:             tenantSvc,
-		billingSvc:            billingSvc,
+		paymentSvc:            paymentSvc,
 		gatewaySvc:            gatewaySvc,
 		authSvc:               authSvc,
 		dashboardAuthSvc:      dashboardAuthSvc,

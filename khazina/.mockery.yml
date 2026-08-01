@@ -1,10 +1,10 @@
 template: testify
 packages:
-  github.com/rbconsult-bh/saftaja/khazina/internal/app/billing:
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/payment:
     interfaces:
       Service:
         config:
-          dir: internal/app/billing/mocks
+          dir: internal/app/payment/mocks
           pkgname: mocks
           structname: MockService
           filename: mock_Service.go

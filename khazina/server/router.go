@@ -57,7 +57,7 @@ func mountHealthCheck(r chi.Router, deps *dependencies) {
 }
 
 func mountWebRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
-	h := checkout.New(deps.billingSvc, deps.tenantSvc, deps.gatewaySvc, cfg.VerifyDomainSecret)
+	h := checkout.New(deps.paymentSvc, deps.tenantSvc, deps.gatewaySvc, cfg.VerifyDomainSecret)
 
 	r.Get("/verify-domain", h.VerifyDomainHandler)
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
 
@@ -50,20 +50,20 @@ func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 	ctx := r.Context()
 
 	switch {
-	case errors.Is(err, billing.ErrInvalidArgument):
+	case errors.Is(err, payment.ErrInvalidArgument):
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
-	case errors.Is(err, billing.ErrNotFound), errors.Is(err, billing.ErrInvoiceNotFound):
+	case errors.Is(err, payment.ErrNotFound), errors.Is(err, payment.ErrInvoiceNotFound):
 		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
-	case errors.Is(err, billing.ErrPaymentIntentExpired):
+	case errors.Is(err, payment.ErrPaymentIntentExpired):
 		respondError(w, r, ErrCodePaymentExpired, templfiles.MsgSessionExpired, http.StatusGone)
-	case errors.Is(err, billing.ErrPaymentIntentInvalidState),
-		errors.Is(err, billing.ErrPaymentIntentInvalidTransition),
-		errors.Is(err, billing.ErrInvoiceInvalidState),
-		errors.Is(err, billing.ErrInvoiceCancelled):
+	case errors.Is(err, payment.ErrPaymentIntentInvalidState),
+		errors.Is(err, payment.ErrPaymentIntentInvalidTransition),
+		errors.Is(err, payment.ErrInvoiceInvalidState),
+		errors.Is(err, payment.ErrInvoiceCancelled):
 		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
-	case errors.Is(err, billing.ErrInvoiceAlreadyPaid), errors.Is(err, billing.ErrInvoicePaymentInProgress):
+	case errors.Is(err, payment.ErrInvoiceAlreadyPaid), errors.Is(err, payment.ErrInvoicePaymentInProgress):
 		respondError(w, r, ErrCodeAlreadyPaid, templfiles.MsgAlreadyPaid, http.StatusConflict)
-	case errors.Is(err, billing.ErrUnsupportedPaymentMethod):
+	case errors.Is(err, payment.ErrUnsupportedPaymentMethod):
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 	default:
 		log.Ctx(ctx).Error().Err(err).Msg("internal error")

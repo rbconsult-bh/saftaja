@@ -13,10 +13,10 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
-	billingmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/billing/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	gwmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway/mocks"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
+	paymentmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	tenantmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
@@ -29,7 +29,7 @@ import (
 // --------------------------------------------------------------------------
 
 type fixture struct {
-	Billing *billingmocks.MockService
+	Payment *paymentmocks.MockService
 	Tenant  *tenantmocks.MockService
 	Gateway *gwmocks.MockService
 	router  *chi.Mux
@@ -37,10 +37,10 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	billingSvc := billingmocks.NewMockService(t)
+	paymentSvc := paymentmocks.NewMockService(t)
 	tenantSvc := tenantmocks.NewMockService(t)
 	gwSvc := gwmocks.NewMockService(t)
-	h := checkout.New(billingSvc, tenantSvc, gwSvc, "test-secret")
+	h := checkout.New(paymentSvc, tenantSvc, gwSvc, "test-secret")
 
 	r := chi.NewRouter()
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
@@ -57,7 +57,7 @@ func newFixture(t *testing.T) *fixture {
 	r.Get("/verify-domain", h.VerifyDomainHandler)
 
 	return &fixture{
-		Billing: billingSvc,
+		Payment: paymentSvc,
 		Tenant:  tenantSvc,
 		Gateway: gwSvc,
 		router:  r,
@@ -123,11 +123,11 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 	project := testProject(projectID)
 	gatewayID := uuid.New()
 
-	f.Billing.EXPECT().GetInvoice(mock.Anything, billing.GetInvoiceRequest{
+	f.Payment.EXPECT().GetInvoice(mock.Anything, payment.GetInvoiceRequest{
 		InvoiceID: invoiceID,
 		ProjectID: projectID,
-	}).Return(&billing.GetInvoiceResponse{
-		Invoice: billing.Invoice{
+	}).Return(&payment.GetInvoiceResponse{
+		Invoice: payment.Invoice{
 			ID:            invoiceID,
 			ProjectID:     projectID,
 			Amount:        decimal.NewFromInt(100),
@@ -135,7 +135,7 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 			Description:   "Test Invoice",
 			CustomerEmail: "test@example.com",
 			CustomerName:  "Test Customer",
-			Items: []billing.InvoiceItem{
+			Items: []payment.InvoiceItem{
 				{Name: "Item 1", Quantity: 1, UnitPrice: decimal.NewFromInt(100), Amount: decimal.NewFromInt(100)},
 			},
 		},
@@ -179,10 +179,10 @@ func TestCheckoutPageHandler_WrongProject(t *testing.T) {
 	projectID := uuid.New()
 	project := testProject(projectID)
 
-	f.Billing.EXPECT().GetInvoice(mock.Anything, billing.GetInvoiceRequest{
+	f.Payment.EXPECT().GetInvoice(mock.Anything, payment.GetInvoiceRequest{
 		InvoiceID: invoiceID,
 		ProjectID: projectID,
-	}).Return(nil, billing.ErrNotFound)
+	}).Return(nil, payment.ErrNotFound)
 
 	w := f.getWithProject("/checkout/"+invoiceID.String(), project)
 	if w.Code != http.StatusNotFound {
@@ -206,17 +206,17 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 	project := testProject(projectID)
 	now := time.Now()
 
-	f.Billing.EXPECT().GetInvoice(mock.Anything, billing.GetInvoiceRequest{
+	f.Payment.EXPECT().GetInvoice(mock.Anything, payment.GetInvoiceRequest{
 		InvoiceID: invoiceID,
 		ProjectID: projectID,
-	}).Return(&billing.GetInvoiceResponse{
-		Invoice: billing.Invoice{
+	}).Return(&payment.GetInvoiceResponse{
+		Invoice: payment.Invoice{
 			ID:            invoiceID,
 			ProjectID:     projectID,
 			Amount:        decimal.NewFromInt(100),
 			Currency:      "BHD",
 			CustomerEmail: "test@example.com",
-			Status:        billing.InvoiceStatusPaid,
+			Status:        payment.InvoiceStatusPaid,
 			PaidAt:        &now,
 		},
 	}, nil)
@@ -239,17 +239,17 @@ func TestCreatePaymentIntentHandler_Success(t *testing.T) {
 	gatewayAccountID := uuid.New()
 	sessionID := uuid.New()
 
-	f.Billing.EXPECT().CreatePaymentIntent(mock.Anything, billing.CreatePaymentIntentRequest{
+	f.Payment.EXPECT().CreatePaymentIntent(mock.Anything, payment.CreatePaymentIntentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    billing.PaymentMethodCard,
+		PaymentMethod:    payment.PaymentMethodCard,
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
-	}).Return(&billing.CreatePaymentIntentResponse{
+	}).Return(&payment.CreatePaymentIntentResponse{
 		PaymentIntentID:        sessionID,
-		PaymentMethodReference: ptr.To(billing.PaymentMethodReference("MPGS_SESSION_123")),
+		PaymentMethodReference: ptr.To(payment.PaymentMethodReference("MPGS_SESSION_123")),
 	}, nil)
 
 	body := map[string]any{
@@ -302,14 +302,14 @@ func TestCreatePaymentIntentHandler_InvalidRequest(t *testing.T) {
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	f.Billing.EXPECT().CreatePaymentIntent(mock.Anything, billing.CreatePaymentIntentRequest{
+	f.Payment.EXPECT().CreatePaymentIntent(mock.Anything, payment.CreatePaymentIntentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    billing.PaymentMethodCard,
+		PaymentMethod:    payment.PaymentMethodCard,
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "TestAgent",
-	}).Return(nil, billing.ErrInvalidArgument)
+	}).Return(nil, payment.ErrInvalidArgument)
 
 	body := map[string]any{
 		"gateway_account_id": gatewayAccountID.String(),
@@ -337,15 +337,15 @@ func TestCreatePaymentIntentHandler_AlreadyPaid(t *testing.T) {
 	project := testProject(projectID)
 	gatewayAccountID := uuid.New()
 
-	f.Billing.EXPECT().CreatePaymentIntent(mock.Anything, billing.CreatePaymentIntentRequest{
+	f.Payment.EXPECT().CreatePaymentIntent(mock.Anything, payment.CreatePaymentIntentRequest{
 		ProjectID:        projectID,
 		InvoiceID:        invoiceID,
 		GatewayAccountID: gatewayAccountID,
-		PaymentMethod:    billing.PaymentMethodCard,
+		PaymentMethod:    payment.PaymentMethodCard,
 		PayerIP:          "192.0.2.1",
 		PayerUserAgent:   "TestAgent",
 		IdempotencyKey:   "test-key-123",
-	}).Return(nil, billing.ErrInvoiceAlreadyPaid)
+	}).Return(nil, payment.ErrInvoiceAlreadyPaid)
 
 	body := map[string]any{
 		"gateway_account_id": gatewayAccountID.String(),
@@ -377,12 +377,12 @@ func TestPrepareCardAuthenticationHandler(t *testing.T) {
 	paymentIntentID := uuid.New()
 	project := testProject(uuid.New())
 
-	f.Billing.EXPECT().PrepareCardAuthentication(mock.Anything, billing.PrepareCardAuthenticationRequest{
+	f.Payment.EXPECT().PrepareCardAuthentication(mock.Anything, payment.PrepareCardAuthenticationRequest{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
 		PaymentIntentID: paymentIntentID,
-	}).Return(&billing.PrepareCardAuthenticationResponse{
-		NextStep: billing.PrepareCardAuthenticationNextStepAuthenticate,
+	}).Return(&payment.PrepareCardAuthenticationResponse{
+		NextStep: payment.PrepareCardAuthenticationNextStepAuthenticate,
 	}, nil)
 
 	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/card-authentication/prepare"
@@ -406,17 +406,17 @@ func TestAuthenticateCardholderHandler(t *testing.T) {
 	paymentIntentID := uuid.New()
 	project := testProject(uuid.New())
 
-	expectedRequest := billing.AuthenticateCardholderRequest{
-		PaymentIntentRef: billing.PaymentIntentRef{
+	expectedRequest := payment.AuthenticateCardholderRequest{
+		PaymentIntentRef: payment.PaymentIntentRef{
 			ProjectID:       project.ID,
 			InvoiceID:       invoiceID,
 			PaymentIntentID: paymentIntentID,
 		},
-		Browser: billing.ThreeDSBrowser{
+		Browser: payment.ThreeDSBrowser{
 			IPAddress:           "192.0.2.1",
 			UserAgent:           "TestAgent",
 			AcceptHeader:        "text/html,application/json",
-			ChallengeWindowSize: billing.ThreeDSChallengeWindowSizeFullScreen,
+			ChallengeWindowSize: payment.ThreeDSChallengeWindowSizeFullScreen,
 			ColorDepth:          24,
 			JavaEnabled:         false,
 			Language:            "en-US",
@@ -427,9 +427,9 @@ func TestAuthenticateCardholderHandler(t *testing.T) {
 		ChallengeReturnURL: "https://pay.test.com/checkout/" + invoiceID.String() +
 			"/payment-intents/" + paymentIntentID.String() + "/card-authentication/return",
 	}
-	f.Billing.EXPECT().AuthenticateCardholder(mock.Anything, expectedRequest).Return(
-		&billing.AuthenticateCardholderResponse{
-			NextStep:     billing.AuthenticateCardholderNextStepChallenge,
+	f.Payment.EXPECT().AuthenticateCardholder(mock.Anything, expectedRequest).Return(
+		&payment.AuthenticateCardholderResponse{
+			NextStep:     payment.AuthenticateCardholderNextStepChallenge,
 			RedirectHTML: "<iframe id=\"challengeFrame\"></iframe>",
 		},
 		nil,
@@ -489,16 +489,16 @@ func TestVerifyCardAuthenticationHandler(t *testing.T) {
 	invoiceID := uuid.New()
 	paymentIntentID := uuid.New()
 	project := testProject(uuid.New())
-	ref := billing.PaymentIntentRef{
+	ref := payment.PaymentIntentRef{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
 		PaymentIntentID: paymentIntentID,
 	}
 
-	f.Billing.EXPECT().VerifyCardAuthentication(mock.Anything, billing.VerifyCardAuthenticationRequest{
+	f.Payment.EXPECT().VerifyCardAuthentication(mock.Anything, payment.VerifyCardAuthenticationRequest{
 		PaymentIntentRef: ref,
-	}).Return(&billing.VerifyCardAuthenticationResponse{
-		NextStep: billing.VerifyCardAuthenticationNextStepCapture,
+	}).Return(&payment.VerifyCardAuthenticationResponse{
+		NextStep: payment.VerifyCardAuthenticationNextStepCapture,
 	}, nil)
 
 	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/card-authentication/verify"
@@ -519,11 +519,11 @@ func TestVerifyCardAuthenticationHandler(t *testing.T) {
 func TestCapturePaymentIntentHandler_ResultMatrix(t *testing.T) {
 	tests := []struct {
 		name     string
-		nextStep billing.CapturePaymentIntentNextStep
+		nextStep payment.CapturePaymentIntentNextStep
 	}{
-		{name: "complete", nextStep: billing.CapturePaymentIntentNextStepComplete},
-		{name: "processing", nextStep: billing.CapturePaymentIntentNextStepProcessing},
-		{name: "cant_continue", nextStep: billing.CapturePaymentIntentNextStepCantContinue},
+		{name: "complete", nextStep: payment.CapturePaymentIntentNextStepComplete},
+		{name: "processing", nextStep: payment.CapturePaymentIntentNextStepProcessing},
+		{name: "cant_continue", nextStep: payment.CapturePaymentIntentNextStepCantContinue},
 	}
 
 	for _, tt := range tests {
@@ -532,15 +532,15 @@ func TestCapturePaymentIntentHandler_ResultMatrix(t *testing.T) {
 			invoiceID := uuid.New()
 			paymentIntentID := uuid.New()
 			project := testProject(uuid.New())
-			ref := billing.PaymentIntentRef{
+			ref := payment.PaymentIntentRef{
 				ProjectID:       project.ID,
 				InvoiceID:       invoiceID,
 				PaymentIntentID: paymentIntentID,
 			}
 
-			f.Billing.EXPECT().CapturePaymentIntent(mock.Anything, billing.CapturePaymentIntentRequest{
+			f.Payment.EXPECT().CapturePaymentIntent(mock.Anything, payment.CapturePaymentIntentRequest{
 				PaymentIntentRef: ref,
-			}).Return(&billing.CapturePaymentIntentResponse{NextStep: tt.nextStep}, nil)
+			}).Return(&payment.CapturePaymentIntentResponse{NextStep: tt.nextStep}, nil)
 
 			path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/capture"
 			w := f.postWithProject(path, nil, project)
@@ -565,7 +565,7 @@ func TestCapturePaymentIntentHandler_Expired(t *testing.T) {
 	paymentIntentID := uuid.New()
 	project := testProject(uuid.New())
 
-	f.Billing.EXPECT().CapturePaymentIntent(mock.Anything, mock.Anything).Return(nil, billing.ErrPaymentIntentExpired)
+	f.Payment.EXPECT().CapturePaymentIntent(mock.Anything, mock.Anything).Return(nil, payment.ErrPaymentIntentExpired)
 
 	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/capture"
 	w := f.postWithProject(path, nil, project)
