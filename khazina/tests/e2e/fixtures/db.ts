@@ -1,5 +1,5 @@
 import { Client } from 'pg';
-import { TEST_ADMIN_API_KEY } from './config';
+import crypto from 'crypto';
 
 export interface SeedIds {
   ORGANIZATION: string;
@@ -9,91 +9,100 @@ export interface SeedIds {
   INVOICE_PAID: string;
 }
 
-async function adminFetch(path: string, body: object): Promise<any> {
-  const baseUrl = process.env.BASE_URL;
-  if (!baseUrl) throw new Error('BASE_URL not set');
+// TODO: Switch to ConnectRPC dashboard API for seeding once CreateInvoice endpoint exists.
+// SQL seeding is fine for now since invoices have no API yet.
 
-  const resp = await fetch(`${baseUrl}/admin${path}`, {
-    method: 'POST',
-    headers: {
-      'X-Admin-Key': TEST_ADMIN_API_KEY,
-      'Content-Type': 'application/json',
-      'bypass-tunnel-reminder': 'yes'
-    },
-    body: JSON.stringify(body)
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Admin API ${path} failed: ${resp.status} ${text}`);
-  }
-
-  return resp.json();
+function encryptAES256GCM(plaintext: string, keyBase64: string): Buffer {
+  const key = Buffer.from(keyBase64, 'base64');
+  const nonce = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, nonce);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  // Go layout: nonce(12) || ciphertext || authTag(16)
+  return Buffer.concat([nonce, encrypted, authTag]);
 }
 
 export async function seedDb(): Promise<SeedIds> {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error('DATABASE_URL not set');
+  const connectionString = process.env.KHAZINA_TEST_DATABASE_URL;
+  if (!connectionString) throw new Error('KHAZINA_TEST_DATABASE_URL not set (global-setup must run first)');
 
-  const publicUrl = process.env.BASE_URL;
-  if (!publicUrl) throw new Error('BASE_URL not set');
+  const publicUrl = process.env.KHAZINA_TEST_BASE_URL;
+  if (!publicUrl) throw new Error('KHAZINA_TEST_BASE_URL not set (global-setup must run first)');
+
   const domain = new URL(publicUrl).hostname;
+
+  const mpgsMerchantId = process.env.KHAZINA_TEST_MPGS_MERCHANT_ID;
+  const mpgsApiPassword = process.env.KHAZINA_TEST_MPGS_API_PASSWORD;
+  const mpgsBaseUrl = process.env.KHAZINA_TEST_MPGS_BASE_URL;
+
+  if (!mpgsMerchantId || !mpgsApiPassword || !mpgsBaseUrl) {
+    throw new Error('TEST_MPGS_MERCHANT_ID, TEST_MPGS_API_PASSWORD, TEST_MPGS_BASE_URL must be set in tests/e2e/.env');
+  }
+
+  const encryptionKey = process.env.KHAZINA_TEST_ENCRYPTION_KEY;
+  if (!encryptionKey) throw new Error('KHAZINA_TEST_ENCRYPTION_KEY not set (global-setup must run first)');
+
+  const configJSON = JSON.stringify({
+    merchant_id: mpgsMerchantId,
+    base_url: mpgsBaseUrl,
+  });
+  const secretJSON = JSON.stringify({
+    api_password: mpgsApiPassword,
+  });
+  const encryptedSecret = encryptAES256GCM(secretJSON, encryptionKey);
 
   const client = new Client({ connectionString });
   await client.connect();
 
   try {
     await client.query(`
-      TRUNCATE gateway_accounts, invoices, invoice_items, transactions, payment_sessions, organizations, projects CASCADE
+      TRUNCATE gateway_accounts, invoices, invoice_items, gateway_operations, payment_intents, organizations, projects CASCADE
     `);
 
-    const org = await adminFetch('/organizations', { name: 'Test Org' });
+    const orgResult = await client.query(`
+      INSERT INTO organizations (name) VALUES ('Test Org') RETURNING id
+    `);
+    const orgId = orgResult.rows[0].id;
 
-    const project = await adminFetch('/projects', {
-      organization_id: org.id,
-      name: 'Sandbox',
-      environment: 'sandbox',
-      custom_domain: domain
-    });
+    const projectResult = await client.query(`
+      INSERT INTO projects (organization_id, name, environment, custom_domain) VALUES ($1, 'Sandbox', 'sandbox', $2) RETURNING id
+    `, [orgId, domain]);
+    const projectId = projectResult.rows[0].id;
 
-    const gateway = await adminFetch('/gateway-accounts', {
-      project_id: project.id,
-      connector_type: 'mpgs',
-      account_name: 'Test MPGS',
-      credentials: {
-        merchant_id: process.env.TEST_MPGS_MERCHANT_ID,
-        api_password: process.env.TEST_MPGS_API_PASSWORD,
-        base_url: process.env.TEST_MPGS_BASE_URL
-      },
-      payment_methods: ['card']
-    });
+    const gwResult = await client.query(`
+      INSERT INTO gateway_accounts (project_id, connector_type, account_name, secret, config, is_active)
+      VALUES ($1, 'mpgs', 'Test MPGS', $2, $3, true) RETURNING id
+    `, [projectId, encryptedSecret, configJSON]);
+    const gatewayAccountId = gwResult.rows[0].id;
 
-    const pendingInvoice = await adminFetch('/invoices', {
-      project_id: project.id,
-      amount: '15.000',
-      currency: 'BHD',
-      customer_email: 'test@example.com',
-      customer_name: 'Test User',
-      description: 'Test Invoice'
-    });
+    const pendingResult = await client.query(`
+      INSERT INTO invoices (project_id, amount_minor, currency, customer_email, customer_name, description, status)
+      VALUES ($1, 15000, 'BHD', 'test@example.com', 'Test User', 'Test Invoice', 'pending') RETURNING id
+    `, [projectId]);
+    const invoicePendingId = pendingResult.rows[0].id;
 
-    const paidInvoice = await adminFetch('/invoices', {
-      project_id: project.id,
-      amount: '25.000',
-      currency: 'BHD',
-      customer_email: 'test@example.com',
-      customer_name: 'Test User',
-      description: 'Paid Invoice'
-    });
+    await client.query(`
+      INSERT INTO invoice_items (invoice_id, name, description, quantity, unit_price_minor, amount_minor)
+      VALUES ($1, 'Test Item', 'A test line item', 1, 15000, 15000)
+    `, [invoicePendingId]);
 
-    await client.query(`UPDATE invoices SET status = 'paid' WHERE id = $1`, [paidInvoice.id]);
+    const paidResult = await client.query(`
+      INSERT INTO invoices (project_id, amount_minor, currency, customer_email, customer_name, description, status, paid_at)
+      VALUES ($1, 25000, 'BHD', 'test@example.com', 'Test User', 'Paid Invoice', 'paid', NOW()) RETURNING id
+    `, [projectId]);
+    const invoicePaidId = paidResult.rows[0].id;
+
+    await client.query(`
+      INSERT INTO invoice_items (invoice_id, name, description, quantity, unit_price_minor, amount_minor)
+      VALUES ($1, 'Paid Item', 'A paid line item', 1, 25000, 25000)
+    `, [invoicePaidId]);
 
     return {
-      ORGANIZATION: org.id,
-      PROJECT: project.id,
-      GATEWAY_ACCOUNT: gateway.id,
-      INVOICE_PENDING: pendingInvoice.id,
-      INVOICE_PAID: paidInvoice.id,
+      ORGANIZATION: orgId,
+      PROJECT: projectId,
+      GATEWAY_ACCOUNT: gatewayAccountId,
+      INVOICE_PENDING: invoicePendingId,
+      INVOICE_PAID: invoicePaidId,
     };
   } finally {
     await client.end();
@@ -102,4 +111,29 @@ export async function seedDb(): Promise<SeedIds> {
 
 export async function resetDb(): Promise<SeedIds> {
   return seedDb();
+}
+
+export async function dumpDb(): Promise<void> {
+  const connectionString = process.env.KHAZINA_TEST_DATABASE_URL;
+  if (!connectionString) return;
+
+  const client = new Client({ connectionString });
+  await client.connect();
+
+  try {
+    const tables = ['organizations', 'projects', 'gateway_accounts', 'invoices', 'payment_intents', 'gateway_operations'];
+    for (const table of tables) {
+      const result = await client.query(`SELECT * FROM ${table}`);
+      if (result.rows.length > 0) {
+        console.log(`\n📋 ${table} (${result.rows.length} rows):`);
+        for (const row of result.rows) {
+          const safe = { ...row };
+          if ('secret' in safe) safe.secret = '[encrypted]';
+          console.log(JSON.stringify(safe, null, 2));
+        }
+      }
+    }
+  } finally {
+    await client.end();
+  }
 }

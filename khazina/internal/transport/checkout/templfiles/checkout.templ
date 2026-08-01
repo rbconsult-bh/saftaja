@@ -1,0 +1,929 @@
+package templfiles
+
+import (
+	"fmt"
+
+	"golang.org/x/text/language"
+)
+
+type CheckoutPageData struct {
+	MPGSBaseURL    string
+	MPGSAPIVersion string
+	MPGSMerchantID string
+	Invoice        CheckoutInvoice
+	Items          []CheckoutItem
+	Options        []PaymentOption
+	IsPaid         bool
+	Lang           language.Tag
+}
+
+type CheckoutInvoice struct {
+	ID            string
+	Amount        string
+	Currency      string
+	Description   string
+	CustomerEmail string
+	CustomerName  string
+}
+
+type CheckoutItem struct {
+	Name      string
+	Quantity  int32
+	UnitPrice string
+	Amount    string
+}
+
+type PaymentOption struct {
+	ID    string
+	Label string
+	Type  string
+	Icon  string
+}
+
+func isRTL(lang language.Tag) bool {
+	return lang == language.Arabic
+}
+
+func langDir(lang language.Tag) string {
+	if isRTL(lang) {
+		return "rtl"
+	}
+	return "ltr"
+}
+
+func langCode(lang language.Tag) string {
+	if lang == language.Arabic {
+		return "ar"
+	}
+	return "en"
+}
+
+templ CheckoutPage(data CheckoutPageData) {
+	<!DOCTYPE html>
+	<html lang={ langCode(data.Lang) } dir={ langDir(data.Lang) }>
+		<head>
+			<title>{ LblSecureCheckout.Get(data.Lang) }</title>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<style>
+				#antiClickjack { display: none !important; }
+
+				@keyframes shimmer {
+					0% { background-position: -200% 0; }
+					100% { background-position: 200% 0; }
+				}
+				.skeleton {
+					background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+					background-size: 200% 100%;
+					animation: shimmer 1.5s infinite;
+				}
+
+				@keyframes fadeIn {
+					from { opacity: 0; transform: translateY(10px); }
+					to { opacity: 1; transform: translateY(0); }
+				}
+				.fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+				@keyframes fadeInUp {
+					from { opacity: 0; transform: translateY(30px); }
+					to { opacity: 1; transform: translateY(0); }
+				}
+				.fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+
+				.delay-100 { animation-delay: 100ms; opacity: 0; }
+				.delay-200 { animation-delay: 200ms; opacity: 0; }
+				.delay-300 { animation-delay: 300ms; opacity: 0; }
+				.delay-400 { animation-delay: 400ms; opacity: 0; }
+
+				@keyframes checkmark {
+					0% { stroke-dashoffset: 100; }
+					100% { stroke-dashoffset: 0; }
+				}
+				.checkmark-circle {
+					stroke-dasharray: 166;
+					stroke-dashoffset: 166;
+					animation: checkmark 0.6s ease-in-out forwards;
+				}
+				.checkmark-check {
+					stroke-dasharray: 48;
+					stroke-dashoffset: 48;
+					animation: checkmark 0.3s ease-in-out 0.4s forwards;
+				}
+
+				@keyframes spin {
+					to { transform: rotate(360deg); }
+				}
+				.spinner {
+					width: 24px;
+					height: 24px;
+					border: 3px solid transparent;
+					border-top-color: currentColor;
+					border-radius: 50%;
+					animation: spin 0.8s linear infinite;
+				}
+				.spinner-large {
+					width: 48px;
+					height: 48px;
+					border-width: 4px;
+				}
+
+				@keyframes pulse {
+					0%, 100% { opacity: 1; }
+					50% { opacity: 0.5; }
+				}
+				.pulse { animation: pulse 2s ease-in-out infinite; }
+
+				.backdrop-blur {
+					backdrop-filter: blur(8px);
+					-webkit-backdrop-filter: blur(8px);
+				}
+
+				/* RTL support */
+				[dir="rtl"] .rtl\:rotate-180 {
+					transform: rotate(180deg);
+				}
+
+				/* Keep numbers/amounts LTR in RTL mode */
+				.ltr-nums {
+					direction: ltr;
+					unicode-bidi: isolate;
+				}
+			</style>
+			if !data.IsPaid {
+				<script src={ data.MPGSBaseURL + "/form/version/" + data.MPGSAPIVersion + "/merchant/" + data.MPGSMerchantID + "/session.js" }></script>
+			}
+		</head>
+		<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+			<div id="antiClickjack"></div>
+			if data.IsPaid {
+				<!-- SUCCESS PAGE (when invoice already paid) -->
+				@SuccessPage(data.Invoice, data.Lang)
+			} else {
+				<!-- CHECKOUT PAGE -->
+				@CheckoutForm(data)
+			}
+		</body>
+	</html>
+}
+
+templ SuccessPage(invoice CheckoutInvoice, lang language.Tag) {
+	<div class="min-h-screen flex items-center justify-center p-4">
+		<div class="max-w-md w-full text-center">
+			<!-- Animated Checkmark -->
+			<div class="mb-8 fade-in-up">
+				<svg class="w-24 h-24 mx-auto" viewBox="0 0 52 52">
+					<circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" stroke="#22c55e" stroke-width="2"></circle>
+					<path class="checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"></path>
+				</svg>
+			</div>
+			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ LblPaymentSuccessful.Get(lang) }</h1>
+			<div class="fade-in-up delay-200">
+				<div class="flex items-baseline justify-center gap-2 mb-6 ltr-nums">
+					<span class="text-4xl font-bold text-slate-900">{ invoice.Amount }</span>
+					<span class="text-xl text-slate-500">{ invoice.Currency }</span>
+				</div>
+			</div>
+			<div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300">
+				<div class="space-y-3 text-start">
+					<div class="flex justify-between">
+						<span class="text-slate-500">{ LblInvoice.Get(lang) }</span>
+						<span class="text-slate-900 font-medium font-mono text-sm ltr-nums">{ truncateID(invoice.ID) }</span>
+					</div>
+					if invoice.CustomerEmail != "" {
+						<div class="flex justify-between">
+							<span class="text-slate-500">{ LblCustomer.Get(lang) }</span>
+							<span class="text-slate-900 font-medium">{ invoice.CustomerEmail }</span>
+						</div>
+					}
+				</div>
+			</div>
+			<p class="text-slate-500 mb-8 fade-in-up delay-400">{ LblThankYou.Get(lang) }</p>
+			<div class="text-center mt-8">
+				<p class="text-slate-400 text-sm">{ LblPoweredBy.Get(lang) }</p>
+			</div>
+		</div>
+	</div>
+}
+
+templ CheckoutForm(data CheckoutPageData) {
+	<!-- Main Checkout Container -->
+	<div id="checkout-main" class="min-h-screen flex items-center justify-center p-4 md:p-8">
+		<div class="w-full max-w-4xl">
+			<div class="bg-white rounded-2xl shadow-xl overflow-hidden md:grid md:grid-cols-2">
+				<!-- LEFT: Invoice Summary -->
+				<div class="bg-slate-900 text-white p-6 md:p-8">
+					<div class="h-full flex flex-col">
+						<div class="mb-6">
+							<div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4">
+								<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+							</div>
+							<p class="text-slate-400 text-sm uppercase tracking-wider">{ LblAmountDue.Get(data.Lang) }</p>
+						</div>
+						<div class="mb-6">
+							<div class="flex items-baseline gap-2 ltr-nums">
+								<span class="text-4xl md:text-5xl font-bold tracking-tight">{ data.Invoice.Amount }</span>
+								<span class="text-xl text-slate-400">{ data.Invoice.Currency }</span>
+							</div>
+						</div>
+						<div class="space-y-4 flex-1">
+							if data.Invoice.Description != "" {
+								<div>
+									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ LblDescription.Get(data.Lang) }</p>
+									<p class="text-white">{ data.Invoice.Description }</p>
+								</div>
+							}
+							if data.Invoice.CustomerEmail != "" {
+								<div>
+									<p class="text-slate-400 text-xs uppercase tracking-wider mb-1">{ LblCustomer.Get(data.Lang) }</p>
+									<p class="text-white">{ data.Invoice.CustomerEmail }</p>
+									if data.Invoice.CustomerName != "" {
+										<p class="text-slate-300 text-sm">{ data.Invoice.CustomerName }</p>
+									}
+								</div>
+							}
+							if len(data.Items) > 0 {
+								<div class="pt-4 border-t border-slate-700">
+									<button
+										type="button"
+										onclick="toggleItems()"
+										class="w-full flex items-center justify-between text-start cursor-pointer"
+									>
+										<span class="text-slate-400 text-xs uppercase tracking-wider">
+											{ fmt.Sprintf("%d", len(data.Items)) } { pluralizeLocalized(len(data.Items), LblItem.Get(data.Lang), LblItems.Get(data.Lang)) }
+										</span>
+										<svg id="items-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+										</svg>
+									</button>
+									<div id="items-list" class="hidden mt-3 space-y-2">
+										for _, item := range data.Items {
+											<div class="flex justify-between items-start py-2 border-b border-slate-800 last:border-0">
+												<div class="flex-1">
+													<p class="text-white text-sm">{ item.Name }</p>
+													<p class="text-slate-500 text-xs ltr-nums">{ fmt.Sprintf("%d", item.Quantity) } × { item.UnitPrice } { data.Invoice.Currency }</p>
+												</div>
+												<p class="text-white text-sm ms-4 ltr-nums">{ item.Amount }</p>
+											</div>
+										}
+									</div>
+								</div>
+							}
+						</div>
+						<div class="mt-6 pt-4 border-t border-slate-700">
+							<div class="flex items-center gap-2 text-slate-400 text-xs">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+								</svg>
+								<span>{ Lbl256BitEncryption.Get(data.Lang) }</span>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- RIGHT: Payment Form -->
+				<div class="p-6 md:p-8">
+					<!-- Error Banner (hidden by default) -->
+					<div id="error-banner" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+						<div class="flex items-center gap-3">
+							<div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+								<svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+								</svg>
+							</div>
+							<div>
+								<p class="text-red-800 font-medium text-sm">{ LblPaymentFailed.Get(data.Lang) }</p>
+								<p id="error-banner-message" class="text-red-600 text-sm">{ LblPleaseTryAgain.Get(data.Lang) }</p>
+							</div>
+						</div>
+					</div>
+					<!-- Payment Method Selection -->
+					<div id="method-selection">
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ LblPaymentMethod.Get(data.Lang) }</h2>
+						<div class="space-y-3" id="payment-options">
+							if len(data.Options) == 0 {
+								<p class="text-slate-500 text-sm">{ LblNoPaymentMethods.Get(data.Lang) }</p>
+							}
+							for _, opt := range data.Options {
+								<button
+									type="button"
+									class="option-btn w-full flex items-center gap-4 p-4 border-2 border-slate-200 rounded-xl transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 cursor-pointer"
+									data-account-id={ opt.ID }
+									data-type={ opt.Type }
+									onclick="selectMethod(this)"
+								>
+									if opt.Type == "card" {
+										<div class="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg flex items-center justify-center">
+											<svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+											</svg>
+										</div>
+									} else if opt.Type == "apple_pay" {
+										<div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+											<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"></path>
+											</svg>
+										</div>
+									}
+									<div class="flex-1 text-start">
+										<p class="font-medium text-slate-900">{ opt.Label }</p>
+										if opt.Type == "card" {
+											<p class="text-sm text-slate-500">{ LblVisaMastercardAmex.Get(data.Lang) }</p>
+										} else if opt.Type == "apple_pay" {
+											<p class="text-sm text-slate-500">{ LblQuickAndSecure.Get(data.Lang) }</p>
+										}
+									</div>
+									<svg class="w-5 h-5 text-slate-400 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+									</svg>
+								</button>
+							}
+						</div>
+					</div>
+					<!-- Loading State -->
+					<div id="loading-state" class="hidden">
+						<button
+							type="button"
+							onclick="goBack()"
+							class="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors cursor-pointer"
+						>
+							<svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+							</svg>
+							<span class="text-sm">{ LblBack.Get(data.Lang) }</span>
+						</button>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ LblCardDetails.Get(data.Lang) }</h2>
+						<div class="space-y-4">
+							<div>
+								<div class="skeleton h-4 w-24 rounded mb-2"></div>
+								<div class="skeleton h-12 rounded-lg"></div>
+							</div>
+							<div class="grid grid-cols-3 gap-3">
+								<div>
+									<div class="skeleton h-4 w-12 rounded mb-2"></div>
+									<div class="skeleton h-12 rounded-lg"></div>
+								</div>
+								<div>
+									<div class="skeleton h-4 w-10 rounded mb-2"></div>
+									<div class="skeleton h-12 rounded-lg"></div>
+								</div>
+								<div>
+									<div class="skeleton h-4 w-8 rounded mb-2"></div>
+									<div class="skeleton h-12 rounded-lg"></div>
+								</div>
+							</div>
+							<div>
+								<div class="skeleton h-4 w-28 rounded mb-2"></div>
+								<div class="skeleton h-12 rounded-lg"></div>
+							</div>
+							<div class="skeleton h-14 rounded-xl mt-6"></div>
+						</div>
+						<p class="text-center text-slate-400 text-sm mt-4 pulse">{ LblSecuringConnection.Get(data.Lang) }</p>
+					</div>
+					<!-- Card Form -->
+					<div id="card-form-container" class="hidden">
+						<button
+							type="button"
+							onclick="goBack()"
+							class="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors cursor-pointer"
+						>
+							<svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+							</svg>
+							<span class="text-sm">{ LblBack.Get(data.Lang) }</span>
+						</button>
+						<h2 class="text-lg font-semibold text-slate-900 mb-4">{ LblCardDetails.Get(data.Lang) }</h2>
+						<div class="space-y-4">
+							<div>
+								<label for="card-number" class="block text-sm font-medium text-slate-700 mb-2">{ LblCardNumber.Get(data.Lang) }</label>
+								<input
+									type="text"
+									id="card-number"
+									class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors font-mono tracking-wider"
+									placeholder="1234 5678 9012 3456"
+									readonly
+								/>
+							</div>
+							<div class="grid grid-cols-3 gap-3">
+								<div>
+									<label for="expiry-month" class="block text-sm font-medium text-slate-700 mb-2">{ LblMonth.Get(data.Lang) }</label>
+									<input
+										type="text"
+										id="expiry-month"
+										class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors text-center font-mono"
+										placeholder="MM"
+										readonly
+									/>
+								</div>
+								<div>
+									<label for="expiry-year" class="block text-sm font-medium text-slate-700 mb-2">{ LblYear.Get(data.Lang) }</label>
+									<input
+										type="text"
+										id="expiry-year"
+										class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors text-center font-mono"
+										placeholder="YY"
+										readonly
+									/>
+								</div>
+								<div>
+									<label for="security-code" class="block text-sm font-medium text-slate-700 mb-2">{ LblCVC.Get(data.Lang) }</label>
+									<input
+										type="text"
+										id="security-code"
+										class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors text-center font-mono"
+										placeholder="123"
+										readonly
+									/>
+								</div>
+							</div>
+							<div>
+								<label for="cardholder-name" class="block text-sm font-medium text-slate-700 mb-2">{ LblCardholderName.Get(data.Lang) }</label>
+								<input
+									type="text"
+									id="cardholder-name"
+									class="w-full h-12 px-4 border-2 border-slate-200 rounded-lg focus:border-slate-900 focus:outline-none transition-colors"
+									placeholder="MOHAMMAD"
+									readonly
+								/>
+							</div>
+							<button
+								id="payButton"
+								type="button"
+								onclick="pay()"
+								class="w-full h-14 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all flex items-center justify-center gap-3 mt-6 cursor-pointer disabled:bg-slate-400 disabled:cursor-not-allowed"
+							>
+								<span id="payButtonText">{ LblPay.Get(data.Lang) } <span class="ltr-nums">{ data.Invoice.Amount } { data.Invoice.Currency }</span></span>
+								<div id="payButtonSpinner" class="spinner hidden"></div>
+							</button>
+						</div>
+						<div class="flex items-center justify-center gap-4 mt-6">
+							<div class="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500">VISA</div>
+							<div class="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500">MC</div>
+							<div class="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500">AMEX</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="text-center mt-6">
+				<p class="text-slate-400 text-sm">{ LblPoweredBy.Get(data.Lang) }</p>
+			</div>
+		</div>
+	</div>
+	<!-- Processing Overlay -->
+	<div id="processing-overlay" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur flex items-center justify-center p-4">
+		<div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+			<div class="spinner spinner-large text-slate-900 mx-auto mb-6"></div>
+			<h3 class="text-xl font-semibold text-slate-900 mb-2">{ LblProcessingPayment.Get(data.Lang) }</h3>
+			<p class="text-slate-500">{ LblPleaseWait.Get(data.Lang) }</p>
+		</div>
+	</div>
+	<!-- 3DS Challenge Modal -->
+	<div id="challenge-overlay" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur flex items-center justify-center p-4">
+		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+			<div class="bg-slate-900 text-white px-6 py-4">
+				<div class="flex items-center gap-3">
+					<div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+						</svg>
+					</div>
+					<div>
+						<h3 class="font-semibold">{ LblBankVerification.Get(data.Lang) }</h3>
+						<p class="text-slate-300 text-sm">{ LblConfirmIdentity.Get(data.Lang) }</p>
+					</div>
+				</div>
+			</div>
+			<div id="challenge-iframe-container" class="min-h-[400px] max-h-[60vh] overflow-auto bg-slate-900">
+				<!-- MPGS 3DS content injected here -->
+			</div>
+			<div class="bg-slate-50 px-6 py-3 border-t border-slate-200">
+				<div class="flex items-center gap-2 text-slate-500 text-xs">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+					<span>{ LblBankRequired.Get(data.Lang) }</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Success Overlay (shown via JS after successful payment) -->
+	<div id="success-overlay" class="hidden fixed inset-0 z-50 bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+		<div class="max-w-md w-full text-center">
+			<div class="mb-8 fade-in-up">
+				<svg class="w-24 h-24 mx-auto" viewBox="0 0 52 52">
+					<circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" stroke="#22c55e" stroke-width="2"></circle>
+					<path class="checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"></path>
+				</svg>
+			</div>
+			<h1 class="text-3xl font-bold text-slate-900 mb-2 fade-in-up delay-100">{ LblPaymentSuccessful.Get(data.Lang) }</h1>
+			<div class="fade-in-up delay-200">
+				<div class="flex items-baseline justify-center gap-2 mb-6 ltr-nums">
+					<span class="text-4xl font-bold text-slate-900">{ data.Invoice.Amount }</span>
+					<span class="text-xl text-slate-500">{ data.Invoice.Currency }</span>
+				</div>
+			</div>
+			<div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in-up delay-300">
+				<div class="space-y-3 text-start">
+					<div class="flex justify-between">
+						<span class="text-slate-500">{ LblInvoice.Get(data.Lang) }</span>
+						<span class="text-slate-900 font-medium font-mono text-sm ltr-nums">{ truncateID(data.Invoice.ID) }</span>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-slate-500">{ LblDate.Get(data.Lang) }</span>
+						<span class="text-slate-900 font-medium" id="success-date">-</span>
+					</div>
+				</div>
+			</div>
+			<p class="text-slate-500 fade-in-up delay-400">{ LblThankYou.Get(data.Lang) }</p>
+			<div class="text-center mt-8">
+				<p class="text-slate-400 text-sm">{ LblPoweredBy.Get(data.Lang) }</p>
+			</div>
+		</div>
+	</div>
+	<script>
+		// Anti-clickjacking
+		if (self === top) {
+			var antiClickjack = document.getElementById("antiClickjack");
+			if (antiClickjack) antiClickjack.parentNode.removeChild(antiClickjack);
+		} else {
+			top.location = self.location;
+		}
+
+		const INVOICE_ID = {{ data.Invoice.ID }};
+		const INVOICE_AMOUNT = {{ data.Invoice.Amount }};
+		const INVOICE_CURRENCY = {{ data.Invoice.Currency }};
+		const LANG = {{ langCode(data.Lang) }};
+		let CURRENT_PAYMENT_INTENT_ID = null;
+		let CURRENT_PAYMENT_TYPE = null;
+		let VERIFY_CARD_AUTHENTICATION_TIMER = null;
+
+		function randomID() {
+			if (window.crypto && window.crypto.randomUUID) {
+				return window.crypto.randomUUID();
+			}
+			return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		}
+
+		function createPaymentIntentIdempotencyKey(accountId, type) {
+			const key = `saftaja:start-payment:${INVOICE_ID}:${accountId}:${type}`;
+			try {
+				let id = sessionStorage.getItem(key);
+				if (!id) {
+					id = randomID();
+					sessionStorage.setItem(key, id);
+				}
+				return id;
+			} catch (_) {
+				return randomID();
+			}
+		}
+
+		// Toggle invoice items
+		function toggleItems() {
+			const list = document.getElementById('items-list');
+			const chevron = document.getElementById('items-chevron');
+			list.classList.toggle('hidden');
+			chevron.classList.toggle('rotate-180');
+		}
+
+		// Go back to method selection
+		function goBack() {
+			document.getElementById('error-banner').classList.add('hidden');
+			document.getElementById('method-selection').classList.remove('hidden');
+			document.getElementById('loading-state').classList.add('hidden');
+			document.getElementById('card-form-container').classList.add('hidden');
+			document.querySelectorAll('.option-btn').forEach(b => {
+				b.classList.remove('border-slate-900', 'bg-slate-50');
+			});
+			if (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {
+				window.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);
+				VERIFY_CARD_AUTHENTICATION_TIMER = null;
+			}
+			CURRENT_PAYMENT_INTENT_ID = null;
+			CURRENT_PAYMENT_TYPE = null;
+		}
+
+		async function fetchJSON(url, options) {
+			const response = await fetch(url, options);
+			const payload = await response.json().catch(() => null);
+			if (!response.ok) {
+				throw new Error(payload && payload.message ? payload.message : {{ MsgInternalError.Get(data.Lang) }});
+			}
+			return payload;
+		}
+
+		// Select payment method
+		async function selectMethod(btnElement) {
+			const accountId = btnElement.dataset.accountId;
+			const type = btnElement.dataset.type;
+
+			document.querySelectorAll('.option-btn').forEach(b => {
+				b.classList.remove('border-slate-900', 'bg-slate-50');
+			});
+			btnElement.classList.add('border-slate-900', 'bg-slate-50');
+
+			document.getElementById('error-banner').classList.add('hidden');
+			document.getElementById('method-selection').classList.add('hidden');
+			document.getElementById('loading-state').classList.remove('hidden');
+
+			CURRENT_PAYMENT_TYPE = type;
+
+			try {
+				const paymentIntent = await fetchJSON(`/checkout/${INVOICE_ID}/payment-intents`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Idempotency-Key': createPaymentIntentIdempotencyKey(accountId, type)
+					},
+					body: JSON.stringify({
+						gateway_account_id: accountId,
+						payment_method: type
+					})
+				});
+
+				if (paymentIntent.action === 'render_embedded') {
+					CURRENT_PAYMENT_INTENT_ID = paymentIntent.payment_intent_id;
+					initializeMPGS(paymentIntent.payment_method_reference);
+				} else {
+					throw new Error({{ MsgInternalError.Get(data.Lang) }});
+				}
+			} catch (e) {
+				console.error("Init failed", e);
+				goBack();
+				document.getElementById('error-banner-message').textContent = e.message || {{ LblPaymentFailedInit.Get(data.Lang) }};
+				document.getElementById('error-banner').classList.remove('hidden');
+			}
+		}
+
+		function initializeMPGS(mpgsSessionId) {
+			if (typeof PaymentSession === 'undefined') {
+				showError({{ LblGatewayLoadFailed.Get(data.Lang) }});
+				goBack();
+				return;
+			}
+
+			PaymentSession.configure({
+				session: mpgsSessionId,
+				fields: {
+					card: {
+						number: "#card-number",
+						securityCode: "#security-code",
+						expiryMonth: "#expiry-month",
+						expiryYear: "#expiry-year",
+						nameOnCard: "#cardholder-name"
+					}
+				},
+				frameEmbeddingMitigation: ["javascript"],
+				callbacks: {
+					initialized: function(response) {
+						document.getElementById('loading-state').classList.add('hidden');
+						document.getElementById('card-form-container').classList.remove('hidden');
+						document.getElementById('card-form-container').classList.add('fade-in');
+					},
+					formSessionUpdate: function(response) {
+						if (response.status === "ok") {
+							start3DSFlow();
+						} else {
+							let errorMsg = "Please check your card details.";
+							if (response.errors) {
+								const fields = Object.keys(response.errors).map(f => {
+									switch(f) {
+										case 'cardNumber': return 'Card Number';
+										case 'securityCode': return 'CVC';
+										case 'expiryMonth': return 'Expiry Month';
+										case 'expiryYear': return 'Expiry Year';
+										default: return f;
+									}
+								});
+								errorMsg = "Please check: " + fields.join(", ");
+							}
+							alert(errorMsg);
+							resetPayButton();
+						}
+					}
+				},
+				interaction: {
+					displayControl: {
+						formatCard: "EMBOSSED",
+						invalidFieldCharacters: "REJECT"
+					}
+				}
+			});
+		}
+
+		function pay() {
+			const btn = document.getElementById('payButton');
+			const text = document.getElementById('payButtonText');
+			const spinner = document.getElementById('payButtonSpinner');
+
+			btn.disabled = true;
+			text.textContent = {{ LblProcessingPayment.Get(data.Lang) }};
+			spinner.classList.remove('hidden');
+
+			PaymentSession.updateSessionFromForm('card');
+		}
+
+		function resetPayButton() {
+			const btn = document.getElementById('payButton');
+			const text = document.getElementById('payButtonText');
+			const spinner = document.getElementById('payButtonSpinner');
+
+			btn.disabled = false;
+			text.textContent = `{{ LblPay.Get(data.Lang) }} ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;
+			spinner.classList.add('hidden');
+		}
+
+		function showProcessing() {
+			document.getElementById('processing-overlay').classList.remove('hidden');
+		}
+
+		function hideProcessing() {
+			document.getElementById('processing-overlay').classList.add('hidden');
+		}
+
+		function showChallenge(html) {
+			hideProcessing();
+			const container = document.getElementById('challenge-iframe-container');
+			container.innerHTML = html;
+			document.getElementById('challenge-overlay').classList.remove('hidden');
+
+			const script = document.getElementById('authenticate-payer-script');
+			if (script) {
+				eval(script.text);
+			}
+		}
+
+		function hideChallenge() {
+			document.getElementById('challenge-overlay').classList.add('hidden');
+		}
+
+		function showSuccess() {
+			if (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {
+				window.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);
+				VERIFY_CARD_AUTHENTICATION_TIMER = null;
+			}
+			hideProcessing();
+			hideChallenge();
+
+			const now = new Date();
+			const locale = LANG === 'ar' ? 'ar-SA' : 'en-US';
+			document.getElementById('success-date').textContent = now.toLocaleDateString(locale, {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+
+			document.getElementById('success-overlay').classList.remove('hidden');
+		}
+
+		function showError(message) {
+			if (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {
+				window.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);
+				VERIFY_CARD_AUTHENTICATION_TIMER = null;
+			}
+			hideProcessing();
+			hideChallenge();
+			resetPayButton();
+
+			document.getElementById('error-banner-message').textContent = message;
+			document.getElementById('error-banner').classList.remove('hidden');
+
+			// Show card form again so user can retry
+			document.getElementById('method-selection').classList.add('hidden');
+			document.getElementById('loading-state').classList.add('hidden');
+			document.getElementById('card-form-container').classList.remove('hidden');
+		}
+
+		async function start3DSFlow() {
+			showProcessing();
+
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/prepare`;
+
+			try {
+				const prepareRes = await fetchJSON(url, { method: "POST" });
+
+				if (prepareRes.next_step === "authenticate") {
+					doAuthenticatePayer();
+				} else if (prepareRes.next_step === "cant_continue") {
+					showError({{ MsgPaymentDeclined.Get(data.Lang) }});
+				} else {
+					showError({{ MsgInternalError.Get(data.Lang) }});
+				}
+			} catch (e) {
+				console.error(e);
+				showError(e.message || {{ MsgGatewayError.Get(data.Lang) }});
+			}
+		}
+
+		async function doAuthenticatePayer() {
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/authenticate`;
+
+			const browserDetails = {
+				"challenge_window_size": "FULL_SCREEN",
+				"color_depth": window.screen.colorDepth,
+				"java_enabled": navigator.javaEnabled ? navigator.javaEnabled() : false,
+				"language": navigator.language,
+				"screen_height": window.screen.height,
+				"screen_width": window.screen.width,
+				"time_zone": -new Date().getTimezoneOffset()
+			};
+
+			try {
+				const authRes = await fetchJSON(url, {
+					method: "POST",
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(browserDetails)
+				});
+
+				if (authRes.next_step === "challenge") {
+					showChallenge(authRes.redirect_html);
+				} else if (authRes.next_step === "capture") {
+					doCapturePaymentIntent();
+				} else if (authRes.next_step === "cant_continue") {
+					showError({{ MsgAuthenticationFailed.Get(data.Lang) }});
+				} else {
+					showError({{ MsgInternalError.Get(data.Lang) }});
+				}
+			} catch (e) {
+				console.error(e);
+				showError(e.message || {{ MsgAuthenticationFailed.Get(data.Lang) }});
+			}
+		}
+
+		async function doVerifyCardAuthentication() {
+			showProcessing();
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/verify`;
+
+			try {
+				const verification = await fetchJSON(url, { method: "POST" });
+				if (verification.next_step === "capture") {
+					doCapturePaymentIntent();
+				} else if (verification.next_step === "pending") {
+					VERIFY_CARD_AUTHENTICATION_TIMER = window.setTimeout(doVerifyCardAuthentication, 1000);
+				} else if (verification.next_step === "cant_continue") {
+					showError({{ MsgAuthenticationFailed.Get(data.Lang) }});
+				} else {
+					showError({{ MsgInternalError.Get(data.Lang) }});
+				}
+			} catch (e) {
+				console.error(e);
+				showError(e.message || {{ MsgAuthenticationFailed.Get(data.Lang) }});
+			}
+		}
+
+		async function doCapturePaymentIntent() {
+			showProcessing();
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/capture`;
+
+			try {
+				const capture = await fetchJSON(url, { method: "POST" });
+				if (capture.next_step === "complete") {
+					showSuccess();
+				} else if (capture.next_step === "processing") {
+					showProcessing();
+				} else if (capture.next_step === "cant_continue") {
+					showError({{ MsgPaymentDeclined.Get(data.Lang) }});
+				} else {
+					showError({{ MsgInternalError.Get(data.Lang) }});
+				}
+			} catch (e) {
+				console.error(e);
+				showError(e.message || {{ MsgGatewayError.Get(data.Lang) }});
+			}
+		}
+
+		// MPGS returning the browser proves only that payer interaction ended.
+		// Backend verification decides whether capture may begin.
+		window.addEventListener('message', function(event) {
+			if (event.origin === window.location.origin &&
+				event.data && event.data.type === 'CARD_AUTHENTICATION_RETURNED') {
+				hideChallenge();
+				doVerifyCardAuthentication();
+			}
+		});
+	</script>
+}
+
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
+}
+
+func pluralizeLocalized(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
+}
+
+func truncateID(id string) string {
+	if len(id) > 8 {
+		return id[:8] + "..."
+	}
+	return id
+}

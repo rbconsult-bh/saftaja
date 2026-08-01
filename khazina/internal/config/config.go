@@ -19,6 +19,10 @@ type Config struct {
 	EncryptionKey      string `mapstructure:"ENCRYPTION_KEY"`
 	VerifyDomainSecret string `mapstructure:"VERIFY_DOMAIN_SECRET"`
 	AdminAPIKey        string `mapstructure:"ADMIN_API_KEY"`
+	Emailer            string `mapstructure:"EMAILER"`
+	ResendAPIKey       string `mapstructure:"RESEND_API_KEY"`
+	Domain             string `mapstructure:"DOMAIN"`
+	JWTPrivateKey      string `mapstructure:"JWT_PRIVATE_KEY"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {
@@ -89,9 +93,6 @@ func (c *Config) Validate() error {
 	}
 	if c.VerifyDomainSecret == "" {
 		return errors.New("VERIFY_DOMAIN_SECRET is required")
-	}
-	if c.AdminAPIKey == "" {
-		return errors.New("ADMIN_API_KEY is required")
 	}
 	return nil
 }

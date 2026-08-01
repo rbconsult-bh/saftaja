@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package saftaja.dashboard.auth.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/rbconsult-bh/saftaja/khazina/internal/transport/proto/saftaja/dashboard/auth/v1;authpbv1";
+
+service AuthService {
+  rpc InitiateAuth(InitiateAuthRequest) returns (InitiateAuthResponse);
+  rpc CompleteAuth(CompleteAuthRequest) returns (CompleteAuthResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message InitiateAuthRequest {
+  string email = 1 [(buf.validate.field).cel = {
+    id: "init_auth.email"
+    message: "InitAuthRequest email must be valid"
+    expression: "this.isEmail()"
+  }];
+}
+message InitiateAuthResponse {}
+
+message CompleteAuthRequest {
+  string token = 2;
+}
+message CompleteAuthResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message LogoutRequest {}
+message LogoutResponse {}

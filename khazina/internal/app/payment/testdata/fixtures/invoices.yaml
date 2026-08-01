@@ -1,0 +1,55 @@
+- id: 00000000-0000-0000-0000-000000003001
+  project_id: 00000000-0000-0000-0000-000000001001
+  amount_minor: 15000
+  currency: BHD
+  status: pending
+  external_id: null
+  customer_email: testcustomer@saftaja.com
+  customer_name: test customer
+  description: happy path invoice
+  paid_at: null
+  created_at: "2026-05-29 10:00:00Z"
+  updated_at: "2026-05-29 10:00:00Z"
+  deleted_at: null
+
+- id: 00000000-0000-0000-0000-000000003002
+  project_id: 00000000-0000-0000-0000-000000001001
+  amount_minor: 25000
+  currency: BHD
+  status: pending
+  external_id: null
+  customer_email: noitems@saftaja.com
+  customer_name: no items
+  description: invoice with zero line items
+  paid_at: null
+  created_at: "2026-05-29 10:00:00Z"
+  updated_at: "2026-05-29 10:00:00Z"
+  deleted_at: null
+
+- id: 00000000-0000-0000-0000-000000003003
+  project_id: 00000000-0000-0000-0000-000000001001
+  amount_minor: 30000
+  currency: BHD
+  status: paid
+  external_id: null
+  customer_email: paid@saftaja.com
+  customer_name: already paid
+  description: this invoice is already paid
+  paid_at: "2026-06-01 10:00:00Z"
+  created_at: "2026-05-29 10:00:00Z"
+  updated_at: "2026-06-01 10:00:00Z"
+  deleted_at: null
+
+- id: 00000000-0000-0000-0000-000000003004
+  project_id: 00000000-0000-0000-0000-000000001001
+  amount_minor: 10000
+  currency: BHD
+  status: cancelled
+  external_id: null
+  customer_email: cancelled@saftaja.com
+  customer_name: cancelled invoice
+  description: this invoice was cancelled
+  paid_at: null
+  created_at: "2026-05-29 10:00:00Z"
+  updated_at: "2026-05-29 10:00:00Z"
+  deleted_at: null

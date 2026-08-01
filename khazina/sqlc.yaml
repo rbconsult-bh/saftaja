@@ -8,6 +8,8 @@ sql:
         package: "store"
         out: "internal/store"
         sql_package: "pgx/v5"
+        emit_interface: true
+        emit_pointers_for_null_types: true
         overrides:
           - db_type: "uuid"
             nullable: true
@@ -21,49 +23,73 @@ sql:
               import: "github.com/google/uuid"
               type: "UUID"
 
-          - db_type: "pg_catalog.numeric"
-            nullable: true
+          - column: "invoices.amount_minor"
             go_type:
-              import: "github.com/shopspring/decimal"
-              type: "NullDecimal"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
 
-          - db_type: "pg_catalog.numeric"
-            nullable: false
+          - column: "invoice_items.unit_price_minor"
             go_type:
-              import: "github.com/shopspring/decimal"
-              type: "Decimal"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
+
+          - column: "invoice_items.amount_minor"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
+
+          - column: "payment_intents.amount_minor"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
+
+          - column: "invoices.currency"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "Currency"
+
+          - column: "payment_intents.currency"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "Currency"
 
           - column: "projects.environment"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
               type: "ProjectEnvironment"
 
           - column: "gateway_accounts.connector_type"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
               type: "ConnectorType"
 
           - column: "invoices.status"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
               type: "InvoiceStatus"
 
-          - column: "payment_sessions.status"
+          - column: "payment_intents.status"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
-              type: "PaymentSessionStatus"
+              type: "PaymentIntentStatus"
 
-          - column: "payment_sessions.payment_method"
+          - column: "payment_intents.payment_method"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
               type: "PaymentMethod"
 
-          - column: "transactions.transaction_type"
+          - column: "gateway_operations.operation_type"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
-              type: "TransactionType"
+              type: "GatewayOperationType"
 
-          - column: "transactions.status"
+          - column: "gateway_operations.status"
             go_type:
-              import: "github.com/rbconsult-bh/saftaja/internal/domain"
-              type: "TransactionStatus"
+              type: "GatewayOperationStatus"
+
+          - db_type: "timestamptz"
+            nullable: false
+            go_type:
+              import: "time"
+              type: "Time"
+
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true

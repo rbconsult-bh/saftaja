@@ -12,7 +12,7 @@ import (
 )
 
 const getInvoiceItems = `-- name: GetInvoiceItems :many
-SELECT id, invoice_id, name, description, quantity, unit_price, amount, created_at FROM invoice_items
+SELECT id, invoice_id, name, description, quantity, created_at, unit_price_minor, amount_minor FROM invoice_items
 WHERE invoice_id = $1
 ORDER BY created_at ASC
 `
@@ -32,9 +32,9 @@ func (q *Queries) GetInvoiceItems(ctx context.Context, invoiceID uuid.UUID) ([]I
 			&i.Name,
 			&i.Description,
 			&i.Quantity,
-			&i.UnitPrice,
-			&i.Amount,
 			&i.CreatedAt,
+			&i.UnitPriceMinor,
+			&i.AmountMinor,
 		); err != nil {
 			return nil, err
 		}

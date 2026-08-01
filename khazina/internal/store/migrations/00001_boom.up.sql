@@ -115,7 +115,7 @@ CREATE TABLE payment_sessions (
 
     gateway_session_id VARCHAR(100) NOT NULL,
 
-    status VARCHAR(30) NOT NULL DEFAULT 'created', -- created, authenticating, authenticated, paying, completed, failed
+    status VARCHAR(30) NOT NULL DEFAULT 'created', -- created, ready_to_authenticate, awaiting_authentication_result, ready_to_capture, capturing, succeeded, failed
 
     payment_method VARCHAR(30) NOT NULL DEFAULT 'card', -- card, apple_pay
 
@@ -139,13 +139,13 @@ CREATE TABLE transactions (
     invoice_id UUID NOT NULL REFERENCES invoices(id),
     project_id UUID NOT NULL REFERENCES projects(id),
 
-    transaction_type VARCHAR(30) NOT NULL, -- initiate_authentication, authenticate_payer, pay
+    transaction_type VARCHAR(30) NOT NULL, -- prepare_card_authentication, authenticate_cardholder, get_card_authentication_result, capture_payment
     gateway_transaction_id VARCHAR(100) NOT NULL,
 
     amount DECIMAL(12, 3) NOT NULL,
     currency VARCHAR(3) NOT NULL,
 
-    status VARCHAR(30) NOT NULL DEFAULT 'pending', -- pending, success, failed
+    status VARCHAR(30) NOT NULL DEFAULT 'pending', -- pending, completed, errored
 
     raw_request JSONB,
     raw_response JSONB,

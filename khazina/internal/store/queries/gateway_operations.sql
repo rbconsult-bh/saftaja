@@ -1,0 +1,41 @@
+-- name: CreateGatewayOperation :one
+INSERT INTO gateway_operations (
+    payment_intent_id, invoice_id, project_id, gateway_account_id,
+    operation_type, gateway_reference, raw_request
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING *;
+
+-- name: GetCompletedCapturePaymentGatewayOperationByPaymentIntentID :one
+SELECT * FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'capture_payment'
+AND status = 'completed'
+LIMIT 1;
+
+-- name: UpdateGatewayOperationStatus :exec
+UPDATE gateway_operations
+SET status = $2, raw_response = $3
+WHERE id = $1;
+
+-- name: GetCompletedPrepareCardAuthenticationGatewayOperation :one
+SELECT * FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'prepare_card_authentication'
+AND status = 'completed'
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: GetCompletedAuthenticateCardholderGatewayOperation :one
+SELECT * FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'authenticate_cardholder'
+AND status = 'completed'
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: GetLatestGatewayOperation :one
+SELECT * FROM gateway_operations
+WHERE payment_intent_id = $1
+ORDER BY created_at DESC
+LIMIT 1;

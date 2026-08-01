@@ -12,7 +12,11 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    uses: ./.github/workflows/reusable-test.yaml
+
   build:
+    needs: test
     uses: ./.github/workflows/reusable-build.yaml
     secrets: inherit
     with:

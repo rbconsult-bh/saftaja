@@ -9,7 +9,8 @@ export async function waitForHealthCheck(url: string, timeoutMs = 60000): Promis
     try {
       const res = await fetch(url, {
         headers: {
-          'bypass-tunnel-reminder': 'i guess we need this weird header :D'
+          'bypass-tunnel-reminder': 'i guess we need this weird header :D',
+          'User-Agent': 'curl/8.7.1',
         }
       });
       if (res.ok) {

@@ -30,6 +30,7 @@ docker compose up
 - Go 1.24+
 - Docker & Docker Compose
 - Bun (for e2e tests)
+- buf cli: go install github.com/bufbuild/buf/cmd/buf@v1.67.0
 
 ### Project Structure
 
@@ -78,14 +79,14 @@ bun playwright test -j 1 --headed
 Migrations run automatically on startup. For manual operations:
 
 ```bash
-# Apply migrations
-docker compose run --rm migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_DATABASE}?sslmode=disable" up
-
-# Create new migration
-docker compose run --rm migrate create -ext sql -dir /migrations -seq <name>
+# Apply all pending migrations
+make migrate-up
 
 # Rollback one migration
-docker compose run --rm migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_DATABASE}?sslmode=disable" down 1
+make migrate-down
+
+# Create new migration
+make migrate-create name=add_user_session
 ```
 
 ## Payment Flow
@@ -156,6 +157,10 @@ openssl rand -hex 32
 
 # Generate VERIFY_DOMAIN_SECRET
 openssl rand -hex 16
+
+# Generate JWT_PRIVATE_KEY
+openssl genrsa -out private.pem 2048
+cat private.pem | base64 | tr -d '\n' | pbcopy
 ```
 
 ## Admin API

@@ -9,20 +9,36 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 )
 
-const getInvoiceByID = `-- name: GetInvoiceByID :one
-SELECT id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at FROM invoices WHERE id = $1
+const createInvoice = `-- name: CreateInvoice :one
+INSERT INTO invoices (project_id, amount_minor, currency, customer_email, customer_name, description, status)
+VALUES ($1, $2, $3, $4, $5, $6, 'pending') RETURNING id, project_id, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at, amount_minor
 `
 
-func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error) {
-	row := q.db.QueryRow(ctx, getInvoiceByID, id)
+type CreateInvoiceParams struct {
+	ProjectID     uuid.UUID
+	AmountMinor   money.MinorAmount
+	Currency      money.Currency
+	CustomerEmail *string
+	CustomerName  *string
+	Description   *string
+}
+
+func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {
+	row := q.db.QueryRow(ctx, createInvoice,
+		arg.ProjectID,
+		arg.AmountMinor,
+		arg.Currency,
+		arg.CustomerEmail,
+		arg.CustomerName,
+		arg.Description,
+	)
 	var i Invoice
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
-		&i.Amount,
 		&i.Currency,
 		&i.Status,
 		&i.ExternalID,
@@ -33,12 +49,38 @@ func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.AmountMinor,
+	)
+	return i, err
+}
+
+const getInvoiceByID = `-- name: GetInvoiceByID :one
+SELECT id, project_id, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at, amount_minor FROM invoices WHERE id = $1
+`
+
+func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error) {
+	row := q.db.QueryRow(ctx, getInvoiceByID, id)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Currency,
+		&i.Status,
+		&i.ExternalID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.Description,
+		&i.PaidAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.AmountMinor,
 	)
 	return i, err
 }
 
 const getInvoiceByIDAndProject = `-- name: GetInvoiceByIDAndProject :one
-SELECT id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at FROM invoices WHERE id = $1 AND project_id = $2
+SELECT id, project_id, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at, amount_minor FROM invoices WHERE id = $1 AND project_id = $2
 `
 
 type GetInvoiceByIDAndProjectParams struct {
@@ -52,7 +94,6 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
-		&i.Amount,
 		&i.Currency,
 		&i.Status,
 		&i.ExternalID,
@@ -63,22 +104,116 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.AmountMinor,
 	)
 	return i, err
 }
 
-const updateInvoiceStatus = `-- name: UpdateInvoiceStatus :exec
-UPDATE invoices
-SET status = $2
-WHERE id = $1
+const getInvoiceByIDAndProjectForNoKeyUpdate = `-- name: GetInvoiceByIDAndProjectForNoKeyUpdate :one
+SELECT id, project_id, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at, amount_minor FROM invoices
+WHERE id = $1 AND project_id = $2
+FOR NO KEY UPDATE
 `
 
-type UpdateInvoiceStatusParams struct {
-	ID     uuid.UUID
-	Status domain.InvoiceStatus
+type GetInvoiceByIDAndProjectForNoKeyUpdateParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
 }
 
-func (q *Queries) UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) error {
-	_, err := q.db.Exec(ctx, updateInvoiceStatus, arg.ID, arg.Status)
+func (q *Queries) GetInvoiceByIDAndProjectForNoKeyUpdate(ctx context.Context, arg GetInvoiceByIDAndProjectForNoKeyUpdateParams) (Invoice, error) {
+	row := q.db.QueryRow(ctx, getInvoiceByIDAndProjectForNoKeyUpdate, arg.ID, arg.ProjectID)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Currency,
+		&i.Status,
+		&i.ExternalID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.Description,
+		&i.PaidAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.AmountMinor,
+	)
+	return i, err
+}
+
+const getInvoiceWithItemsByIDAndProjectID = `-- name: GetInvoiceWithItemsByIDAndProjectID :many
+SELECT i.id, i.project_id, i.currency, i.status, i.external_id, i.customer_email, i.customer_name, i.description, i.paid_at, i.created_at, i.updated_at, i.deleted_at, i.amount_minor, ii.id, ii.invoice_id, ii.name, ii.description, ii.quantity, ii.created_at, ii.unit_price_minor, ii.amount_minor
+FROM invoices i
+JOIN invoice_items ii ON ii.invoice_id = i.id
+WHERE i.id = $1 AND i.project_id = $2
+`
+
+type GetInvoiceWithItemsByIDAndProjectIDParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+type GetInvoiceWithItemsByIDAndProjectIDRow struct {
+	Invoice     Invoice
+	InvoiceItem InvoiceItem
+}
+
+func (q *Queries) GetInvoiceWithItemsByIDAndProjectID(ctx context.Context, arg GetInvoiceWithItemsByIDAndProjectIDParams) ([]GetInvoiceWithItemsByIDAndProjectIDRow, error) {
+	rows, err := q.db.Query(ctx, getInvoiceWithItemsByIDAndProjectID, arg.ID, arg.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetInvoiceWithItemsByIDAndProjectIDRow
+	for rows.Next() {
+		var i GetInvoiceWithItemsByIDAndProjectIDRow
+		if err := rows.Scan(
+			&i.Invoice.ID,
+			&i.Invoice.ProjectID,
+			&i.Invoice.Currency,
+			&i.Invoice.Status,
+			&i.Invoice.ExternalID,
+			&i.Invoice.CustomerEmail,
+			&i.Invoice.CustomerName,
+			&i.Invoice.Description,
+			&i.Invoice.PaidAt,
+			&i.Invoice.CreatedAt,
+			&i.Invoice.UpdatedAt,
+			&i.Invoice.DeletedAt,
+			&i.Invoice.AmountMinor,
+			&i.InvoiceItem.ID,
+			&i.InvoiceItem.InvoiceID,
+			&i.InvoiceItem.Name,
+			&i.InvoiceItem.Description,
+			&i.InvoiceItem.Quantity,
+			&i.InvoiceItem.CreatedAt,
+			&i.InvoiceItem.UnitPriceMinor,
+			&i.InvoiceItem.AmountMinor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markInvoiceFailed = `-- name: MarkInvoiceFailed :exec
+UPDATE invoices SET status = 'failed' WHERE id = $1
+`
+
+func (q *Queries) MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markInvoiceFailed, id)
+	return err
+}
+
+const markInvoicePaid = `-- name: MarkInvoicePaid :exec
+UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) MarkInvoicePaid(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markInvoicePaid, id)
 	return err
 }

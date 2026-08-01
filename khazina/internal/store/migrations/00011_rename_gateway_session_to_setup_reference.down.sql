@@ -1,0 +1,2 @@
+ALTER TABLE payment_intents
+RENAME COLUMN gateway_setup_reference TO gateway_session_id;

@@ -5,102 +5,179 @@
 package store
 
 import (
+	"database/sql/driver"
+	"fmt"
+	"time"
+
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/rbconsult-bh/saftaja/internal/domain"
-	"github.com/shopspring/decimal"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 )
 
-type GatewayAccount struct {
+type OrganizationRole string
+
+const (
+	OrganizationRoleOwner  OrganizationRole = "owner"
+	OrganizationRoleAdmin  OrganizationRole = "admin"
+	OrganizationRoleMember OrganizationRole = "member"
+)
+
+func (e *OrganizationRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrganizationRole(s)
+	case string:
+		*e = OrganizationRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrganizationRole: %T", src)
+	}
+	return nil
+}
+
+type NullOrganizationRole struct {
+	OrganizationRole OrganizationRole
+	Valid            bool // Valid is true if OrganizationRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrganizationRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrganizationRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrganizationRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrganizationRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrganizationRole), nil
+}
+
+type AuthIntent struct {
+	ID        uuid.UUID
+	Email     string
+	TokenHash []byte
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
+type Customer struct {
+	ID        uuid.UUID
+	Name      string
+	Email     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type CustomerSession struct {
 	ID             uuid.UUID
-	ProjectID      uuid.UUID
-	ConnectorType  domain.ConnectorType
-	AccountName    string
-	Settings       []byte
-	PaymentMethods []byte
-	IsActive       bool
-	CreatedAt      pgtype.Timestamptz
-	UpdatedAt      pgtype.Timestamptz
-	DeletedAt      pgtype.Timestamptz
-	Credentials    []byte
+	CustomerID     uuid.UUID
+	CurrentJtiHash []byte
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+}
+
+type GatewayAccount struct {
+	ID            uuid.UUID
+	ProjectID     uuid.UUID
+	ConnectorType ConnectorType
+	AccountName   string
+	Config        []byte
+	IsActive      bool
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+	Secret        []byte
+}
+
+type GatewayOperation struct {
+	ID               uuid.UUID
+	PaymentIntentID  uuid.UUID
+	InvoiceID        uuid.UUID
+	ProjectID        uuid.UUID
+	OperationType    GatewayOperationType
+	GatewayReference string
+	Status           GatewayOperationStatus
+	RawRequest       []byte
+	RawResponse      []byte
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
+	GatewayAccountID uuid.UUID
 }
 
 type Invoice struct {
 	ID            uuid.UUID
 	ProjectID     uuid.UUID
-	Amount        decimal.Decimal
-	Currency      string
-	Status        domain.InvoiceStatus
-	ExternalID    pgtype.Text
-	CustomerEmail pgtype.Text
-	CustomerName  pgtype.Text
-	Description   pgtype.Text
-	PaidAt        pgtype.Timestamptz
-	CreatedAt     pgtype.Timestamptz
-	UpdatedAt     pgtype.Timestamptz
-	DeletedAt     pgtype.Timestamptz
+	Currency      money.Currency
+	Status        InvoiceStatus
+	ExternalID    *string
+	CustomerEmail *string
+	CustomerName  *string
+	Description   *string
+	PaidAt        *time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+	AmountMinor   money.MinorAmount
 }
 
 type InvoiceItem struct {
-	ID          uuid.UUID
-	InvoiceID   uuid.UUID
-	Name        string
-	Description pgtype.Text
-	Quantity    int32
-	UnitPrice   decimal.Decimal
-	Amount      decimal.Decimal
-	CreatedAt   pgtype.Timestamptz
+	ID             uuid.UUID
+	InvoiceID      uuid.UUID
+	Name           string
+	Description    *string
+	Quantity       int32
+	CreatedAt      time.Time
+	UnitPriceMinor money.MinorAmount
+	AmountMinor    money.MinorAmount
 }
 
 type Organization struct {
 	ID        uuid.UUID
 	Name      string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	DeletedAt pgtype.Timestamptz
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
-type PaymentSession struct {
-	ID               uuid.UUID
-	InvoiceID        uuid.UUID
-	ProjectID        uuid.UUID
-	GatewayAccountID uuid.UUID
-	GatewaySessionID string
-	Status           domain.PaymentSessionStatus
-	PaymentMethod    domain.PaymentMethod
-	PayerIp          pgtype.Text
-	PayerUserAgent   pgtype.Text
-	ExpiresAt        pgtype.Timestamptz
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	DeletedAt        pgtype.Timestamptz
-	IdempotencyKey   pgtype.Text
+type OrganizationCustomer struct {
+	OrganizationID uuid.UUID
+	CustomerID     uuid.UUID
+	Role           OrganizationRole
+	CreatedAt      time.Time
+}
+
+type PaymentIntent struct {
+	ID                    uuid.UUID
+	InvoiceID             uuid.UUID
+	ProjectID             uuid.UUID
+	GatewayAccountID      uuid.UUID
+	GatewaySetupReference *string
+	Status                PaymentIntentStatus
+	PaymentMethod         PaymentMethod
+	PayerIp               string
+	PayerUserAgent        string
+	ExpiresAt             time.Time
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	DeletedAt             *time.Time
+	IdempotencyKey        string
+	AmountMinor           money.MinorAmount
+	Currency              money.Currency
 }
 
 type Project struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID
 	Name           string
-	Environment    domain.ProjectEnvironment
-	CustomDomain   pgtype.Text
-	CreatedAt      pgtype.Timestamptz
-	UpdatedAt      pgtype.Timestamptz
-	DeletedAt      pgtype.Timestamptz
-}
-
-type Transaction struct {
-	ID                   uuid.UUID
-	PaymentSessionID     uuid.UUID
-	InvoiceID            uuid.UUID
-	ProjectID            uuid.UUID
-	TransactionType      domain.TransactionType
-	GatewayTransactionID string
-	Amount               decimal.Decimal
-	Currency             string
-	Status               domain.TransactionStatus
-	RawRequest           []byte
-	RawResponse          []byte
-	CreatedAt            pgtype.Timestamptz
-	UpdatedAt            pgtype.Timestamptz
-	DeletedAt            pgtype.Timestamptz
+	Environment    ProjectEnvironment
+	CustomDomain   *string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      *time.Time
 }

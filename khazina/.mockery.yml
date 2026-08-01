@@ -1,0 +1,34 @@
+template: testify
+packages:
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/payment:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/payment/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/gateway/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant:
+    interfaces:
+      Service:
+        config:
+          dir: internal/app/tenant/mocks
+          pkgname: mocks
+          structname: MockService
+          filename: mock_Service.go
+  github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs:
+    interfaces:
+      Client:
+        config:
+          dir: internal/clients/mpgs/mocks
+          pkgname: mocks
+          structname: MockClient
+          filename: mock_Client.go

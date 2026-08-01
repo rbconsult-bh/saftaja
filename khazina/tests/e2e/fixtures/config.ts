@@ -1,3 +1,6 @@
+import { execSync } from 'child_process';
+import crypto from 'crypto';
+
 export const DB_CONFIG = {
   host: 'db',
   port: 5432,
@@ -9,6 +12,16 @@ export const DB_CONFIG = {
 export const TUNNEL_TIMEOUT_MS = 30000;
 export const HEALTH_CHECK_TIMEOUT_MS = 60000;
 
-export const TEST_ENCRYPTION_KEY_BASE64 = 'YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=';
-export const TEST_VERIFY_DOMAIN_SECRET = 'test-verify-secret';
-export const TEST_ADMIN_API_KEY = 'test-admin-key';
+export function generateTestEncryptionKey(): string {
+  const key = crypto.randomBytes(32);
+  return key.toString('base64');
+}
+
+export function generateTestJWTKey(): string {
+  const key = execSync('openssl genrsa 2048 2>/dev/null', { encoding: 'utf-8' });
+  return Buffer.from(key).toString('base64');
+}
+
+export function generateTestSecret(): string {
+  return crypto.randomBytes(32).toString('hex');
+}

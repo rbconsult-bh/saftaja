@@ -27,9 +27,9 @@ jobs:
         working-directory: khazina/tests/e2e
         run: bun run playwright test -j 1
         env:
-          TEST_MPGS_BASE_URL: ${{ secrets.TEST_MPGS_BASE_URL }}
-          TEST_MPGS_MERCHANT_ID: ${{ secrets.TEST_MPGS_MERCHANT_ID }}
-          TEST_MPGS_API_PASSWORD: ${{ secrets.TEST_MPGS_API_PASSWORD }}
+          KHAZINA_TEST_MPGS_BASE_URL: ${{ secrets.KHAZINA_TEST_MPGS_BASE_URL }}
+          KHAZINA_TEST_MPGS_MERCHANT_ID: ${{ secrets.KHAZINA_TEST_MPGS_MERCHANT_ID }}
+          KHAZINA_TEST_MPGS_API_PASSWORD: ${{ secrets.KHAZINA_TEST_MPGS_API_PASSWORD }}
           CI: true
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

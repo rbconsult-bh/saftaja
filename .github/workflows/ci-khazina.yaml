@@ -1,0 +1,10 @@
+name: CI Khazina
+
+on:
+  pull_request:
+    paths:
+      - 'khazina/**'
+
+jobs:
+  test:
+    uses: ./.github/workflows/reusable-test.yaml
