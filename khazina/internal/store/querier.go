@@ -30,6 +30,7 @@ type Querier interface {
 	GetGatewayAccountByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentIntentIDRow, error)
 	GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error)
 	GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceByIDAndProjectParams) (Invoice, error)
+	GetInvoiceByIDAndProjectForNoKeyUpdate(ctx context.Context, arg GetInvoiceByIDAndProjectForNoKeyUpdateParams) (Invoice, error)
 	GetInvoiceItems(ctx context.Context, invoiceID uuid.UUID) ([]InvoiceItem, error)
 	GetInvoiceWithItemsByIDAndProjectID(ctx context.Context, arg GetInvoiceWithItemsByIDAndProjectIDParams) ([]GetInvoiceWithItemsByIDAndProjectIDRow, error)
 	GetLatestGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error)
@@ -39,6 +40,7 @@ type Querier interface {
 	GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context, arg GetPaymentIntentByIdempotencyKeyAndProjectParams) (PaymentIntent, error)
 	GetProjectByCustomDomain(ctx context.Context, customDomain string) (Project, error)
 	GetProjectByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetProjectByPaymentIntentIDRow, error)
+	InvoiceHasOtherCapturingPaymentIntent(ctx context.Context, arg InvoiceHasOtherCapturingPaymentIntentParams) (bool, error)
 	ListActiveGatewayAccounts(ctx context.Context, projectID uuid.UUID) ([]GatewayAccount, error)
 	ListOrganizationsWithProjectsForCustomer(ctx context.Context, customerID uuid.UUID) ([]ListOrganizationsWithProjectsForCustomerRow, error)
 	MarkInvoiceFailed(ctx context.Context, id uuid.UUID) error

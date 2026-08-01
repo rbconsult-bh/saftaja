@@ -172,7 +172,7 @@ func TestMPGSCardGateway_PrepareCardAuthentication_Authenticate(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, PrepareCardAuthenticationGatewayNextStepAuthenticate, resp.NextStep)
+	assert.Equal(t, PrepareCardAuthenticationGatewayResultAvailable, resp.Result)
 	assert.Equal(t, rawResp, resp.RawResponse)
 }
 
@@ -205,7 +205,7 @@ func TestMPGSCardGateway_PrepareCardAuthentication_CantContinue(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, PrepareCardAuthenticationGatewayNextStepCantContinue, resp.NextStep)
+	assert.Equal(t, PrepareCardAuthenticationGatewayResultUnavailable, resp.Result)
 }
 
 func TestMPGSCardGateway_PrepareCardAuthentication_AuthenticationUnavailable(t *testing.T) {
@@ -240,7 +240,7 @@ func TestMPGSCardGateway_PrepareCardAuthentication_AuthenticationUnavailable(t *
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, PrepareCardAuthenticationGatewayNextStepCantContinue, resp.NextStep)
+	assert.Equal(t, PrepareCardAuthenticationGatewayResultUnavailable, resp.Result)
 }
 
 func TestMPGSCardGateway_PrepareCardAuthentication_SendError(t *testing.T) {
@@ -348,7 +348,7 @@ func TestMPGSCardGateway_AuthenticateCardholder_Challenge(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, AuthenticateCardholderGatewayNextStepChallenge, resp.NextStep)
+	assert.Equal(t, AuthenticateCardholderGatewayResultChallengeRequired, resp.Result)
 	assert.Equal(t, redirectHTML, resp.RedirectHTML)
 	assert.Equal(t, rawResp, resp.RawResponse)
 }
@@ -389,7 +389,7 @@ func TestMPGSCardGateway_AuthenticateCardholder_Capture(t *testing.T) {
 
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			assert.Equal(t, AuthenticateCardholderGatewayNextStepCapture, resp.NextStep)
+			assert.Equal(t, AuthenticateCardholderGatewayResultSucceeded, resp.Result)
 			assert.Empty(t, resp.RedirectHTML)
 			assert.Equal(t, rawResp, resp.RawResponse)
 		})
@@ -490,7 +490,7 @@ func TestMPGSCardGateway_AuthenticateCardholder_CantContinue(t *testing.T) {
 
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			assert.Equal(t, AuthenticateCardholderGatewayNextStepCantContinue, resp.NextStep)
+			assert.Equal(t, AuthenticateCardholderGatewayResultFailed, resp.Result)
 		})
 	}
 }
@@ -528,14 +528,14 @@ func TestMPGSCardGateway_GetCardAuthenticationResult_MapsActionableResults(t *te
 			result:         mpgsclient.ResultSuccess,
 			recommendation: mpgsclient.GatewayRecommendationProceed,
 			authStatus:     mpgsclient.AuthStatusSuccessful,
-			want:           CardAuthenticationResultProceed,
+			want:           CardAuthenticationResultSucceeded,
 		},
 		{
 			name:           "attempted_authentication_can_proceed",
 			result:         mpgsclient.ResultSuccess,
 			recommendation: mpgsclient.GatewayRecommendationProceed,
 			authStatus:     mpgsclient.AuthStatusAttempted,
-			want:           CardAuthenticationResultProceed,
+			want:           CardAuthenticationResultSucceeded,
 		},
 		{
 			name:           "pending_authentication_with_proceed",
@@ -761,7 +761,7 @@ func TestMPGSCardGateway_GetCardAuthenticationResult_RejectsUnsafeResults(t *tes
 
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			assert.Equal(t, CardAuthenticationResultCantContinue, resp.Result)
+			assert.Equal(t, CardAuthenticationResultFailed, resp.Result)
 			assert.Equal(t, rawResponse, resp.RawResponse)
 		})
 	}
@@ -783,6 +783,197 @@ func TestMPGSCardGateway_GetCardAuthenticationResult_SendError(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to retrieve authentication transaction")
+	assert.Nil(t, resp)
+}
+
+func TestMPGSCardGateway_CaptureCardPayment_MapsResult(t *testing.T) {
+	tests := []struct {
+		name        string
+		result      string
+		gatewayCode mpgsclient.GatewayCode
+		want        CaptureCardPaymentGatewayResult
+	}{
+		{
+			name:        "approved",
+			result:      mpgsclient.ResultSuccess,
+			gatewayCode: mpgsclient.CodeApproved,
+			want:        CaptureCardPaymentGatewayResultSucceeded,
+		},
+		{
+			name:        "declined",
+			result:      mpgsclient.ResultFailure,
+			gatewayCode: mpgsclient.CodeDeclined,
+			want:        CaptureCardPaymentGatewayResultDeclined,
+		},
+		{
+			name:        "pending",
+			result:      mpgsclient.ResultPending,
+			gatewayCode: mpgsclient.CodePending,
+			want:        CaptureCardPaymentGatewayResultPending,
+		},
+		{
+			name:        "unknown",
+			result:      mpgsclient.ResultUnknown,
+			gatewayCode: mpgsclient.CodeUnknown,
+			want:        CaptureCardPaymentGatewayResultUnknown,
+		},
+		{
+			name:        "ambiguous_failure",
+			result:      mpgsclient.ResultFailure,
+			gatewayCode: mpgsclient.CodeTimedOut,
+			want:        CaptureCardPaymentGatewayResultUnknown,
+		},
+		{
+			name:        "contradictory_success",
+			result:      mpgsclient.ResultSuccess,
+			gatewayCode: mpgsclient.CodeApprovedAuto,
+			want:        CaptureCardPaymentGatewayResultUnknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := validCaptureCardPaymentGatewayRequest()
+			data := validExecutePayResponse(req)
+			data.Result = tt.result
+			data.Response.GatewayCode = tt.gatewayCode
+			rawResponse := []byte(`{"result":"test"}`)
+
+			mpgsClient := mpgsmocks.NewMockClient(t)
+			mpgsClient.EXPECT().
+				ExecutePay(mock.Anything, req.InvoiceID.String(), req.PaymentReference.String(), mock.MatchedBy(func(got *mpgsclient.ExecutePayRequest) bool {
+					return got.APIOperation == mpgsclient.OperationPay &&
+						got.Authentication.TransactionID == string(req.AuthenticationReference) &&
+						got.Order.Amount == req.Amount.String() &&
+						got.Order.Currency == req.Currency &&
+						got.Session.ID == string(req.PaymentMethodReference)
+				})).
+				Return(&mpgsclient.Response[mpgsclient.ExecutePayResponse]{
+					Data:    data,
+					RawBody: rawResponse,
+				}, nil)
+
+			gateway := &mpgsCardGateway{client: mpgsClient}
+			prepared, err := gateway.CaptureCardPayment(t.Context(), req)
+			require.NoError(t, err)
+			require.NotNil(t, prepared)
+			assert.JSONEq(t, `{
+				"apiOperation":"PAY",
+				"authentication":{"transactionId":"AUTHENTICATION123"},
+				"order":{"amount":"15","currency":"BHD"},
+				"session":{"id":"SESSION123"}
+			}`, string(prepared.RawRequest))
+
+			resp, err := prepared.Send(t.Context())
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.Equal(t, tt.want, resp.Result)
+			assert.Equal(t, rawResponse, resp.RawResponse)
+		})
+	}
+}
+
+func TestMPGSCardGateway_CaptureCardPayment_MapsDefinitiveDeclines(t *testing.T) {
+	codes := []mpgsclient.GatewayCode{
+		mpgsclient.CodeAborted,
+		mpgsclient.CodeAuthenticationFailed,
+		mpgsclient.CodeBlocked,
+		mpgsclient.CodeCancelled,
+		mpgsclient.CodeDeclined,
+		mpgsclient.CodeDeclinedAVS,
+		mpgsclient.CodeDeclinedAVSCSC,
+		mpgsclient.CodeDeclinedCSC,
+		mpgsclient.CodeDeclinedDoNotContact,
+		mpgsclient.CodeDeclinedInvalidPIN,
+		mpgsclient.CodeDeclinedPaymentPlan,
+		mpgsclient.CodeDeclinedPINRequired,
+		mpgsclient.CodeExceededRetryLimit,
+		mpgsclient.CodeExpiredCard,
+		mpgsclient.CodeInsufficientFunds,
+		mpgsclient.CodeInvalidCSC,
+		mpgsclient.CodeNotEnrolled3DS,
+		mpgsclient.CodeNotSupported,
+		mpgsclient.CodePartiallyApproved,
+		mpgsclient.CodeReferred,
+		mpgsclient.CodeUnspecifiedFailure,
+	}
+
+	for _, code := range codes {
+		t.Run(string(code), func(t *testing.T) {
+			req := validCaptureCardPaymentGatewayRequest()
+			data := validExecutePayResponse(req)
+			data.Result = mpgsclient.ResultFailure
+			data.Response.GatewayCode = code
+
+			mpgsClient := mpgsmocks.NewMockClient(t)
+			mpgsClient.EXPECT().
+				ExecutePay(mock.Anything, req.InvoiceID.String(), req.PaymentReference.String(), mock.Anything).
+				Return(&mpgsclient.Response[mpgsclient.ExecutePayResponse]{Data: data}, nil)
+
+			gateway := &mpgsCardGateway{client: mpgsClient}
+			prepared, err := gateway.CaptureCardPayment(t.Context(), req)
+			require.NoError(t, err)
+			resp, err := prepared.Send(t.Context())
+			require.NoError(t, err)
+			assert.Equal(t, CaptureCardPaymentGatewayResultDeclined, resp.Result)
+		})
+	}
+}
+
+func TestMPGSCardGateway_CaptureCardPayment_RejectsUnsafeSuccess(t *testing.T) {
+	tests := []struct {
+		name   string
+		change func(*mpgsclient.ExecutePayResponse)
+	}{
+		{name: "wrong_order_id", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Order.ID = uuid.NewString() }},
+		{name: "wrong_transaction_id", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Transaction.ID = uuid.NewString() }},
+		{name: "wrong_transaction_type", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Transaction.Type = mpgsclient.TypeAuthorization }},
+		{name: "wrong_order_amount", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Order.Amount = decimal.NewFromInt(99) }},
+		{name: "wrong_transaction_amount", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Transaction.Amount = decimal.NewFromInt(99) }},
+		{name: "wrong_order_currency", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Order.Currency = "USD" }},
+		{name: "wrong_transaction_currency", change: func(resp *mpgsclient.ExecutePayResponse) { resp.Transaction.Currency = "USD" }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := validCaptureCardPaymentGatewayRequest()
+			data := validExecutePayResponse(req)
+			tt.change(&data)
+			rawResponse := []byte(`{"result":"SUCCESS"}`)
+
+			mpgsClient := mpgsmocks.NewMockClient(t)
+			mpgsClient.EXPECT().
+				ExecutePay(mock.Anything, req.InvoiceID.String(), req.PaymentReference.String(), mock.Anything).
+				Return(&mpgsclient.Response[mpgsclient.ExecutePayResponse]{
+					Data:    data,
+					RawBody: rawResponse,
+				}, nil)
+
+			gateway := &mpgsCardGateway{client: mpgsClient}
+			prepared, err := gateway.CaptureCardPayment(t.Context(), req)
+			require.NoError(t, err)
+			resp, err := prepared.Send(t.Context())
+			require.ErrorIs(t, err, ErrGatewayResponseMismatch)
+			assert.Equal(t, rawResponse, rawGatewayResponse(err))
+			assert.Nil(t, resp)
+		})
+	}
+}
+
+func TestMPGSCardGateway_CaptureCardPayment_SendError(t *testing.T) {
+	req := validCaptureCardPaymentGatewayRequest()
+	mpgsClient := mpgsmocks.NewMockClient(t)
+	mpgsClient.EXPECT().
+		ExecutePay(mock.Anything, req.InvoiceID.String(), req.PaymentReference.String(), mock.Anything).
+		Return(nil, errors.New("pay failed"))
+
+	gateway := &mpgsCardGateway{client: mpgsClient}
+	prepared, err := gateway.CaptureCardPayment(t.Context(), req)
+	require.NoError(t, err)
+	resp, err := prepared.Send(t.Context())
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to capture card payment")
 	assert.Nil(t, resp)
 }
 
@@ -852,5 +1043,36 @@ func validGetCardAuthenticationResultGatewayRequest() GetCardAuthenticationResul
 		Amount:                  decimal.RequireFromString("15.000"),
 		Currency:                "BHD",
 		AuthenticationReference: "AUTHENTICATION123",
+	}
+}
+
+func validCaptureCardPaymentGatewayRequest() CaptureCardPaymentGatewayRequest {
+	return CaptureCardPaymentGatewayRequest{
+		InvoiceID:               uuid.MustParse("00000000-0000-0000-0000-000000003001"),
+		PaymentReference:        uuid.MustParse("00000000-0000-0000-0000-000000005008"),
+		Amount:                  decimal.RequireFromString("15.000"),
+		Currency:                "BHD",
+		PaymentMethodReference:  "SESSION123",
+		AuthenticationReference: "AUTHENTICATION123",
+	}
+}
+
+func validExecutePayResponse(r CaptureCardPaymentGatewayRequest) mpgsclient.ExecutePayResponse {
+	return mpgsclient.ExecutePayResponse{
+		Order: mpgsclient.ExecutePayOrder{
+			Amount:   r.Amount,
+			Currency: r.Currency,
+			ID:       r.InvoiceID.String(),
+		},
+		Response: mpgsclient.ExecutePayGatewayResponse{
+			GatewayCode: mpgsclient.CodeApproved,
+		},
+		Result: mpgsclient.ResultSuccess,
+		Transaction: mpgsclient.ExecutePayTransaction{
+			Amount:   r.Amount,
+			Currency: r.Currency,
+			ID:       r.PaymentReference.String(),
+			Type:     mpgsclient.TypePayment,
+		},
 	}
 }

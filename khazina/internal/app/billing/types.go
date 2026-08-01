@@ -19,6 +19,7 @@ var (
 	ErrNotFound                       = errors.New("not found")
 	ErrUnsupportedPaymentMethod       = errors.New("unsupported payment method")
 	ErrInvoiceAlreadyPaid             = errors.New("invoice already paid")
+	ErrInvoicePaymentInProgress       = errors.New("invoice payment in progress")
 	ErrInvoiceCancelled               = errors.New("invoice cancelled")
 	ErrInvoiceNotFound                = errors.New("invoice not found")
 	ErrInvoiceInvalidState            = errors.New("invoice invalid state")
@@ -185,10 +186,26 @@ func (r *CreatePaymentIntentRequest) Validate() error {
 	return nil
 }
 
-type (
-	CapturePaymentIntentRequest  struct{}
-	CapturePaymentIntentResponse struct{}
+type CapturePaymentIntentNextStep string
+
+const (
+	CapturePaymentIntentNextStepComplete     CapturePaymentIntentNextStep = "complete"
+	CapturePaymentIntentNextStepProcessing   CapturePaymentIntentNextStep = "processing"
+	CapturePaymentIntentNextStepCantContinue CapturePaymentIntentNextStep = "cant_continue"
 )
+
+type (
+	CapturePaymentIntentRequest struct {
+		PaymentIntentRef
+	}
+	CapturePaymentIntentResponse struct {
+		NextStep CapturePaymentIntentNextStep
+	}
+)
+
+func (r *CapturePaymentIntentRequest) Validate() error {
+	return r.PaymentIntentRef.Validate()
+}
 
 type PrepareCardAuthenticationNextStep string
 

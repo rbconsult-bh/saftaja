@@ -31,3 +31,12 @@ WHERE id = $1;
 SELECT * FROM payment_intents
 WHERE id = $1 AND project_id = $2 AND invoice_id = $3 LIMIT 1
 FOR NO KEY UPDATE;
+
+-- name: InvoiceHasOtherCapturingPaymentIntent :one
+SELECT EXISTS (
+  SELECT 1 FROM payment_intents
+  WHERE invoice_id = $1
+    AND id != $2
+    AND status = 'capturing'
+    AND deleted_at IS NULL
+);

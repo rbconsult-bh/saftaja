@@ -186,6 +186,28 @@ func (q *Queries) GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context
 	return i, err
 }
 
+const invoiceHasOtherCapturingPaymentIntent = `-- name: InvoiceHasOtherCapturingPaymentIntent :one
+SELECT EXISTS (
+  SELECT 1 FROM payment_intents
+  WHERE invoice_id = $1
+    AND id != $2
+    AND status = 'capturing'
+    AND deleted_at IS NULL
+)
+`
+
+type InvoiceHasOtherCapturingPaymentIntentParams struct {
+	InvoiceID uuid.UUID
+	ID        uuid.UUID
+}
+
+func (q *Queries) InvoiceHasOtherCapturingPaymentIntent(ctx context.Context, arg InvoiceHasOtherCapturingPaymentIntentParams) (bool, error) {
+	row := q.db.QueryRow(ctx, invoiceHasOtherCapturingPaymentIntent, arg.InvoiceID, arg.ID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const updatePaymentIntentGatewaySetupReference = `-- name: UpdatePaymentIntentGatewaySetupReference :exec
 UPDATE payment_intents
 SET gateway_setup_reference = $2

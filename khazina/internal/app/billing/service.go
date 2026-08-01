@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
@@ -214,7 +215,311 @@ func (s *service) CreatePaymentIntent(ctx context.Context, r CreatePaymentIntent
 }
 
 func (s *service) CapturePaymentIntent(ctx context.Context, r CapturePaymentIntentRequest) (*CapturePaymentIntentResponse, error) {
-	return &CapturePaymentIntentResponse{}, nil
+	if err := r.Validate(); err != nil {
+		log.Ctx(ctx).Info().Err(err).Msg("validation failed")
+		return nil, err
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to begin capture tx")
+		return nil, fmt.Errorf("failed to begin capture tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	queriesWithTx := s.queries.WithTx(tx)
+	invoice, err := queriesWithTx.GetInvoiceByIDAndProjectForNoKeyUpdate(ctx, store.GetInvoiceByIDAndProjectForNoKeyUpdateParams{
+		ID:        r.InvoiceID,
+		ProjectID: r.ProjectID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to lock invoice: %w", err)
+	}
+
+	paymentIntent, err := queriesWithTx.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate(
+		ctx,
+		store.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdateParams{
+			ID:        r.PaymentIntentID,
+			ProjectID: r.ProjectID,
+			InvoiceID: r.InvoiceID,
+		},
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to lock payment intent: %w", err)
+	}
+
+	currentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
+	if err != nil {
+		return nil, err
+	}
+	switch currentStatus {
+	case PaymentIntentStatusSucceeded:
+		return &CapturePaymentIntentResponse{NextStep: CapturePaymentIntentNextStepComplete}, nil
+	case PaymentIntentStatusFailed:
+		return &CapturePaymentIntentResponse{NextStep: CapturePaymentIntentNextStepCantContinue}, nil
+	case PaymentIntentStatusCapturing:
+		// TODO: Reconcile capturing payment intents with a durable River job before production. Until that worker retrieves the existing gateway transaction and applies its final result, this intent remains stuck in capturing.
+		return processingCapturePaymentIntentResponse(), nil
+	case PaymentIntentStatusReadyToCapture:
+		// Start capture below.
+	default:
+		return nil, fmt.Errorf(
+			"%w: CapturePaymentIntent requires %s, got %s",
+			ErrPaymentIntentInvalidState,
+			PaymentIntentStatusReadyToCapture,
+			currentStatus,
+		)
+	}
+
+	switch invoice.Status {
+	case store.InvoiceStatusPending:
+		// Invoice can be paid.
+	case store.InvoiceStatusPaid:
+		return nil, ErrInvoiceAlreadyPaid
+	case store.InvoiceStatusCancelled:
+		return nil, ErrInvoiceCancelled
+	default:
+		return nil, fmt.Errorf("%w: unknown invoice status %q", ErrInvoiceInvalidState, invoice.Status)
+	}
+
+	if paymentIntent.ExpiresAt.Before(time.Now()) {
+		return nil, ErrPaymentIntentExpired
+	}
+	if paymentIntent.GatewaySetupReference == nil || *paymentIntent.GatewaySetupReference == "" {
+		return nil, fmt.Errorf("%w: payment intent is missing payment method reference", ErrPaymentIntentInvalidState)
+	}
+
+	paymentMethod, err := mapStorePaymentMethodToPaymentMethod(paymentIntent.PaymentMethod)
+	if err != nil {
+		return nil, err
+	}
+	if paymentMethod != PaymentMethodCard {
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedPaymentMethod, paymentMethod)
+	}
+
+	hasOtherCapturingIntent, err := queriesWithTx.InvoiceHasOtherCapturingPaymentIntent(
+		ctx,
+		store.InvoiceHasOtherCapturingPaymentIntentParams{
+			InvoiceID: r.InvoiceID,
+			ID:        r.PaymentIntentID,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check invoice capture: %w", err)
+	}
+	if hasOtherCapturingIntent {
+		return nil, ErrInvoicePaymentInProgress
+	}
+
+	authenticationOperation, err := queriesWithTx.GetCompletedAuthenticateCardholderGatewayOperation(ctx, paymentIntent.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf(
+				"%w: completed authenticate cardholder gateway operation is missing",
+				ErrPaymentIntentInvalidState,
+			)
+		}
+		return nil, fmt.Errorf("failed to get authenticate cardholder gateway operation: %w", err)
+	}
+	if authenticationOperation.GatewayReference == "" {
+		return nil, fmt.Errorf(
+			"%w: authenticate cardholder gateway operation is missing gateway reference",
+			ErrPaymentIntentInvalidState,
+		)
+	}
+
+	gatewayAccount, err := queriesWithTx.GetGatewayAccountByIDAndProject(ctx, store.GetGatewayAccountByIDAndProjectParams{
+		ID:        paymentIntent.GatewayAccountID,
+		ProjectID: paymentIntent.ProjectID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get gateway account: %w", err)
+	}
+	cardGateway, err := s.gatewayResolver.CardGateway(gatewayAccount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve card gateway: %w", err)
+	}
+
+	prepared, err := cardGateway.CaptureCardPayment(ctx, CaptureCardPaymentGatewayRequest{
+		InvoiceID:               invoice.ID,
+		PaymentReference:        paymentIntent.ID,
+		Amount:                  invoice.Amount,
+		Currency:                invoice.Currency,
+		PaymentMethodReference:  PaymentMethodReference(*paymentIntent.GatewaySetupReference),
+		AuthenticationReference: AuthenticationReference(authenticationOperation.GatewayReference),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare capture card payment: %w", err)
+	}
+
+	gatewayOperation, err := queriesWithTx.CreateGatewayOperation(ctx, store.CreateGatewayOperationParams{
+		PaymentIntentID:  paymentIntent.ID,
+		InvoiceID:        invoice.ID,
+		ProjectID:        paymentIntent.ProjectID,
+		GatewayAccountID: paymentIntent.GatewayAccountID,
+		OperationType:    store.GatewayOperationTypeCapturePayment,
+		GatewayReference: paymentIntent.ID.String(),
+		Amount:           invoice.Amount,
+		Currency:         invoice.Currency,
+		RawRequest:       prepared.RawRequest,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create capture gateway operation: %w", err)
+	}
+
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusCapturing); err != nil {
+		return nil, err
+	}
+	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
+		ID:     paymentIntent.ID,
+		Status: store.PaymentIntentStatusCapturing,
+	}); err != nil {
+		return nil, fmt.Errorf("failed to mark payment intent capturing: %w", err)
+	}
+
+	// TODO: Enqueue a durable payment-capture reconciliation job whenever a payment intent enters or remains in capturing. The worker must retrieve the existing gateway transaction using the payment-intent ID and must never create a new gateway transaction for reconciliation.
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit capture start: %w", err)
+	}
+
+	gatewayResponse, gatewayErr := prepared.Send(ctx)
+	if gatewayErr != nil {
+		log.Ctx(ctx).Error().Err(gatewayErr).Msg("card capture outcome is unknown")
+		if err := s.finishCardCapture(
+			ctx,
+			r.PaymentIntentRef,
+			gatewayOperation.ID,
+			store.GatewayOperationStatusErrored,
+			CaptureCardPaymentGatewayResultUnknown,
+			rawGatewayResponse(gatewayErr),
+		); err != nil {
+			return nil, err
+		}
+		return processingCapturePaymentIntentResponse(), nil
+	}
+
+	if err := s.finishCardCapture(
+		ctx,
+		r.PaymentIntentRef,
+		gatewayOperation.ID,
+		store.GatewayOperationStatusCompleted,
+		gatewayResponse.Result,
+		gatewayResponse.RawResponse,
+	); err != nil {
+		return nil, err
+	}
+
+	switch gatewayResponse.Result {
+	case CaptureCardPaymentGatewayResultSucceeded:
+		return &CapturePaymentIntentResponse{NextStep: CapturePaymentIntentNextStepComplete}, nil
+	case CaptureCardPaymentGatewayResultDeclined:
+		return &CapturePaymentIntentResponse{NextStep: CapturePaymentIntentNextStepCantContinue}, nil
+	case CaptureCardPaymentGatewayResultPending:
+		return processingCapturePaymentIntentResponse(), nil
+	case CaptureCardPaymentGatewayResultUnknown:
+		return processingCapturePaymentIntentResponse(), nil
+	default:
+		return nil, fmt.Errorf("unsupported capture card payment gateway result %q", gatewayResponse.Result)
+	}
+}
+
+func (s *service) finishCardCapture(
+	ctx context.Context,
+	ref PaymentIntentRef,
+	gatewayOperationID uuid.UUID,
+	operationStatus store.GatewayOperationStatus,
+	result CaptureCardPaymentGatewayResult,
+	rawResponse []byte,
+) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin capture result tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	queriesWithTx := s.queries.WithTx(tx)
+	if _, err := queriesWithTx.GetInvoiceByIDAndProjectForNoKeyUpdate(ctx, store.GetInvoiceByIDAndProjectForNoKeyUpdateParams{
+		ID:        ref.InvoiceID,
+		ProjectID: ref.ProjectID,
+	}); err != nil {
+		return fmt.Errorf("failed to lock invoice for capture result: %w", err)
+	}
+	paymentIntent, err := queriesWithTx.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate(
+		ctx,
+		store.GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdateParams{
+			ID:        ref.PaymentIntentID,
+			ProjectID: ref.ProjectID,
+			InvoiceID: ref.InvoiceID,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to lock payment intent for capture result: %w", err)
+	}
+
+	if err := queriesWithTx.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
+		ID:          gatewayOperationID,
+		Status:      operationStatus,
+		RawResponse: rawResponse,
+	}); err != nil {
+		return fmt.Errorf("failed to update capture gateway operation: %w", err)
+	}
+
+	currentStatus, err := mapStorePaymentIntentStatusToPaymentIntentStatus(paymentIntent.Status)
+	if err != nil {
+		return err
+	}
+	paymentMethod, err := mapStorePaymentMethodToPaymentMethod(paymentIntent.PaymentMethod)
+	if err != nil {
+		return err
+	}
+
+	var targetStatus PaymentIntentStatus
+	switch result {
+	case CaptureCardPaymentGatewayResultSucceeded:
+		targetStatus = PaymentIntentStatusSucceeded
+	case CaptureCardPaymentGatewayResultDeclined:
+		targetStatus = PaymentIntentStatusFailed
+	case CaptureCardPaymentGatewayResultPending, CaptureCardPaymentGatewayResultUnknown:
+		return tx.Commit(ctx)
+	default:
+		return fmt.Errorf("unsupported capture card payment gateway result %q", result)
+	}
+
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, targetStatus); err != nil {
+		return err
+	}
+	targetStoreStatus, err := mapPaymentIntentStatusToStorePaymentIntentStatus(targetStatus)
+	if err != nil {
+		return err
+	}
+	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
+		ID:     paymentIntent.ID,
+		Status: targetStoreStatus,
+	}); err != nil {
+		return fmt.Errorf("failed to update captured payment intent: %w", err)
+	}
+	if result == CaptureCardPaymentGatewayResultSucceeded {
+		if err := queriesWithTx.MarkInvoicePaid(ctx, ref.InvoiceID); err != nil {
+			return fmt.Errorf("failed to mark invoice paid: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit capture result: %w", err)
+	}
+	return nil
+}
+
+func processingCapturePaymentIntentResponse() *CapturePaymentIntentResponse {
+	return &CapturePaymentIntentResponse{
+		NextStep: CapturePaymentIntentNextStepProcessing,
+	}
 }
 
 func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationRequest) (*PrepareCardAuthenticationResponse, error) {
@@ -344,7 +649,7 @@ func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAu
 		return nil, err
 	}
 
-	if gatewayResp.NextStep != PrepareCardAuthenticationGatewayNextStepAuthenticate {
+	if gatewayResp.Result != PrepareCardAuthenticationGatewayResultAvailable {
 		// The gateway call completed with a valid response, but its decision was "can't continue."
 		// Keep the payment intent in created so the customer can update the card and
 		// retry PrepareCardAuthentication. The raw gateway decision is stored on this operation.
@@ -551,19 +856,19 @@ func (s *service) AuthenticateCardholder(ctx context.Context, r AuthenticateCard
 		targetStatus PaymentIntentStatus
 		redirectHTML string
 	)
-	switch gatewayResp.NextStep {
-	case AuthenticateCardholderGatewayNextStepChallenge:
+	switch gatewayResp.Result {
+	case AuthenticateCardholderGatewayResultChallengeRequired:
 		nextStep = AuthenticateCardholderNextStepChallenge
 		targetStatus = PaymentIntentStatusAwaitingAuthenticationResult
 		redirectHTML = gatewayResp.RedirectHTML
-	case AuthenticateCardholderGatewayNextStepCapture:
+	case AuthenticateCardholderGatewayResultSucceeded:
 		nextStep = AuthenticateCardholderNextStepCapture
 		targetStatus = PaymentIntentStatusReadyToCapture
-	case AuthenticateCardholderGatewayNextStepCantContinue:
+	case AuthenticateCardholderGatewayResultFailed:
 		nextStep = AuthenticateCardholderNextStepCantContinue
 		targetStatus = PaymentIntentStatusFailed
 	default:
-		return nil, fmt.Errorf("unsupported authenticate cardholder gateway next step %q", gatewayResp.NextStep)
+		return nil, fmt.Errorf("unsupported authenticate cardholder gateway result %q", gatewayResp.Result)
 	}
 
 	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, targetStatus); err != nil {
@@ -758,7 +1063,7 @@ func (s *service) VerifyCardAuthentication(ctx context.Context, r VerifyCardAuth
 		targetStatus PaymentIntentStatus
 	)
 	switch gatewayResp.Result {
-	case CardAuthenticationResultProceed:
+	case CardAuthenticationResultSucceeded:
 		nextStep = VerifyCardAuthenticationNextStepCapture
 		targetStatus = PaymentIntentStatusReadyToCapture
 	case CardAuthenticationResultPending:
@@ -773,7 +1078,7 @@ func (s *service) VerifyCardAuthentication(ctx context.Context, r VerifyCardAuth
 		return &VerifyCardAuthenticationResponse{
 			NextStep: VerifyCardAuthenticationNextStepPending,
 		}, nil
-	case CardAuthenticationResultCantContinue:
+	case CardAuthenticationResultFailed:
 		nextStep = VerifyCardAuthenticationNextStepCantContinue
 		targetStatus = PaymentIntentStatusFailed
 	default:

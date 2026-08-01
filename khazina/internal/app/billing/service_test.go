@@ -120,6 +120,16 @@ func validVerifyCardAuthenticationRequest() VerifyCardAuthenticationRequest {
 	}
 }
 
+func validCapturePaymentIntentRequest() CapturePaymentIntentRequest {
+	return CapturePaymentIntentRequest{
+		PaymentIntentRef: PaymentIntentRef{
+			ProjectID:       uuidProject,
+			InvoiceID:       uuidInvoice,
+			PaymentIntentID: uuidPaymentReadyToCapture,
+		},
+	}
+}
+
 func countPaymentIntents(t *testing.T, env testEnv) int {
 	t.Helper()
 
@@ -614,7 +624,7 @@ func TestPrepareCardAuthentication_RecordsPendingGatewayOperationBeforeSending(t
 			assert.Equal(t, "gw-init-auth-123", op.GatewayReference)
 
 			return &PrepareCardAuthenticationGatewayResponse{
-				NextStep:    PrepareCardAuthenticationGatewayNextStepAuthenticate,
+				Result:      PrepareCardAuthenticationGatewayResultAvailable,
 				RawResponse: rawResp,
 			}, nil
 		},
@@ -658,7 +668,7 @@ func TestPrepareCardAuthentication_RecordsCantContinueGatewayResponseAndAllowsRe
 		RawRequest:              []byte(`{"prepared":true}`),
 		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
 			return &PrepareCardAuthenticationGatewayResponse{
-				NextStep:    PrepareCardAuthenticationGatewayNextStepCantContinue,
+				Result:      PrepareCardAuthenticationGatewayResultUnavailable,
 				RawResponse: rawResp,
 			}, nil
 		},
@@ -685,7 +695,7 @@ func TestPrepareCardAuthentication_RecordsCantContinueGatewayResponseAndAllowsRe
 		RawRequest:              []byte(`{"prepared":"retry"}`),
 		send: func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error) {
 			return &PrepareCardAuthenticationGatewayResponse{
-				NextStep:    PrepareCardAuthenticationGatewayNextStepAuthenticate,
+				Result:      PrepareCardAuthenticationGatewayResultAvailable,
 				RawResponse: retryRawResp,
 			}, nil
 		},
@@ -802,7 +812,7 @@ func TestAuthenticateCardholder_CompletesChallenge(t *testing.T) {
 			assert.Equal(t, store.GatewayOperationStatusPending, op.Status)
 
 			return &AuthenticateCardholderGatewayResponse{
-				NextStep:     AuthenticateCardholderGatewayNextStepChallenge,
+				Result:       AuthenticateCardholderGatewayResultChallengeRequired,
 				RedirectHTML: redirectHTML,
 				RawResponse:  rawResponse,
 			}, nil
@@ -847,7 +857,7 @@ func TestAuthenticateCardholder_FrictionlessIsReadyToCapture(t *testing.T) {
 		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
 		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
 			return &AuthenticateCardholderGatewayResponse{
-				NextStep:    AuthenticateCardholderGatewayNextStepCapture,
+				Result:      AuthenticateCardholderGatewayResultSucceeded,
 				RawResponse: []byte(`{"result":"SUCCESS"}`),
 			}, nil
 		},
@@ -873,7 +883,7 @@ func TestAuthenticateCardholder_CantContinueFailsPaymentIntent(t *testing.T) {
 		RawRequest: []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
 		send: func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error) {
 			return &AuthenticateCardholderGatewayResponse{
-				NextStep:    AuthenticateCardholderGatewayNextStepCantContinue,
+				Result:      AuthenticateCardholderGatewayResultFailed,
 				RawResponse: rawResponse,
 			}, nil
 		},
@@ -1185,13 +1195,13 @@ func TestVerifyCardAuthentication_AppliesFinalResult(t *testing.T) {
 	}{
 		{
 			name:       "authenticated",
-			result:     CardAuthenticationResultProceed,
+			result:     CardAuthenticationResultSucceeded,
 			wantStep:   VerifyCardAuthenticationNextStepCapture,
 			wantStatus: store.PaymentIntentStatusReadyToCapture,
 		},
 		{
 			name:       "cant_continue",
-			result:     CardAuthenticationResultCantContinue,
+			result:     CardAuthenticationResultFailed,
 			wantStep:   VerifyCardAuthenticationNextStepCantContinue,
 			wantStatus: store.PaymentIntentStatusFailed,
 		},
@@ -1282,6 +1292,253 @@ func TestVerifyCardAuthentication_UnsupportedGatewayResultKeepsIntentAwaiting(t 
 	assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
 }
 
+func TestCapturePaymentIntent_RejectsInvalidRequest(t *testing.T) {
+	env := setupTestEnv(t)
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, CapturePaymentIntentRequest{})
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrInvalidArgument)
+	assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+}
+
+func TestCapturePaymentIntent_RejectsInvalidState(t *testing.T) {
+	env := setupTestEnv(t)
+	req := validCapturePaymentIntentRequest()
+	req.PaymentIntentID = uuidPaymentIntent
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, req)
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
+	assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+}
+
+func TestCapturePaymentIntent_ReplaysKnownStateWithoutGatewayCall(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   store.PaymentIntentStatus
+		nextStep CapturePaymentIntentNextStep
+	}{
+		{name: "succeeded", status: store.PaymentIntentStatusSucceeded, nextStep: CapturePaymentIntentNextStepComplete},
+		{name: "failed", status: store.PaymentIntentStatusFailed, nextStep: CapturePaymentIntentNextStepCantContinue},
+		{name: "capturing", status: store.PaymentIntentStatusCapturing, nextStep: CapturePaymentIntentNextStepProcessing},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := setupTestEnv(t)
+			require.NoError(t, env.queries.UpdatePaymentIntentStatus(env.ctx, store.UpdatePaymentIntentStatusParams{
+				ID:     uuidPaymentReadyToCapture,
+				Status: tt.status,
+			}))
+
+			resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.Equal(t, tt.nextStep, resp.NextStep)
+			assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+		})
+	}
+}
+
+func TestCapturePaymentIntent_RejectsExpiredIntent(t *testing.T) {
+	env := setupTestEnv(t)
+	_, err := env.db.Exec(env.ctx, "UPDATE payment_intents SET expires_at = '2025-01-01' WHERE id = $1", uuidPaymentReadyToCapture)
+	require.NoError(t, err)
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrPaymentIntentExpired)
+	assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+}
+
+func TestCapturePaymentIntent_RequiresPaymentMethodReference(t *testing.T) {
+	env := setupTestEnv(t)
+	_, err := env.db.Exec(env.ctx, "UPDATE payment_intents SET gateway_setup_reference = NULL WHERE id = $1", uuidPaymentReadyToCapture)
+	require.NoError(t, err)
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
+	assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+}
+
+func TestCapturePaymentIntent_RequiresCompletedAuthentication(t *testing.T) {
+	env := setupTestEnv(t)
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrPaymentIntentInvalidState)
+	assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+}
+
+func TestCapturePaymentIntent_BlocksAnotherCapturingIntentForInvoice(t *testing.T) {
+	env := setupTestEnv(t)
+	require.NoError(t, env.queries.UpdatePaymentIntentStatus(env.ctx, store.UpdatePaymentIntentStatusParams{
+		ID:     uuidPaymentAwaitingAuthenticationResult,
+		Status: store.PaymentIntentStatusCapturing,
+	}))
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, ErrInvoicePaymentInProgress)
+	assert.Equal(t, 0, env.cardGateway.captureCardPayment.calls)
+}
+
+func TestCapturePaymentIntent_ReturnsGatewayPreparationError(t *testing.T) {
+	env := setupTestEnv(t)
+	createCompletedAuthenticateCardholderGatewayOperation(t, env, uuidPaymentReadyToCapture, "auth-reference")
+	env.cardGateway.captureCardPayment.err = errors.New("prepare failed")
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+	assert.Nil(t, resp)
+	assert.ErrorContains(t, err, "failed to prepare capture card payment")
+	intent, intentErr := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToCapture)
+	require.NoError(t, intentErr)
+	assert.Equal(t, store.PaymentIntentStatusReadyToCapture, intent.Status)
+}
+
+func TestCapturePaymentIntent_AppliesGatewayResult(t *testing.T) {
+	tests := []struct {
+		name          string
+		gatewayResult CaptureCardPaymentGatewayResult
+		nextStep      CapturePaymentIntentNextStep
+		intentStatus  store.PaymentIntentStatus
+		invoiceStatus store.InvoiceStatus
+	}{
+		{
+			name:          "succeeded",
+			gatewayResult: CaptureCardPaymentGatewayResultSucceeded,
+			nextStep:      CapturePaymentIntentNextStepComplete,
+			intentStatus:  store.PaymentIntentStatusSucceeded,
+			invoiceStatus: store.InvoiceStatusPaid,
+		},
+		{
+			name:          "declined",
+			gatewayResult: CaptureCardPaymentGatewayResultDeclined,
+			nextStep:      CapturePaymentIntentNextStepCantContinue,
+			intentStatus:  store.PaymentIntentStatusFailed,
+			invoiceStatus: store.InvoiceStatusPending,
+		},
+		{
+			name:          "pending",
+			gatewayResult: CaptureCardPaymentGatewayResultPending,
+			nextStep:      CapturePaymentIntentNextStepProcessing,
+			intentStatus:  store.PaymentIntentStatusCapturing,
+			invoiceStatus: store.InvoiceStatusPending,
+		},
+		{
+			name:          "unknown",
+			gatewayResult: CaptureCardPaymentGatewayResultUnknown,
+			nextStep:      CapturePaymentIntentNextStepProcessing,
+			intentStatus:  store.PaymentIntentStatusCapturing,
+			invoiceStatus: store.InvoiceStatusPending,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := setupTestEnv(t)
+			authenticationOperation := createCompletedAuthenticateCardholderGatewayOperation(
+				t,
+				env,
+				uuidPaymentReadyToCapture,
+				"auth-reference",
+			)
+			rawRequest := []byte(`{"apiOperation":"PAY"}`)
+			rawResponse := []byte(`{"result":"test"}`)
+			env.cardGateway.captureCardPayment.resp = &PreparedCaptureCardPaymentGatewayRequest{
+				RawRequest: rawRequest,
+				send: func(ctx context.Context) (*CaptureCardPaymentGatewayResponse, error) {
+					intent, err := env.queries.GetPaymentIntentByID(ctx, uuidPaymentReadyToCapture)
+					require.NoError(t, err)
+					assert.Equal(t, store.PaymentIntentStatusCapturing, intent.Status)
+
+					op, err := env.queries.GetLatestGatewayOperation(ctx, uuidPaymentReadyToCapture)
+					require.NoError(t, err)
+					assert.Equal(t, store.GatewayOperationTypeCapturePayment, op.OperationType)
+					assert.Equal(t, store.GatewayOperationStatusPending, op.Status)
+					assert.JSONEq(t, string(rawRequest), string(op.RawRequest))
+
+					return &CaptureCardPaymentGatewayResponse{
+						Result:      tt.gatewayResult,
+						RawResponse: rawResponse,
+					}, nil
+				},
+			}
+
+			resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.Equal(t, tt.nextStep, resp.NextStep)
+			assert.Equal(t, 1, env.cardGateway.captureCardPayment.calls)
+			assert.Equal(t, CaptureCardPaymentGatewayRequest{
+				InvoiceID:               uuidInvoice,
+				PaymentReference:        uuidPaymentReadyToCapture,
+				Amount:                  decimal.RequireFromString("15.000"),
+				Currency:                "BHD",
+				PaymentMethodReference:  "session-ready-to-capture",
+				AuthenticationReference: AuthenticationReference(authenticationOperation.GatewayReference),
+			}, env.cardGateway.captureCardPayment.req)
+
+			intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToCapture)
+			require.NoError(t, err)
+			assert.Equal(t, tt.intentStatus, intent.Status)
+			invoice, err := env.queries.GetInvoiceByID(env.ctx, uuidInvoice)
+			require.NoError(t, err)
+			assert.Equal(t, tt.invoiceStatus, invoice.Status)
+			if tt.invoiceStatus == store.InvoiceStatusPaid {
+				assert.NotNil(t, invoice.PaidAt)
+			} else {
+				assert.Nil(t, invoice.PaidAt)
+			}
+			op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToCapture)
+			require.NoError(t, err)
+			assert.Equal(t, store.GatewayOperationStatusCompleted, op.Status)
+			assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
+		})
+	}
+}
+
+func TestCapturePaymentIntent_GatewayErrorRemainsProcessing(t *testing.T) {
+	env := setupTestEnv(t)
+	createCompletedAuthenticateCardholderGatewayOperation(t, env, uuidPaymentReadyToCapture, "auth-reference")
+	rawResponse := []byte(`{"result":"SUCCESS"}`)
+	env.cardGateway.captureCardPayment.resp = &PreparedCaptureCardPaymentGatewayRequest{
+		RawRequest: []byte(`{"apiOperation":"PAY"}`),
+		send: func(ctx context.Context) (*CaptureCardPaymentGatewayResponse, error) {
+			return nil, &GatewayResponseError{
+				Err:         ErrGatewayResponseMismatch,
+				RawResponse: rawResponse,
+			}
+		},
+	}
+
+	resp, err := env.svc.CapturePaymentIntent(env.ctx, validCapturePaymentIntentRequest())
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, CapturePaymentIntentNextStepProcessing, resp.NextStep)
+	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentReadyToCapture)
+	require.NoError(t, err)
+	assert.Equal(t, store.PaymentIntentStatusCapturing, intent.Status)
+	invoice, err := env.queries.GetInvoiceByID(env.ctx, uuidInvoice)
+	require.NoError(t, err)
+	assert.Equal(t, store.InvoiceStatusPending, invoice.Status)
+	op, err := env.queries.GetLatestGatewayOperation(env.ctx, uuidPaymentReadyToCapture)
+	require.NoError(t, err)
+	assert.Equal(t, store.GatewayOperationStatusErrored, op.Status)
+	assert.JSONEq(t, string(rawResponse), string(op.RawResponse))
+}
+
 func createCompletedAuthenticateCardholderGatewayOperation(
 	t *testing.T,
 	env testEnv,
@@ -1329,6 +1586,7 @@ type fakeCardGateway struct {
 	prepareCardAuthentication   fakePrepareCardAuthenticationCall
 	authenticateCardholder      fakeAuthenticateCardholderCall
 	getCardAuthenticationResult fakeGetCardAuthenticationResultCall
+	captureCardPayment          fakeCaptureCardPaymentCall
 }
 
 type fakeSetupCardPaymentMethodCall struct {
@@ -1356,6 +1614,13 @@ type fakeGetCardAuthenticationResultCall struct {
 	calls int
 	req   GetCardAuthenticationResultGatewayRequest
 	resp  *PreparedGetCardAuthenticationResultGatewayRequest
+	err   error
+}
+
+type fakeCaptureCardPaymentCall struct {
+	calls int
+	req   CaptureCardPaymentGatewayRequest
+	resp  *PreparedCaptureCardPaymentGatewayRequest
 	err   error
 }
 
@@ -1393,4 +1658,13 @@ func (f *fakeCardGateway) GetCardAuthenticationResult(ctx context.Context, r Get
 		return nil, f.getCardAuthenticationResult.err
 	}
 	return f.getCardAuthenticationResult.resp, nil
+}
+
+func (f *fakeCardGateway) CaptureCardPayment(ctx context.Context, r CaptureCardPaymentGatewayRequest) (*PreparedCaptureCardPaymentGatewayRequest, error) {
+	f.captureCardPayment.calls++
+	f.captureCardPayment.req = r
+	if f.captureCardPayment.err != nil {
+		return nil, f.captureCardPayment.err
+	}
+	return f.captureCardPayment.resp, nil
 }

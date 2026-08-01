@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -16,11 +17,35 @@ type GatewayResolver interface {
 type PaymentMethodReference string
 type AuthenticationReference string
 
+var ErrGatewayResponseMismatch = errors.New("gateway response does not match request")
+
+type GatewayResponseError struct {
+	Err         error
+	RawResponse []byte
+}
+
+func (e *GatewayResponseError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *GatewayResponseError) Unwrap() error {
+	return e.Err
+}
+
+func rawGatewayResponse(err error) []byte {
+	var responseErr *GatewayResponseError
+	if errors.As(err, &responseErr) {
+		return responseErr.RawResponse
+	}
+	return nil
+}
+
 type CardGateway interface {
 	SetupCardPaymentMethod(ctx context.Context, r SetupCardPaymentMethodGatewayRequest) (*SetupCardPaymentMethodGatewayResponse, error)
 	PrepareCardAuthentication(ctx context.Context, r PrepareCardAuthenticationGatewayRequest) (*PreparedCardAuthenticationGatewayRequest, error)
 	AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderGatewayRequest) (*PreparedAuthenticateCardholderGatewayRequest, error)
 	GetCardAuthenticationResult(ctx context.Context, r GetCardAuthenticationResultGatewayRequest) (*PreparedGetCardAuthenticationResultGatewayRequest, error)
+	CaptureCardPayment(ctx context.Context, r CaptureCardPaymentGatewayRequest) (*PreparedCaptureCardPaymentGatewayRequest, error)
 }
 
 type (
@@ -34,11 +59,11 @@ type (
 	}
 )
 
-type PrepareCardAuthenticationGatewayNextStep string
+type PrepareCardAuthenticationGatewayResult string
 
 const (
-	PrepareCardAuthenticationGatewayNextStepAuthenticate PrepareCardAuthenticationGatewayNextStep = "authenticate"
-	PrepareCardAuthenticationGatewayNextStepCantContinue PrepareCardAuthenticationGatewayNextStep = "cant_continue"
+	PrepareCardAuthenticationGatewayResultAvailable   PrepareCardAuthenticationGatewayResult = "available"
+	PrepareCardAuthenticationGatewayResultUnavailable PrepareCardAuthenticationGatewayResult = "unavailable"
 )
 
 type (
@@ -53,7 +78,7 @@ type (
 		send                    func(ctx context.Context) (*PrepareCardAuthenticationGatewayResponse, error)
 	}
 	PrepareCardAuthenticationGatewayResponse struct {
-		NextStep    PrepareCardAuthenticationGatewayNextStep
+		Result      PrepareCardAuthenticationGatewayResult
 		RawResponse []byte
 	}
 )
@@ -68,12 +93,12 @@ func (p *PreparedCardAuthenticationGatewayRequest) Send(ctx context.Context) (*P
 	return p.send(ctx)
 }
 
-type AuthenticateCardholderGatewayNextStep string
+type AuthenticateCardholderGatewayResult string
 
 const (
-	AuthenticateCardholderGatewayNextStepCapture      AuthenticateCardholderGatewayNextStep = "capture"
-	AuthenticateCardholderGatewayNextStepChallenge    AuthenticateCardholderGatewayNextStep = "challenge"
-	AuthenticateCardholderGatewayNextStepCantContinue AuthenticateCardholderGatewayNextStep = "cant_continue"
+	AuthenticateCardholderGatewayResultSucceeded         AuthenticateCardholderGatewayResult = "succeeded"
+	AuthenticateCardholderGatewayResultChallengeRequired AuthenticateCardholderGatewayResult = "challenge_required"
+	AuthenticateCardholderGatewayResultFailed            AuthenticateCardholderGatewayResult = "failed"
 )
 
 type (
@@ -91,7 +116,7 @@ type (
 		send       func(ctx context.Context) (*AuthenticateCardholderGatewayResponse, error)
 	}
 	AuthenticateCardholderGatewayResponse struct {
-		NextStep     AuthenticateCardholderGatewayNextStep
+		Result       AuthenticateCardholderGatewayResult
 		RedirectHTML string
 		RawResponse  []byte
 	}
@@ -110,9 +135,9 @@ func (p *PreparedAuthenticateCardholderGatewayRequest) Send(ctx context.Context)
 type CardAuthenticationResult string
 
 const (
-	CardAuthenticationResultProceed      CardAuthenticationResult = "proceed"
-	CardAuthenticationResultPending      CardAuthenticationResult = "pending"
-	CardAuthenticationResultCantContinue CardAuthenticationResult = "cant_continue"
+	CardAuthenticationResultSucceeded CardAuthenticationResult = "succeeded"
+	CardAuthenticationResultPending   CardAuthenticationResult = "pending"
+	CardAuthenticationResultFailed    CardAuthenticationResult = "failed"
 )
 
 type (
@@ -138,6 +163,44 @@ func (p *PreparedGetCardAuthenticationResultGatewayRequest) Send(ctx context.Con
 	}
 	if p.send == nil {
 		return nil, fmt.Errorf("prepared get card authentication result request is missing send function")
+	}
+	return p.send(ctx)
+}
+
+type CaptureCardPaymentGatewayResult string
+
+const (
+	CaptureCardPaymentGatewayResultSucceeded CaptureCardPaymentGatewayResult = "succeeded"
+	CaptureCardPaymentGatewayResultPending   CaptureCardPaymentGatewayResult = "pending"
+	CaptureCardPaymentGatewayResultUnknown   CaptureCardPaymentGatewayResult = "unknown"
+	CaptureCardPaymentGatewayResultDeclined  CaptureCardPaymentGatewayResult = "declined"
+)
+
+type (
+	CaptureCardPaymentGatewayRequest struct {
+		InvoiceID               uuid.UUID
+		PaymentReference        uuid.UUID
+		Amount                  decimal.Decimal
+		Currency                string
+		PaymentMethodReference  PaymentMethodReference
+		AuthenticationReference AuthenticationReference
+	}
+	PreparedCaptureCardPaymentGatewayRequest struct {
+		RawRequest []byte
+		send       func(ctx context.Context) (*CaptureCardPaymentGatewayResponse, error)
+	}
+	CaptureCardPaymentGatewayResponse struct {
+		Result      CaptureCardPaymentGatewayResult
+		RawResponse []byte
+	}
+)
+
+func (p *PreparedCaptureCardPaymentGatewayRequest) Send(ctx context.Context) (*CaptureCardPaymentGatewayResponse, error) {
+	if p == nil {
+		return nil, fmt.Errorf("prepared capture card payment request is nil")
+	}
+	if p.send == nil {
+		return nil, fmt.Errorf("prepared capture card payment request is missing send function")
 	}
 	return p.send(ctx)
 }

@@ -94,15 +94,15 @@ func (mcg *mpgsCardGateway) PrepareCardAuthentication(ctx context.Context, r Pre
 			if err != nil {
 				return nil, fmt.Errorf("failed to initiate authentication: %w", err)
 			}
-			nextStep := PrepareCardAuthenticationGatewayNextStepCantContinue
+			result := PrepareCardAuthenticationGatewayResultUnavailable
 			if resp.Data.Result == mpgsclient.ResultSuccess &&
 				resp.Data.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed &&
 				resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusAvailable {
-				nextStep = PrepareCardAuthenticationGatewayNextStepAuthenticate
+				result = PrepareCardAuthenticationGatewayResultAvailable
 			}
 
 			return &PrepareCardAuthenticationGatewayResponse{
-				NextStep:    nextStep,
+				Result:      result,
 				RawResponse: resp.RawBody,
 			}, nil
 		},
@@ -151,22 +151,22 @@ func (mcg *mpgsCardGateway) AuthenticateCardholder(ctx context.Context, r Authen
 				return nil, fmt.Errorf("failed to authenticate payer: %w", err)
 			}
 
-			nextStep := AuthenticateCardholderGatewayNextStepCantContinue
+			result := AuthenticateCardholderGatewayResultFailed
 			if resp.Data.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed {
 				switch {
 				case resp.Data.Result == mpgsclient.ResultPending &&
 					resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusPending &&
 					resp.Data.Authentication.Redirect.HTML != "":
-					nextStep = AuthenticateCardholderGatewayNextStepChallenge
+					result = AuthenticateCardholderGatewayResultChallengeRequired
 				case resp.Data.Result == mpgsclient.ResultSuccess &&
 					(resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusSuccessful ||
 						resp.Data.Transaction.AuthenticationStatus == mpgsclient.AuthStatusAttempted):
-					nextStep = AuthenticateCardholderGatewayNextStepCapture
+					result = AuthenticateCardholderGatewayResultSucceeded
 				}
 			}
 
 			return &AuthenticateCardholderGatewayResponse{
-				NextStep:     nextStep,
+				Result:       result,
 				RedirectHTML: resp.Data.Authentication.Redirect.HTML,
 				RawResponse:  resp.RawBody,
 			}, nil
@@ -209,7 +209,7 @@ func mapMPGSCardAuthenticationResult(
 		resp.Transaction.Currency != r.Currency ||
 		(resp.Order.AuthenticationStatus != "" &&
 			resp.Order.AuthenticationStatus != resp.Transaction.AuthenticationStatus) {
-		return CardAuthenticationResultCantContinue
+		return CardAuthenticationResultFailed
 	}
 
 	authenticationStatus := resp.Transaction.AuthenticationStatus
@@ -218,7 +218,7 @@ func mapMPGSCardAuthenticationResult(
 		resp.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed &&
 		(authenticationStatus == mpgsclient.AuthStatusSuccessful ||
 			authenticationStatus == mpgsclient.AuthStatusAttempted):
-		return CardAuthenticationResultProceed
+		return CardAuthenticationResultSucceeded
 
 	case resp.Result == mpgsclient.ResultPending &&
 		resp.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed &&
@@ -231,6 +231,114 @@ func mapMPGSCardAuthenticationResult(
 		return CardAuthenticationResultPending
 
 	default:
-		return CardAuthenticationResultCantContinue
+		return CardAuthenticationResultFailed
+	}
+}
+
+func (mcg *mpgsCardGateway) CaptureCardPayment(ctx context.Context, r CaptureCardPaymentGatewayRequest) (*PreparedCaptureCardPaymentGatewayRequest, error) {
+	mpgsReq := &mpgsclient.ExecutePayRequest{
+		APIOperation: mpgsclient.OperationPay,
+		Authentication: mpgsclient.ExecutePayReqAuthentication{
+			TransactionID: string(r.AuthenticationReference),
+		},
+		Order: mpgsclient.ExecutePayReqOrder{
+			Amount:   r.Amount.String(),
+			Currency: r.Currency,
+		},
+		Session: mpgsclient.ExecutePayReqSession{
+			ID: string(r.PaymentMethodReference),
+		},
+	}
+
+	rawReq, err := json.Marshal(mpgsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal capture card payment request: %w", err)
+	}
+
+	return &PreparedCaptureCardPaymentGatewayRequest{
+		RawRequest: rawReq,
+		send: func(ctx context.Context) (*CaptureCardPaymentGatewayResponse, error) {
+			resp, err := mcg.client.ExecutePay(ctx, r.InvoiceID.String(), r.PaymentReference.String(), mpgsReq)
+			if err != nil {
+				return nil, fmt.Errorf("failed to capture card payment: %w", err)
+			}
+
+			result, err := mapMPGSCaptureCardPaymentResult(r, resp.Data)
+			if err != nil {
+				return nil, &GatewayResponseError{
+					Err:         err,
+					RawResponse: resp.RawBody,
+				}
+			}
+
+			return &CaptureCardPaymentGatewayResponse{
+				Result:      result,
+				RawResponse: resp.RawBody,
+			}, nil
+		},
+	}, nil
+}
+
+func mapMPGSCaptureCardPaymentResult(
+	r CaptureCardPaymentGatewayRequest,
+	resp mpgsclient.ExecutePayResponse,
+) (CaptureCardPaymentGatewayResult, error) {
+	responseMatchesRequest := resp.Order.ID == r.InvoiceID.String() &&
+		resp.Transaction.ID == r.PaymentReference.String() &&
+		resp.Transaction.Type == mpgsclient.TypePayment &&
+		resp.Order.Amount.Equal(r.Amount) &&
+		resp.Transaction.Amount.Equal(r.Amount) &&
+		resp.Order.Currency == r.Currency &&
+		resp.Transaction.Currency == r.Currency
+	if resp.Result == mpgsclient.ResultSuccess && resp.Response.GatewayCode == mpgsclient.CodeApproved {
+		if !responseMatchesRequest {
+			return "", ErrGatewayResponseMismatch
+		}
+		return CaptureCardPaymentGatewayResultSucceeded, nil
+	}
+
+	if resp.Result == mpgsclient.ResultFailure && isDefinitiveMPGSCardPaymentDecline(resp.Response.GatewayCode) {
+		if !responseMatchesRequest {
+			return "", ErrGatewayResponseMismatch
+		}
+		return CaptureCardPaymentGatewayResultDeclined, nil
+	}
+
+	switch resp.Result {
+	case mpgsclient.ResultPending:
+		return CaptureCardPaymentGatewayResultPending, nil
+	case mpgsclient.ResultUnknown:
+		return CaptureCardPaymentGatewayResultUnknown, nil
+	default:
+		return CaptureCardPaymentGatewayResultUnknown, nil
+	}
+}
+
+func isDefinitiveMPGSCardPaymentDecline(code mpgsclient.GatewayCode) bool {
+	switch code {
+	case mpgsclient.CodeAborted,
+		mpgsclient.CodeAuthenticationFailed,
+		mpgsclient.CodeBlocked,
+		mpgsclient.CodeCancelled,
+		mpgsclient.CodeDeclined,
+		mpgsclient.CodeDeclinedAVS,
+		mpgsclient.CodeDeclinedAVSCSC,
+		mpgsclient.CodeDeclinedCSC,
+		mpgsclient.CodeDeclinedDoNotContact,
+		mpgsclient.CodeDeclinedInvalidPIN,
+		mpgsclient.CodeDeclinedPaymentPlan,
+		mpgsclient.CodeDeclinedPINRequired,
+		mpgsclient.CodeExceededRetryLimit,
+		mpgsclient.CodeExpiredCard,
+		mpgsclient.CodeInsufficientFunds,
+		mpgsclient.CodeInvalidCSC,
+		mpgsclient.CodeNotEnrolled3DS,
+		mpgsclient.CodeNotSupported,
+		mpgsclient.CodePartiallyApproved,
+		mpgsclient.CodeReferred,
+		mpgsclient.CodeUnspecifiedFailure:
+		return true
+	default:
+		return false
 	}
 }

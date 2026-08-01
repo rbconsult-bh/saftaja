@@ -4,6 +4,11 @@ SELECT * FROM invoices WHERE id = $1;
 -- name: GetInvoiceByIDAndProject :one
 SELECT * FROM invoices WHERE id = $1 AND project_id = $2;
 
+-- name: GetInvoiceByIDAndProjectForNoKeyUpdate :one
+SELECT * FROM invoices
+WHERE id = $1 AND project_id = $2
+FOR NO KEY UPDATE;
+
 -- name: GetInvoiceWithItemsByIDAndProjectID :many
 SELECT sqlc.embed(i), sqlc.embed(ii)
 FROM invoices i

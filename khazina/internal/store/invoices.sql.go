@@ -109,6 +109,38 @@ func (q *Queries) GetInvoiceByIDAndProject(ctx context.Context, arg GetInvoiceBy
 	return i, err
 }
 
+const getInvoiceByIDAndProjectForNoKeyUpdate = `-- name: GetInvoiceByIDAndProjectForNoKeyUpdate :one
+SELECT id, project_id, amount, currency, status, external_id, customer_email, customer_name, description, paid_at, created_at, updated_at, deleted_at FROM invoices
+WHERE id = $1 AND project_id = $2
+FOR NO KEY UPDATE
+`
+
+type GetInvoiceByIDAndProjectForNoKeyUpdateParams struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func (q *Queries) GetInvoiceByIDAndProjectForNoKeyUpdate(ctx context.Context, arg GetInvoiceByIDAndProjectForNoKeyUpdateParams) (Invoice, error) {
+	row := q.db.QueryRow(ctx, getInvoiceByIDAndProjectForNoKeyUpdate, arg.ID, arg.ProjectID)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.ExternalID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.Description,
+		&i.PaidAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getInvoiceWithItemsByIDAndProjectID = `-- name: GetInvoiceWithItemsByIDAndProjectID :many
 SELECT i.id, i.project_id, i.amount, i.currency, i.status, i.external_id, i.customer_email, i.customer_name, i.description, i.paid_at, i.created_at, i.updated_at, i.deleted_at, ii.id, ii.invoice_id, ii.name, ii.description, ii.quantity, ii.unit_price, ii.amount, ii.created_at
 FROM invoices i
