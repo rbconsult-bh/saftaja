@@ -567,8 +567,14 @@ func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAu
 		return nil, err
 	}
 
-	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusReadyToAuthenticate); err != nil {
-		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid transition")
+	if currentStatus != PaymentIntentStatusCreated {
+		err := fmt.Errorf(
+			"%w: PrepareCardAuthentication requires %s, got %s",
+			ErrPaymentIntentInvalidState,
+			PaymentIntentStatusCreated,
+			currentStatus,
+		)
+		log.Ctx(ctx).Info().Err(err).Msg("payment intent invalid status")
 		return nil, err
 	}
 
@@ -667,6 +673,10 @@ func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAu
 		return nil, err
 	}
 
+	if err := currentStatus.ValidatePaymentIntentTransition(paymentMethod, PaymentIntentStatusReadyToAuthenticate); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("payment intent invalid transition after preparing card authentication")
+		return nil, err
+	}
 	if err := queriesWithTx.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 		ID:     paymentIntent.ID,
 		Status: store.PaymentIntentStatusReadyToAuthenticate,

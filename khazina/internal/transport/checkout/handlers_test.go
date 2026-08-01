@@ -378,9 +378,11 @@ func TestPrepareCardAuthenticationHandler(t *testing.T) {
 	project := testProject(uuid.New())
 
 	f.Payment.EXPECT().PrepareCardAuthentication(mock.Anything, payment.PrepareCardAuthenticationRequest{
-		ProjectID:       project.ID,
-		InvoiceID:       invoiceID,
-		PaymentIntentID: paymentIntentID,
+		PaymentIntentRef: payment.PaymentIntentRef{
+			ProjectID:       project.ID,
+			InvoiceID:       invoiceID,
+			PaymentIntentID: paymentIntentID,
+		},
 	}).Return(&payment.PrepareCardAuthenticationResponse{
 		NextStep: payment.PrepareCardAuthenticationNextStepAuthenticate,
 	}, nil)

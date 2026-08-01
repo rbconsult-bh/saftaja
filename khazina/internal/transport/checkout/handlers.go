@@ -231,9 +231,11 @@ func (h *handlers) PrepareCardAuthenticationHandler(w http.ResponseWriter, r *ht
 	}
 
 	result, err := h.payment.PrepareCardAuthentication(ctx, payment.PrepareCardAuthenticationRequest{
-		ProjectID:       project.ID,
-		InvoiceID:       invoiceID,
-		PaymentIntentID: paymentIntentID,
+		PaymentIntentRef: payment.PaymentIntentRef{
+			ProjectID:       project.ID,
+			InvoiceID:       invoiceID,
+			PaymentIntentID: paymentIntentID,
+		},
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)

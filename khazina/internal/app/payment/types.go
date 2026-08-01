@@ -216,10 +216,7 @@ const (
 
 type (
 	PrepareCardAuthenticationRequest struct {
-		// TODO: use PaymentIntentRef
-		ProjectID       uuid.UUID
-		InvoiceID       uuid.UUID
-		PaymentIntentID uuid.UUID
+		PaymentIntentRef
 	}
 	PrepareCardAuthenticationResponse struct {
 		NextStep PrepareCardAuthenticationNextStep
@@ -227,17 +224,7 @@ type (
 )
 
 func (r *PrepareCardAuthenticationRequest) Validate() error {
-	if r.ProjectID == uuid.Nil {
-		return fmt.Errorf("%w: ProjectID is required", ErrInvalidArgument)
-	}
-	if r.InvoiceID == uuid.Nil {
-		return fmt.Errorf("%w: InvoiceID is required", ErrInvalidArgument)
-	}
-	if r.PaymentIntentID == uuid.Nil {
-		return fmt.Errorf("%w: PaymentIntentID is required", ErrInvalidArgument)
-	}
-
-	return nil
+	return r.PaymentIntentRef.Validate()
 }
 
 type ThreeDSChallengeWindowSize string
