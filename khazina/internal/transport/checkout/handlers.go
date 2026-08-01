@@ -14,7 +14,7 @@ import (
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
@@ -22,15 +22,15 @@ import (
 
 type handlers struct {
 	billing            billing.Service
-	paymentService     payment.Service
+	tenantService      tenant.Service
 	gatewayService     gateway.Service
 	verifyDomainSecret string
 }
 
-func New(billing billing.Service, paymentService payment.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
+func New(billing billing.Service, tenantService tenant.Service, gatewayService gateway.Service, verifyDomainSecret string) Handlers {
 	return &handlers{
 		billing:            billing,
-		paymentService:     paymentService,
+		tenantService:      tenantService,
 		gatewayService:     gatewayService,
 		verifyDomainSecret: verifyDomainSecret,
 	}
@@ -442,7 +442,7 @@ func (h *handlers) VerifyDomainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	valid, err := h.paymentService.VerifyDomain(r.Context(), domain)
+	valid, err := h.tenantService.IsDomainValid(r.Context(), domain)
 	if err != nil {
 		log.Ctx(r.Context()).Error().Err(err).Str("domain", domain).Msg("failed to verify domain")
 		w.WriteHeader(http.StatusInternalServerError)

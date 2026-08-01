@@ -17,8 +17,8 @@ import (
 	billingmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/billing/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	gwmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway/mocks"
-	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
+	tenantmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
@@ -30,7 +30,7 @@ import (
 
 type fixture struct {
 	Billing *billingmocks.MockService
-	Payment *paymocks.MockService
+	Tenant  *tenantmocks.MockService
 	Gateway *gwmocks.MockService
 	router  *chi.Mux
 }
@@ -38,9 +38,9 @@ type fixture struct {
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	billingSvc := billingmocks.NewMockService(t)
-	paySvc := paymocks.NewMockService(t)
+	tenantSvc := tenantmocks.NewMockService(t)
 	gwSvc := gwmocks.NewMockService(t)
-	h := checkout.New(billingSvc, paySvc, gwSvc, "test-secret")
+	h := checkout.New(billingSvc, tenantSvc, gwSvc, "test-secret")
 
 	r := chi.NewRouter()
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
@@ -58,7 +58,7 @@ func newFixture(t *testing.T) *fixture {
 
 	return &fixture{
 		Billing: billingSvc,
-		Payment: paySvc,
+		Tenant:  tenantSvc,
 		Gateway: gwSvc,
 		router:  r,
 	}
@@ -589,7 +589,7 @@ func TestCapturePaymentIntentHandler_NoTenantContext(t *testing.T) {
 
 func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
 	f := newFixture(t)
-	f.Payment.EXPECT().VerifyDomain(mock.Anything, "pay.merchant.com").Return(true, nil)
+	f.Tenant.EXPECT().IsDomainValid(mock.Anything, "pay.merchant.com").Return(true, nil)
 	w := f.get("/verify-domain?secret=test-secret&domain=pay.merchant.com")
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
@@ -598,7 +598,7 @@ func TestVerifyDomainHandler_ValidDomain(t *testing.T) {
 
 func TestVerifyDomainHandler_InvalidDomain(t *testing.T) {
 	f := newFixture(t)
-	f.Payment.EXPECT().VerifyDomain(mock.Anything, "unknown.domain.com").Return(false, nil)
+	f.Tenant.EXPECT().IsDomainValid(mock.Anything, "unknown.domain.com").Return(false, nil)
 	w := f.get("/verify-domain?secret=test-secret&domain=unknown.domain.com")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status %d, got %d", http.StatusNotFound, w.Code)

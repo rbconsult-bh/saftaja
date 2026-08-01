@@ -13,7 +13,6 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/membership"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/clients/email"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/config"
@@ -31,7 +30,6 @@ import (
 type dependencies struct {
 	dbPool                *pgxpool.Pool
 	tenantSvc             tenant.Service
-	paymentSvc            payment.Service
 	billingSvc            billing.Service
 	gatewaySvc            gateway.Service
 	authSvc               auth.AuthService
@@ -80,7 +78,6 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	gatewayResolver := billing.NewGatewayResolver(encryptionKey)
 
 	tenantSvc := tenant.NewService(queries)
-	paymentSvc := payment.NewService(dbPool, queries, encryptionKey)
 	billingSvc := billing.New(dbPool, queries, gatewayResolver)
 	gatewaySvc := gateway.New(queries, encryptionKey)
 
@@ -108,7 +105,6 @@ func InitDependencies(ctx context.Context, cfg *config.Config) (*dependencies, e
 	return &dependencies{
 		dbPool:                dbPool,
 		tenantSvc:             tenantSvc,
-		paymentSvc:            paymentSvc,
 		billingSvc:            billingSvc,
 		gatewaySvc:            gatewaySvc,
 		authSvc:               authSvc,
