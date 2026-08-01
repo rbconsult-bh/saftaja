@@ -26,7 +26,7 @@ async function globalSetup() {
 
   const databaseUrl = pgContainer.getConnectionUri();
 
-  console.log('🏗️  Building pay...');
+  console.log('🏗️  Building khazina...');
   const payImage = await GenericContainer
     .fromDockerfile(path.resolve(__dirname, '../..'), 'Dockerfile')
     .build();
