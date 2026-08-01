@@ -1,6 +1,6 @@
 - id: 00000000-0000-0000-0000-000000001000
   project_id: 00000000-0000-0000-0000-000000000100
-  amount: 15.000
+  amount_minor: 15000
   currency: BHD
   status: pending
   external_id: null
@@ -14,7 +14,7 @@
 
 - id: 00000000-0000-0000-0000-000000001001
   project_id: 00000000-0000-0000-0000-000000000100
-  amount: 25.000
+  amount_minor: 25000
   currency: BHD
   status: pending
   external_id: null

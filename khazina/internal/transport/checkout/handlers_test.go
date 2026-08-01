@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
@@ -20,6 +19,7 @@ import (
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	tenantmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant/mocks"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout"
 )
@@ -130,13 +130,13 @@ func TestCheckoutPageHandler_Success(t *testing.T) {
 		Invoice: payment.Invoice{
 			ID:            invoiceID,
 			ProjectID:     projectID,
-			Amount:        decimal.NewFromInt(100),
-			Currency:      "BHD",
+			Amount:        100000,
+			Currency:      money.CurrencyBHD,
 			Description:   "Test Invoice",
 			CustomerEmail: "test@example.com",
 			CustomerName:  "Test Customer",
 			Items: []payment.InvoiceItem{
-				{Name: "Item 1", Quantity: 1, UnitPrice: decimal.NewFromInt(100), Amount: decimal.NewFromInt(100)},
+				{Name: "Item 1", Quantity: 1, UnitPrice: 100000, Amount: 100000},
 			},
 		},
 	}, nil)
@@ -213,8 +213,8 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 		Invoice: payment.Invoice{
 			ID:            invoiceID,
 			ProjectID:     projectID,
-			Amount:        decimal.NewFromInt(100),
-			Currency:      "BHD",
+			Amount:        100000,
+			Currency:      money.CurrencyBHD,
 			CustomerEmail: "test@example.com",
 			Status:        payment.InvoiceStatusPaid,
 			PaidAt:        &now,

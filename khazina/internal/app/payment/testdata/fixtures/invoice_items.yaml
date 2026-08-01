@@ -3,8 +3,8 @@
   name: test item
   description: really cool test item
   quantity: 1
-  unit_price: 15.000
-  amount: 15.000
+  unit_price_minor: 15000
+  amount_minor: 15000
   created_at: "2026-05-29 10:00:00Z"
 
 - id: 00000000-0000-0000-0000-000000004002
@@ -12,8 +12,8 @@
   name: paid item
   description: item on a paid invoice
   quantity: 1
-  unit_price: 30.000
-  amount: 30.000
+  unit_price_minor: 30000
+  amount_minor: 30000
   created_at: "2026-05-29 10:00:00Z"
 
 - id: 00000000-0000-0000-0000-000000004003
@@ -21,6 +21,6 @@
   name: cancelled item
   description: item on a cancelled invoice
   quantity: 1
-  unit_price: 10.000
-  amount: 10.000
+  unit_price_minor: 10000
+  amount_minor: 10000
   created_at: "2026-05-29 10:00:00Z"

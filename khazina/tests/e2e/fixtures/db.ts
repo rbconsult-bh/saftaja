@@ -76,25 +76,25 @@ export async function seedDb(): Promise<SeedIds> {
     const gatewayAccountId = gwResult.rows[0].id;
 
     const pendingResult = await client.query(`
-      INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status)
-      VALUES ($1, '15.000', 'BHD', 'test@example.com', 'Test User', 'Test Invoice', 'pending') RETURNING id
+      INSERT INTO invoices (project_id, amount_minor, currency, customer_email, customer_name, description, status)
+      VALUES ($1, 15000, 'BHD', 'test@example.com', 'Test User', 'Test Invoice', 'pending') RETURNING id
     `, [projectId]);
     const invoicePendingId = pendingResult.rows[0].id;
 
     await client.query(`
-      INSERT INTO invoice_items (invoice_id, name, description, quantity, unit_price, amount)
-      VALUES ($1, 'Test Item', 'A test line item', 1, '15.000', '15.000')
+      INSERT INTO invoice_items (invoice_id, name, description, quantity, unit_price_minor, amount_minor)
+      VALUES ($1, 'Test Item', 'A test line item', 1, 15000, 15000)
     `, [invoicePendingId]);
 
     const paidResult = await client.query(`
-      INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status, paid_at)
-      VALUES ($1, '25.000', 'BHD', 'test@example.com', 'Test User', 'Paid Invoice', 'paid', NOW()) RETURNING id
+      INSERT INTO invoices (project_id, amount_minor, currency, customer_email, customer_name, description, status, paid_at)
+      VALUES ($1, 25000, 'BHD', 'test@example.com', 'Test User', 'Paid Invoice', 'paid', NOW()) RETURNING id
     `, [projectId]);
     const invoicePaidId = paidResult.rows[0].id;
 
     await client.query(`
-      INSERT INTO invoice_items (invoice_id, name, description, quantity, unit_price, amount)
-      VALUES ($1, 'Paid Item', 'A paid line item', 1, '25.000', '25.000')
+      INSERT INTO invoice_items (invoice_id, name, description, quantity, unit_price_minor, amount_minor)
+      VALUES ($1, 'Paid Item', 'A paid line item', 1, 25000, 25000)
     `, [invoicePaidId]);
 
     return {

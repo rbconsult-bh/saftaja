@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 )
 
 const createGatewayAccount = `-- name: CreateGatewayAccount :one
@@ -101,7 +102,7 @@ func (q *Queries) GetGatewayAccountByIDAndProject(ctx context.Context, arg GetGa
 }
 
 const getGatewayAccountByPaymentIntentID = `-- name: GetGatewayAccountByPaymentIntentID :one
-SELECT ga.id, ga.project_id, connector_type, account_name, config, is_active, ga.created_at, ga.updated_at, ga.deleted_at, secret, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key FROM gateway_accounts ga
+SELECT ga.id, ga.project_id, connector_type, account_name, config, is_active, ga.created_at, ga.updated_at, ga.deleted_at, secret, pi.id, invoice_id, pi.project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, pi.created_at, pi.updated_at, pi.deleted_at, idempotency_key, amount_minor, currency FROM gateway_accounts ga
 JOIN payment_intents pi ON ga.id = pi.gateway_account_id
 WHERE pi.id = $1
 `
@@ -131,6 +132,8 @@ type GetGatewayAccountByPaymentIntentIDRow struct {
 	UpdatedAt_2           time.Time
 	DeletedAt_2           *time.Time
 	IdempotencyKey        string
+	AmountMinor           money.MinorAmount
+	Currency              money.Currency
 }
 
 func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uuid.UUID) (GetGatewayAccountByPaymentIntentIDRow, error) {
@@ -161,6 +164,8 @@ func (q *Queries) GetGatewayAccountByPaymentIntentID(ctx context.Context, id uui
 		&i.UpdatedAt_2,
 		&i.DeletedAt_2,
 		&i.IdempotencyKey,
+		&i.AmountMinor,
+		&i.Currency,
 	)
 	return i, err
 }

@@ -22,5 +22,5 @@ UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE id = $1;
 UPDATE invoices SET status = 'failed' WHERE id = $1;
 
 -- name: CreateInvoice :one
-INSERT INTO invoices (project_id, amount, currency, customer_email, customer_name, description, status)
+INSERT INTO invoices (project_id, amount_minor, currency, customer_email, customer_name, description, status)
 VALUES ($1, $2, $3, $4, $5, $6, 'pending') RETURNING *;

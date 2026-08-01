@@ -17,11 +17,14 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 	if err != nil {
 		return Invoice{}, err
 	}
+	if err := first.Currency.Validate(); err != nil {
+		return Invoice{}, fmt.Errorf("invalid invoice currency: %w", err)
+	}
 
 	invoice := Invoice{
 		ID:            first.ID,
 		ProjectID:     first.ProjectID,
-		Amount:        first.Amount,
+		Amount:        first.AmountMinor,
 		Currency:      first.Currency,
 		Status:        status,
 		ExternalID:    ptr.Deref(first.ExternalID),
@@ -42,8 +45,8 @@ func mapStoreInvoiceRowsToInvoice(rows []store.GetInvoiceWithItemsByIDAndProject
 			Name:        r.InvoiceItem.Name,
 			Description: ptr.Deref(r.InvoiceItem.Description),
 			Quantity:    r.InvoiceItem.Quantity,
-			UnitPrice:   r.InvoiceItem.UnitPrice,
-			Amount:      r.InvoiceItem.Amount,
+			UnitPrice:   r.InvoiceItem.UnitPriceMinor,
+			Amount:      r.InvoiceItem.AmountMinor,
 			CreatedAt:   r.InvoiceItem.CreatedAt,
 		}
 

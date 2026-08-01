@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
 	mpgsmocks "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs/mocks"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -42,8 +43,8 @@ func TestMPGSCardGateway_SetupCardPaymentMethod_Succeeds(t *testing.T) {
 	gateway := &mpgsCardGateway{client: mpgsClient}
 	resp, err := gateway.SetupCardPaymentMethod(ctx, SetupCardPaymentMethodGatewayRequest{
 		InvoiceID: invoiceID,
-		Amount:    decimal.RequireFromString("15.000"),
-		Currency:  "BHD",
+		Amount:    15000,
+		Currency:  money.CurrencyBHD,
 	})
 
 	require.NoError(t, err)
@@ -323,8 +324,8 @@ func TestMPGSCardGateway_AuthenticateCardholder_Challenge(t *testing.T) {
 				got.Device.BrowserDetails.ScreenWidth == req.Browser.ScreenWidth &&
 				got.Device.BrowserDetails.TimeZone == req.Browser.TimeZone &&
 				got.Device.IPAddress == req.Browser.IPAddress &&
-				got.Order.Amount == req.Amount.String() &&
-				got.Order.Currency == req.Currency &&
+				got.Order.Amount == mustDecimalAmount(req.Amount, req.Currency).String() &&
+				got.Order.Currency == string(req.Currency) &&
 				got.Session.ID == string(req.PaymentMethodReference)
 		})).
 		Return(&mpgsclient.Response[mpgsclient.AuthenticatePayerResponse]{
@@ -844,8 +845,8 @@ func TestMPGSCardGateway_CaptureCardPayment_MapsResult(t *testing.T) {
 				ExecutePay(mock.Anything, req.InvoiceID.String(), req.PaymentReference.String(), mock.MatchedBy(func(got *mpgsclient.ExecutePayRequest) bool {
 					return got.APIOperation == mpgsclient.OperationPay &&
 						got.Authentication.TransactionID == string(req.AuthenticationReference) &&
-						got.Order.Amount == req.Amount.String() &&
-						got.Order.Currency == req.Currency &&
+						got.Order.Amount == mustDecimalAmount(req.Amount, req.Currency).String() &&
+						got.Order.Currency == string(req.Currency) &&
 						got.Session.ID == string(req.PaymentMethodReference)
 				})).
 				Return(&mpgsclient.Response[mpgsclient.ExecutePayResponse]{
@@ -985,11 +986,12 @@ func setRetrieveAuthenticationStatus(status mpgsclient.AuthStatus) func(*mpgscli
 }
 
 func validRetrieveAuthenticationTransaction(r GetCardAuthenticationResultGatewayRequest) mpgsclient.RetrieveTransactionResponse {
+	amount := mustDecimalAmount(r.Amount, r.Currency)
 	return mpgsclient.RetrieveTransactionResponse{
 		Order: mpgsclient.RetrieveTransactionOrder{
-			Amount:               r.Amount,
+			Amount:               amount,
 			AuthenticationStatus: mpgsclient.AuthStatusSuccessful,
-			Currency:             r.Currency,
+			Currency:             string(r.Currency),
 			ID:                   r.InvoiceID.String(),
 		},
 		Response: mpgsclient.RetrieveTransactionGatewayResp{
@@ -997,9 +999,9 @@ func validRetrieveAuthenticationTransaction(r GetCardAuthenticationResultGateway
 		},
 		Result: mpgsclient.ResultSuccess,
 		Transaction: mpgsclient.RetrieveTransactionTx{
-			Amount:               r.Amount,
+			Amount:               amount,
 			AuthenticationStatus: mpgsclient.AuthStatusSuccessful,
-			Currency:             r.Currency,
+			Currency:             string(r.Currency),
 			ID:                   string(r.AuthenticationReference),
 			Type:                 mpgsclient.TypeAuthentication,
 		},
@@ -1009,16 +1011,16 @@ func validRetrieveAuthenticationTransaction(r GetCardAuthenticationResultGateway
 func validSetupCardPaymentMethodGatewayRequest() SetupCardPaymentMethodGatewayRequest {
 	return SetupCardPaymentMethodGatewayRequest{
 		InvoiceID: uuid.MustParse("00000000-0000-0000-0000-000000003001"),
-		Amount:    decimal.RequireFromString("15.000"),
-		Currency:  "BHD",
+		Amount:    15000,
+		Currency:  money.CurrencyBHD,
 	}
 }
 
 func validAuthenticateCardholderGatewayRequest() AuthenticateCardholderGatewayRequest {
 	return AuthenticateCardholderGatewayRequest{
 		InvoiceID:               uuid.MustParse("00000000-0000-0000-0000-000000003001"),
-		Amount:                  decimal.RequireFromString("15.000"),
-		Currency:                "BHD",
+		Amount:                  15000,
+		Currency:                money.CurrencyBHD,
 		PaymentMethodReference:  "SESSION123",
 		AuthenticationReference: "AUTHENTICATION123",
 		ChallengeReturnURL:      "https://pay.example.com/checkout/3001/complete-challenge",
@@ -1040,8 +1042,8 @@ func validAuthenticateCardholderGatewayRequest() AuthenticateCardholderGatewayRe
 func validGetCardAuthenticationResultGatewayRequest() GetCardAuthenticationResultGatewayRequest {
 	return GetCardAuthenticationResultGatewayRequest{
 		InvoiceID:               uuid.MustParse("00000000-0000-0000-0000-000000003001"),
-		Amount:                  decimal.RequireFromString("15.000"),
-		Currency:                "BHD",
+		Amount:                  15000,
+		Currency:                money.CurrencyBHD,
 		AuthenticationReference: "AUTHENTICATION123",
 	}
 }
@@ -1050,18 +1052,19 @@ func validCaptureCardPaymentGatewayRequest() CaptureCardPaymentGatewayRequest {
 	return CaptureCardPaymentGatewayRequest{
 		InvoiceID:               uuid.MustParse("00000000-0000-0000-0000-000000003001"),
 		PaymentReference:        uuid.MustParse("00000000-0000-0000-0000-000000005008"),
-		Amount:                  decimal.RequireFromString("15.000"),
-		Currency:                "BHD",
+		Amount:                  15000,
+		Currency:                money.CurrencyBHD,
 		PaymentMethodReference:  "SESSION123",
 		AuthenticationReference: "AUTHENTICATION123",
 	}
 }
 
 func validExecutePayResponse(r CaptureCardPaymentGatewayRequest) mpgsclient.ExecutePayResponse {
+	amount := mustDecimalAmount(r.Amount, r.Currency)
 	return mpgsclient.ExecutePayResponse{
 		Order: mpgsclient.ExecutePayOrder{
-			Amount:   r.Amount,
-			Currency: r.Currency,
+			Amount:   amount,
+			Currency: string(r.Currency),
 			ID:       r.InvoiceID.String(),
 		},
 		Response: mpgsclient.ExecutePayGatewayResponse{
@@ -1069,10 +1072,18 @@ func validExecutePayResponse(r CaptureCardPaymentGatewayRequest) mpgsclient.Exec
 		},
 		Result: mpgsclient.ResultSuccess,
 		Transaction: mpgsclient.ExecutePayTransaction{
-			Amount:   r.Amount,
-			Currency: r.Currency,
+			Amount:   amount,
+			Currency: string(r.Currency),
 			ID:       r.PaymentReference.String(),
 			Type:     mpgsclient.TypePayment,
 		},
 	}
+}
+
+func mustDecimalAmount(amount money.MinorAmount, currency money.Currency) decimal.Decimal {
+	value, err := amount.DecimalString(currency)
+	if err != nil {
+		panic(err)
+	}
+	return decimal.RequireFromString(value)
 }

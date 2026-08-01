@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	mpgsclient "github.com/rbconsult-bh/saftaja/khazina/internal/clients/mpgs"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/ptr"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 )
@@ -38,6 +39,11 @@ func newMPGSCardGateway(account store.GatewayAccount, encryptionKey []byte) (Car
 }
 
 func (mcg *mpgsCardGateway) SetupCardPaymentMethod(ctx context.Context, r SetupCardPaymentMethodGatewayRequest) (*SetupCardPaymentMethodGatewayResponse, error) {
+	gatewayAmount, err := r.Amount.DecimalString(r.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("invalid setup card payment method amount: %w", err)
+	}
+
 	createSessionResp, err := mcg.client.CreateSession(ctx, &mpgsclient.CreateSessionRequest{
 		Session: &mpgsclient.CreateSessionRequestSession{
 			AuthenticationLimit: ptr.To[int32](25),
@@ -52,8 +58,8 @@ func (mcg *mpgsCardGateway) SetupCardPaymentMethod(ctx context.Context, r SetupC
 
 	_, err = mcg.client.UpdateSession(ctx, createSessionResp.Data.Session.ID, &mpgsclient.UpdateSessionRequest{
 		Order: mpgsclient.UpdateSessionOrder{
-			Amount:   r.Amount.String(),
-			Currency: r.Currency,
+			Amount:   gatewayAmount,
+			Currency: string(r.Currency),
 			ID:       r.InvoiceID.String(),
 		},
 	})
@@ -74,7 +80,7 @@ func (mcg *mpgsCardGateway) PrepareCardAuthentication(ctx context.Context, r Pre
 			Channel: mpgsclient.ChannelPayerBrowser,
 		},
 		Order: mpgsclient.InitiateAuthenticationOrder{
-			Currency: r.Currency,
+			Currency: string(r.Currency),
 		},
 		Session: mpgsclient.InitiateAuthenticationSession{
 			ID: string(r.PaymentMethodReference),
@@ -110,6 +116,11 @@ func (mcg *mpgsCardGateway) PrepareCardAuthentication(ctx context.Context, r Pre
 }
 
 func (mcg *mpgsCardGateway) AuthenticateCardholder(ctx context.Context, r AuthenticateCardholderGatewayRequest) (*PreparedAuthenticateCardholderGatewayRequest, error) {
+	gatewayAmount, err := r.Amount.DecimalString(r.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("invalid authenticate cardholder amount: %w", err)
+	}
+
 	mpgsReq := &mpgsclient.AuthenticatePayerRequest{
 		APIOperation: mpgsclient.OperationAuthenticatePayer,
 		Authentication: mpgsclient.AuthenticatePayerReqAuthentication{
@@ -130,8 +141,8 @@ func (mcg *mpgsCardGateway) AuthenticateCardholder(ctx context.Context, r Authen
 			IPAddress: r.Browser.IPAddress,
 		},
 		Order: mpgsclient.AuthenticatePayerReqOrder{
-			Amount:   r.Amount.String(),
-			Currency: r.Currency,
+			Amount:   gatewayAmount,
+			Currency: string(r.Currency),
 		},
 		Session: mpgsclient.AuthenticatePayerReqSession{
 			ID: string(r.PaymentMethodReference),
@@ -175,6 +186,10 @@ func (mcg *mpgsCardGateway) AuthenticateCardholder(ctx context.Context, r Authen
 }
 
 func (mcg *mpgsCardGateway) GetCardAuthenticationResult(ctx context.Context, r GetCardAuthenticationResultGatewayRequest) (*PreparedGetCardAuthenticationResultGatewayRequest, error) {
+	if err := r.Currency.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid get card authentication result currency: %w", err)
+	}
+
 	return &PreparedGetCardAuthenticationResultGatewayRequest{
 		RawRequest: nil,
 		send: func(ctx context.Context) (*GetCardAuthenticationResultGatewayResponse, error) {
@@ -203,10 +218,10 @@ func mapMPGSCardAuthenticationResult(
 	if resp.Order.ID != r.InvoiceID.String() ||
 		resp.Transaction.ID != string(r.AuthenticationReference) ||
 		resp.Transaction.Type != mpgsclient.TypeAuthentication ||
-		!resp.Order.Amount.Equal(r.Amount) ||
-		!resp.Transaction.Amount.Equal(r.Amount) ||
-		resp.Order.Currency != r.Currency ||
-		resp.Transaction.Currency != r.Currency ||
+		!matchesGatewayAmount(r.Amount, r.Currency, resp.Order.Amount.String()) ||
+		!matchesGatewayAmount(r.Amount, r.Currency, resp.Transaction.Amount.String()) ||
+		resp.Order.Currency != string(r.Currency) ||
+		resp.Transaction.Currency != string(r.Currency) ||
 		(resp.Order.AuthenticationStatus != "" &&
 			resp.Order.AuthenticationStatus != resp.Transaction.AuthenticationStatus) {
 		return CardAuthenticationResultFailed
@@ -236,14 +251,19 @@ func mapMPGSCardAuthenticationResult(
 }
 
 func (mcg *mpgsCardGateway) CaptureCardPayment(ctx context.Context, r CaptureCardPaymentGatewayRequest) (*PreparedCaptureCardPaymentGatewayRequest, error) {
+	gatewayAmount, err := r.Amount.DecimalString(r.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("invalid capture card payment amount: %w", err)
+	}
+
 	mpgsReq := &mpgsclient.ExecutePayRequest{
 		APIOperation: mpgsclient.OperationPay,
 		Authentication: mpgsclient.ExecutePayReqAuthentication{
 			TransactionID: string(r.AuthenticationReference),
 		},
 		Order: mpgsclient.ExecutePayReqOrder{
-			Amount:   r.Amount.String(),
-			Currency: r.Currency,
+			Amount:   gatewayAmount,
+			Currency: string(r.Currency),
 		},
 		Session: mpgsclient.ExecutePayReqSession{
 			ID: string(r.PaymentMethodReference),
@@ -286,10 +306,10 @@ func mapMPGSCaptureCardPaymentResult(
 	responseMatchesRequest := resp.Order.ID == r.InvoiceID.String() &&
 		resp.Transaction.ID == r.PaymentReference.String() &&
 		resp.Transaction.Type == mpgsclient.TypePayment &&
-		resp.Order.Amount.Equal(r.Amount) &&
-		resp.Transaction.Amount.Equal(r.Amount) &&
-		resp.Order.Currency == r.Currency &&
-		resp.Transaction.Currency == r.Currency
+		matchesGatewayAmount(r.Amount, r.Currency, resp.Order.Amount.String()) &&
+		matchesGatewayAmount(r.Amount, r.Currency, resp.Transaction.Amount.String()) &&
+		resp.Order.Currency == string(r.Currency) &&
+		resp.Transaction.Currency == string(r.Currency)
 	if resp.Result == mpgsclient.ResultSuccess && resp.Response.GatewayCode == mpgsclient.CodeApproved {
 		if !responseMatchesRequest {
 			return "", ErrGatewayResponseMismatch
@@ -312,6 +332,11 @@ func mapMPGSCaptureCardPaymentResult(
 	default:
 		return CaptureCardPaymentGatewayResultUnknown, nil
 	}
+}
+
+func matchesGatewayAmount(expected money.MinorAmount, currency money.Currency, actual string) bool {
+	amount, err := money.ParseDecimalString(actual, currency)
+	return err == nil && amount == expected
 }
 
 func isDefinitiveMPGSCardPaymentDecline(code mpgsclient.GatewayCode) bool {

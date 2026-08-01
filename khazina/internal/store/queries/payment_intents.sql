@@ -1,6 +1,6 @@
 -- name: CreatePaymentIntent :one
-INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway_setup_reference, payment_method, payer_ip, payer_user_agent, idempotency_key)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway_setup_reference, payment_method, payer_ip, payer_user_agent, idempotency_key, amount_minor, currency)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   RETURNING *;
 
 -- name: GetPaymentIntentByIdempotencyKeyAndProject :one

@@ -3,6 +3,6 @@
   name: "test item"
   description: "really cool test item"
   quantity: 1
-  unit_price: 15.000
-  amount: 15.000
+  unit_price_minor: 15000
+  amount_minor: 15000
   created_at: "2026-05-29 10:00:00Z"

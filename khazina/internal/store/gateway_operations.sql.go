@@ -9,16 +9,15 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 const createGatewayOperation = `-- name: CreateGatewayOperation :one
 INSERT INTO gateway_operations (
     payment_intent_id, invoice_id, project_id, gateway_account_id,
-    operation_type, gateway_reference, amount, currency, raw_request
+    operation_type, gateway_reference, raw_request
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id
 `
 
 type CreateGatewayOperationParams struct {
@@ -28,8 +27,6 @@ type CreateGatewayOperationParams struct {
 	GatewayAccountID uuid.UUID
 	OperationType    GatewayOperationType
 	GatewayReference string
-	Amount           decimal.Decimal
-	Currency         string
 	RawRequest       []byte
 }
 
@@ -41,8 +38,6 @@ func (q *Queries) CreateGatewayOperation(ctx context.Context, arg CreateGatewayO
 		arg.GatewayAccountID,
 		arg.OperationType,
 		arg.GatewayReference,
-		arg.Amount,
-		arg.Currency,
 		arg.RawRequest,
 	)
 	var i GatewayOperation
@@ -53,8 +48,6 @@ func (q *Queries) CreateGatewayOperation(ctx context.Context, arg CreateGatewayO
 		&i.ProjectID,
 		&i.OperationType,
 		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
 		&i.Status,
 		&i.RawRequest,
 		&i.RawResponse,
@@ -67,7 +60,7 @@ func (q *Queries) CreateGatewayOperation(ctx context.Context, arg CreateGatewayO
 }
 
 const getCompletedAuthenticateCardholderGatewayOperation = `-- name: GetCompletedAuthenticateCardholderGatewayOperation :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
 WHERE payment_intent_id = $1
 AND operation_type = 'authenticate_cardholder'
 AND status = 'completed'
@@ -85,8 +78,6 @@ func (q *Queries) GetCompletedAuthenticateCardholderGatewayOperation(ctx context
 		&i.ProjectID,
 		&i.OperationType,
 		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
 		&i.Status,
 		&i.RawRequest,
 		&i.RawResponse,
@@ -99,7 +90,7 @@ func (q *Queries) GetCompletedAuthenticateCardholderGatewayOperation(ctx context
 }
 
 const getCompletedCapturePaymentGatewayOperationByPaymentIntentID = `-- name: GetCompletedCapturePaymentGatewayOperationByPaymentIntentID :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
 WHERE payment_intent_id = $1
 AND operation_type = 'capture_payment'
 AND status = 'completed'
@@ -116,8 +107,6 @@ func (q *Queries) GetCompletedCapturePaymentGatewayOperationByPaymentIntentID(ct
 		&i.ProjectID,
 		&i.OperationType,
 		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
 		&i.Status,
 		&i.RawRequest,
 		&i.RawResponse,
@@ -130,7 +119,7 @@ func (q *Queries) GetCompletedCapturePaymentGatewayOperationByPaymentIntentID(ct
 }
 
 const getCompletedPrepareCardAuthenticationGatewayOperation = `-- name: GetCompletedPrepareCardAuthenticationGatewayOperation :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
 WHERE payment_intent_id = $1
 AND operation_type = 'prepare_card_authentication'
 AND status = 'completed'
@@ -148,8 +137,6 @@ func (q *Queries) GetCompletedPrepareCardAuthenticationGatewayOperation(ctx cont
 		&i.ProjectID,
 		&i.OperationType,
 		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
 		&i.Status,
 		&i.RawRequest,
 		&i.RawResponse,
@@ -162,7 +149,7 @@ func (q *Queries) GetCompletedPrepareCardAuthenticationGatewayOperation(ctx cont
 }
 
 const getLatestGatewayOperation = `-- name: GetLatestGatewayOperation :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
 WHERE payment_intent_id = $1
 ORDER BY created_at DESC
 LIMIT 1
@@ -178,8 +165,6 @@ func (q *Queries) GetLatestGatewayOperation(ctx context.Context, paymentIntentID
 		&i.ProjectID,
 		&i.OperationType,
 		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
 		&i.Status,
 		&i.RawRequest,
 		&i.RawResponse,

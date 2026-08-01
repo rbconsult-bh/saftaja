@@ -72,13 +72,19 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	formattedInvoiceAmount, err := checkoutData.Invoice.Amount.Format(checkoutData.Invoice.Currency)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to format invoice amount")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 
 	if checkoutData.Invoice.Status == payment.InvoiceStatusPaid {
 		data := templfiles.CheckoutPageData{
 			Invoice: templfiles.CheckoutInvoice{
 				ID:            checkoutData.Invoice.ID.String(),
-				Amount:        checkoutData.Invoice.Amount.String(),
-				Currency:      checkoutData.Invoice.Currency,
+				Amount:        formattedInvoiceAmount,
+				Currency:      string(checkoutData.Invoice.Currency),
 				CustomerEmail: checkoutData.Invoice.CustomerEmail,
 			},
 			IsPaid: true,
@@ -101,11 +107,23 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	checkoutItems := make([]templfiles.CheckoutItem, len(checkoutData.Invoice.Items))
 	for i, item := range checkoutData.Invoice.Items {
+		formattedUnitPrice, err := item.UnitPrice.Format(checkoutData.Invoice.Currency)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to format invoice item unit price")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		formattedItemAmount, err := item.Amount.Format(checkoutData.Invoice.Currency)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to format invoice item amount")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		checkoutItems[i] = templfiles.CheckoutItem{
 			Name:      item.Name,
 			Quantity:  item.Quantity,
-			UnitPrice: item.UnitPrice.String(),
-			Amount:    item.Amount.String(),
+			UnitPrice: formattedUnitPrice,
+			Amount:    formattedItemAmount,
 		}
 	}
 
@@ -129,8 +147,8 @@ func (h *handlers) CheckoutPageHandler(w http.ResponseWriter, r *http.Request) {
 		MPGSMerchantID: mpgsMerchantID,
 		Invoice: templfiles.CheckoutInvoice{
 			ID:            checkoutData.Invoice.ID.String(),
-			Amount:        checkoutData.Invoice.Amount.String(),
-			Currency:      checkoutData.Invoice.Currency,
+			Amount:        formattedInvoiceAmount,
+			Currency:      string(checkoutData.Invoice.Currency),
 			Description:   checkoutData.Invoice.Description,
 			CustomerEmail: checkoutData.Invoice.CustomerEmail,
 			CustomerName:  checkoutData.Invoice.CustomerName,

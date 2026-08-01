@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 )
 
 type OrganizationRole string
@@ -101,8 +101,6 @@ type GatewayOperation struct {
 	ProjectID        uuid.UUID
 	OperationType    GatewayOperationType
 	GatewayReference string
-	Amount           decimal.Decimal
-	Currency         string
 	Status           GatewayOperationStatus
 	RawRequest       []byte
 	RawResponse      []byte
@@ -115,8 +113,7 @@ type GatewayOperation struct {
 type Invoice struct {
 	ID            uuid.UUID
 	ProjectID     uuid.UUID
-	Amount        decimal.Decimal
-	Currency      string
+	Currency      money.Currency
 	Status        InvoiceStatus
 	ExternalID    *string
 	CustomerEmail *string
@@ -126,17 +123,18 @@ type Invoice struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
+	AmountMinor   money.MinorAmount
 }
 
 type InvoiceItem struct {
-	ID          uuid.UUID
-	InvoiceID   uuid.UUID
-	Name        string
-	Description *string
-	Quantity    int32
-	UnitPrice   decimal.Decimal
-	Amount      decimal.Decimal
-	CreatedAt   time.Time
+	ID             uuid.UUID
+	InvoiceID      uuid.UUID
+	Name           string
+	Description    *string
+	Quantity       int32
+	CreatedAt      time.Time
+	UnitPriceMinor money.MinorAmount
+	AmountMinor    money.MinorAmount
 }
 
 type Organization struct {
@@ -169,6 +167,8 @@ type PaymentIntent struct {
 	UpdatedAt             time.Time
 	DeletedAt             *time.Time
 	IdempotencyKey        string
+	AmountMinor           money.MinorAmount
+	Currency              money.Currency
 }
 
 type Project struct {

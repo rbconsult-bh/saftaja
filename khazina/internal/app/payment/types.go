@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 )
 
 var (
@@ -93,8 +93,8 @@ type (
 	Invoice struct {
 		ID            uuid.UUID
 		ProjectID     uuid.UUID
-		Amount        decimal.Decimal
-		Currency      string
+		Amount        money.MinorAmount
+		Currency      money.Currency
 		Status        InvoiceStatus
 		ExternalID    string
 		CustomerEmail string
@@ -112,8 +112,8 @@ type (
 		Name        string
 		Description string
 		Quantity    int32
-		UnitPrice   decimal.Decimal
-		Amount      decimal.Decimal
+		UnitPrice   money.MinorAmount
+		Amount      money.MinorAmount
 		CreatedAt   time.Time
 	}
 )

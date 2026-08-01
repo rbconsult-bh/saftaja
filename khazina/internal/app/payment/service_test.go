@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/testutil"
-	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -215,7 +215,7 @@ func TestGetInvoice_Success(t *testing.T) {
 	assert.Equal(t, uuidInvoice, resp.Invoice.ID)
 	assert.Equal(t, uuidProject, resp.Invoice.ProjectID)
 	assert.Equal(t, InvoiceStatusPending, resp.Invoice.Status)
-	assert.Equal(t, "BHD", resp.Invoice.Currency)
+	assert.Equal(t, money.CurrencyBHD, resp.Invoice.Currency)
 	assert.Equal(t, "testcustomer@saftaja.com", resp.Invoice.CustomerEmail)
 	require.Len(t, resp.Invoice.Items, 1)
 	assert.Equal(t, "test item", resp.Invoice.Items[0].Name)
@@ -433,6 +433,8 @@ func TestCreatePaymentIntent_CreatesCardIntent(t *testing.T) {
 	assert.Equal(t, store.PaymentMethodCard, intent.PaymentMethod)
 	assert.Equal(t, store.PaymentIntentStatusCreated, intent.Status)
 	assert.Equal(t, "key-card-success", intent.IdempotencyKey)
+	assert.Equal(t, money.MinorAmount(15000), intent.AmountMinor)
+	assert.Equal(t, money.CurrencyBHD, intent.Currency)
 	require.NotNil(t, intent.GatewaySetupReference)
 	assert.Equal(t, "session-test-123", *intent.GatewaySetupReference)
 
@@ -441,8 +443,8 @@ func TestCreatePaymentIntent_CreatesCardIntent(t *testing.T) {
 
 	assert.Equal(t, 1, env.cardGateway.setupCardPaymentMethod.calls)
 	assert.Equal(t, uuidInvoice, env.cardGateway.setupCardPaymentMethod.req.InvoiceID)
-	assert.Equal(t, "BHD", env.cardGateway.setupCardPaymentMethod.req.Currency)
-	assert.True(t, decimal.RequireFromString("15.000").Equal(env.cardGateway.setupCardPaymentMethod.req.Amount))
+	assert.Equal(t, money.CurrencyBHD, env.cardGateway.setupCardPaymentMethod.req.Currency)
+	assert.Equal(t, money.MinorAmount(15000), env.cardGateway.setupCardPaymentMethod.req.Amount)
 
 	require.NotNil(t, resp.PaymentMethodReference)
 	assert.Equal(t, PaymentMethodReference("session-test-123"), *resp.PaymentMethodReference)
@@ -673,7 +675,7 @@ func TestPrepareCardAuthentication_RecordsPendingGatewayOperationBeforeSending(t
 	assert.Equal(t, PrepareCardAuthenticationNextStepAuthenticate, resp.NextStep)
 	assert.Equal(t, 1, env.cardGateway.prepareCardAuthentication.calls)
 	assert.Equal(t, uuidInvoice, env.cardGateway.prepareCardAuthentication.req.InvoiceID)
-	assert.Equal(t, "BHD", env.cardGateway.prepareCardAuthentication.req.Currency)
+	assert.Equal(t, money.CurrencyBHD, env.cardGateway.prepareCardAuthentication.req.Currency)
 	assert.Equal(t, PaymentMethodReference("session-existing-abc"), env.cardGateway.prepareCardAuthentication.req.PaymentMethodReference)
 
 	intent, err := env.queries.GetPaymentIntentByID(env.ctx, uuidPaymentIntent)
@@ -888,8 +890,8 @@ func TestAuthenticateCardholder_CompletesChallenge(t *testing.T) {
 	assert.Equal(t, 1, env.cardGateway.authenticateCardholder.calls)
 	assert.Equal(t, AuthenticateCardholderGatewayRequest{
 		InvoiceID:               uuidInvoice,
-		Amount:                  decimal.RequireFromString("15.000"),
-		Currency:                "BHD",
+		Amount:                  15000,
+		Currency:                money.CurrencyBHD,
 		PaymentMethodReference:  "session-ready-to-start-challenge",
 		AuthenticationReference: AuthenticationReference(prepareAuthenticationOperation.GatewayReference),
 		ChallengeReturnURL:      req.ChallengeReturnURL,
@@ -1012,8 +1014,6 @@ func createCompletedPrepareCardAuthenticationGatewayOperation(t *testing.T, env 
 		GatewayAccountID: uuidGateway,
 		OperationType:    store.GatewayOperationTypePrepareCardAuthentication,
 		GatewayReference: "gw-init-auth-ready",
-		Amount:           decimal.RequireFromString("15.000"),
-		Currency:         "BHD",
 		RawRequest:       []byte(`{"apiOperation":"INITIATE_AUTHENTICATION"}`),
 	})
 	require.NoError(t, err)
@@ -1240,8 +1240,8 @@ func TestVerifyCardAuthentication_PendingResultRemainsAwaiting(t *testing.T) {
 	assert.Equal(t, 1, env.cardGateway.getCardAuthenticationResult.calls)
 	assert.Equal(t, GetCardAuthenticationResultGatewayRequest{
 		InvoiceID:               uuidInvoice,
-		Amount:                  decimal.RequireFromString("15.000"),
-		Currency:                "BHD",
+		Amount:                  15000,
+		Currency:                money.CurrencyBHD,
 		AuthenticationReference: AuthenticationReference(authenticationOperation.GatewayReference),
 	}, env.cardGateway.getCardAuthenticationResult.req)
 
@@ -1571,8 +1571,8 @@ func TestCapturePaymentIntent_AppliesGatewayResult(t *testing.T) {
 			assert.Equal(t, CaptureCardPaymentGatewayRequest{
 				InvoiceID:               uuidInvoice,
 				PaymentReference:        uuidPaymentReadyToCapture,
-				Amount:                  decimal.RequireFromString("15.000"),
-				Currency:                "BHD",
+				Amount:                  15000,
+				Currency:                money.CurrencyBHD,
 				PaymentMethodReference:  "session-ready-to-capture",
 				AuthenticationReference: AuthenticationReference(authenticationOperation.GatewayReference),
 			}, env.cardGateway.captureCardPayment.req)
@@ -1642,8 +1642,6 @@ func createCompletedAuthenticateCardholderGatewayOperation(
 		GatewayAccountID: uuidGateway,
 		OperationType:    store.GatewayOperationTypeAuthenticateCardholder,
 		GatewayReference: gatewayReference,
-		Amount:           decimal.RequireFromString("15.000"),
-		Currency:         "BHD",
 		RawRequest:       []byte(`{"apiOperation":"AUTHENTICATE_PAYER"}`),
 	})
 	require.NoError(t, err)

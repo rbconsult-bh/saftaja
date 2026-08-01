@@ -9,12 +9,13 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 )
 
 const createPaymentIntent = `-- name: CreatePaymentIntent :one
-INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway_setup_reference, payment_method, payer_ip, payer_user_agent, idempotency_key)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-  RETURNING id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key
+INSERT INTO payment_intents (invoice_id, project_id, gateway_account_id, gateway_setup_reference, payment_method, payer_ip, payer_user_agent, idempotency_key, amount_minor, currency)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  RETURNING id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key, amount_minor, currency
 `
 
 type CreatePaymentIntentParams struct {
@@ -26,6 +27,8 @@ type CreatePaymentIntentParams struct {
 	PayerIp               string
 	PayerUserAgent        string
 	IdempotencyKey        string
+	AmountMinor           money.MinorAmount
+	Currency              money.Currency
 }
 
 func (q *Queries) CreatePaymentIntent(ctx context.Context, arg CreatePaymentIntentParams) (PaymentIntent, error) {
@@ -38,6 +41,8 @@ func (q *Queries) CreatePaymentIntent(ctx context.Context, arg CreatePaymentInte
 		arg.PayerIp,
 		arg.PayerUserAgent,
 		arg.IdempotencyKey,
+		arg.AmountMinor,
+		arg.Currency,
 	)
 	var i PaymentIntent
 	err := row.Scan(
@@ -55,12 +60,14 @@ func (q *Queries) CreatePaymentIntent(ctx context.Context, arg CreatePaymentInte
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IdempotencyKey,
+		&i.AmountMinor,
+		&i.Currency,
 	)
 	return i, err
 }
 
 const getPaymentIntentByID = `-- name: GetPaymentIntentByID :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key, amount_minor, currency FROM payment_intents
 WHERE id = $1 LIMIT 1
 `
 
@@ -82,12 +89,14 @@ func (q *Queries) GetPaymentIntentByID(ctx context.Context, id uuid.UUID) (Payme
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IdempotencyKey,
+		&i.AmountMinor,
+		&i.Currency,
 	)
 	return i, err
 }
 
 const getPaymentIntentByIDAndProject = `-- name: GetPaymentIntentByIDAndProject :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key, amount_minor, currency FROM payment_intents
 WHERE id = $1 AND project_id = $2 LIMIT 1
 `
 
@@ -114,12 +123,14 @@ func (q *Queries) GetPaymentIntentByIDAndProject(ctx context.Context, arg GetPay
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IdempotencyKey,
+		&i.AmountMinor,
+		&i.Currency,
 	)
 	return i, err
 }
 
 const getPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate = `-- name: GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key, amount_minor, currency FROM payment_intents
 WHERE id = $1 AND project_id = $2 AND invoice_id = $3 LIMIT 1
 FOR NO KEY UPDATE
 `
@@ -148,12 +159,14 @@ func (q *Queries) GetPaymentIntentByIDAndProjectAndInvoiceForNoKeyUpdate(ctx con
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IdempotencyKey,
+		&i.AmountMinor,
+		&i.Currency,
 	)
 	return i, err
 }
 
 const getPaymentIntentByIdempotencyKeyAndProject = `-- name: GetPaymentIntentByIdempotencyKeyAndProject :one
-SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key FROM payment_intents
+SELECT id, invoice_id, project_id, gateway_account_id, gateway_setup_reference, status, payment_method, payer_ip, payer_user_agent, expires_at, created_at, updated_at, deleted_at, idempotency_key, amount_minor, currency FROM payment_intents
 WHERE project_id = $1
 AND idempotency_key = $2
 LIMIT 1
@@ -182,6 +195,8 @@ func (q *Queries) GetPaymentIntentByIdempotencyKeyAndProject(ctx context.Context
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.IdempotencyKey,
+		&i.AmountMinor,
+		&i.Currency,
 	)
 	return i, err
 }

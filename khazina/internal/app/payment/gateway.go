@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/store"
-	"github.com/shopspring/decimal"
 )
 
 type GatewayResolver interface {
@@ -51,8 +51,8 @@ type CardGateway interface {
 type (
 	SetupCardPaymentMethodGatewayRequest struct {
 		InvoiceID uuid.UUID
-		Amount    decimal.Decimal
-		Currency  string
+		Amount    money.MinorAmount
+		Currency  money.Currency
 	}
 	SetupCardPaymentMethodGatewayResponse struct {
 		PaymentMethodReference PaymentMethodReference
@@ -69,7 +69,7 @@ const (
 type (
 	PrepareCardAuthenticationGatewayRequest struct {
 		InvoiceID              uuid.UUID
-		Currency               string
+		Currency               money.Currency
 		PaymentMethodReference PaymentMethodReference
 	}
 	PreparedCardAuthenticationGatewayRequest struct {
@@ -104,8 +104,8 @@ const (
 type (
 	AuthenticateCardholderGatewayRequest struct {
 		InvoiceID               uuid.UUID
-		Amount                  decimal.Decimal
-		Currency                string
+		Amount                  money.MinorAmount
+		Currency                money.Currency
 		PaymentMethodReference  PaymentMethodReference
 		AuthenticationReference AuthenticationReference
 		ChallengeReturnURL      string
@@ -143,8 +143,8 @@ const (
 type (
 	GetCardAuthenticationResultGatewayRequest struct {
 		InvoiceID               uuid.UUID
-		Amount                  decimal.Decimal
-		Currency                string
+		Amount                  money.MinorAmount
+		Currency                money.Currency
 		AuthenticationReference AuthenticationReference
 	}
 	PreparedGetCardAuthenticationResultGatewayRequest struct {
@@ -180,8 +180,8 @@ type (
 	CaptureCardPaymentGatewayRequest struct {
 		InvoiceID               uuid.UUID
 		PaymentReference        uuid.UUID
-		Amount                  decimal.Decimal
-		Currency                string
+		Amount                  money.MinorAmount
+		Currency                money.Currency
 		PaymentMethodReference  PaymentMethodReference
 		AuthenticationReference AuthenticationReference
 	}

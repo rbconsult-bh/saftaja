@@ -5,6 +5,8 @@
   gateway_setup_reference: session-existing-abc
   status: created
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -20,6 +22,8 @@
   gateway_setup_reference: session-expired-xyz
   status: created
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "2025-01-01 00:00:00Z"
@@ -35,6 +39,8 @@
   gateway_setup_reference: session-mismatch-zzz
   status: created
   payment_method: card
+  amount_minor: 25000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -50,6 +56,8 @@
   gateway_setup_reference: session-unknown-method
   status: created
   payment_method: wat
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -65,6 +73,8 @@
   gateway_setup_reference: session-ready-to-start-challenge
   status: ready_to_authenticate
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -80,6 +90,8 @@
   gateway_setup_reference: null
   status: created
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -95,6 +107,8 @@
   gateway_setup_reference: session-awaiting-authentication-result
   status: awaiting_authentication_result
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -110,6 +124,8 @@
   gateway_setup_reference: session-ready-to-capture
   status: ready_to_capture
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -125,6 +141,8 @@
   gateway_setup_reference: session-failed
   status: failed
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "3000-12-31 23:59:59Z"
@@ -140,6 +158,8 @@
   gateway_setup_reference: session-expired-awaiting-authentication-result
   status: awaiting_authentication_result
   payment_method: card
+  amount_minor: 15000
+  currency: BHD
   payer_ip: 192.168.1.1
   payer_user_agent: Mozilla/5.0
   expires_at: "2025-01-01 00:00:00Z"

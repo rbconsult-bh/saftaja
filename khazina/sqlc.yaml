@@ -23,17 +23,35 @@ sql:
               import: "github.com/google/uuid"
               type: "UUID"
 
-          - db_type: "pg_catalog.numeric"
-            nullable: true
+          - column: "invoices.amount_minor"
             go_type:
-              import: "github.com/shopspring/decimal"
-              type: "NullDecimal"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
 
-          - db_type: "pg_catalog.numeric"
-            nullable: false
+          - column: "invoice_items.unit_price_minor"
             go_type:
-              import: "github.com/shopspring/decimal"
-              type: "Decimal"
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
+
+          - column: "invoice_items.amount_minor"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
+
+          - column: "payment_intents.amount_minor"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "MinorAmount"
+
+          - column: "invoices.currency"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "Currency"
+
+          - column: "payment_intents.currency"
+            go_type:
+              import: "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/money"
+              type: "Currency"
 
           - column: "projects.environment"
             go_type:

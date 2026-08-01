@@ -1,9 +1,9 @@
 -- name: CreateGatewayOperation :one
 INSERT INTO gateway_operations (
     payment_intent_id, invoice_id, project_id, gateway_account_id,
-    operation_type, gateway_reference, amount, currency, raw_request
+    operation_type, gateway_reference, raw_request
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7
 ) RETURNING *;
 
 -- name: GetCompletedCapturePaymentGatewayOperationByPaymentIntentID :one

@@ -149,6 +149,8 @@ func (s *service) CreatePaymentIntent(ctx context.Context, r CreatePaymentIntent
 		PayerIp:          r.PayerIP,
 		PayerUserAgent:   r.PayerUserAgent,
 		IdempotencyKey:   r.IdempotencyKey,
+		AmountMinor:      invoice.AmountMinor,
+		Currency:         invoice.Currency,
 	}
 	switch r.PaymentMethod {
 	case PaymentMethodCard:
@@ -175,7 +177,7 @@ func (s *service) CreatePaymentIntent(ctx context.Context, r CreatePaymentIntent
 
 		setupResp, err := cardGateway.SetupCardPaymentMethod(ctx, SetupCardPaymentMethodGatewayRequest{
 			InvoiceID: invoice.ID,
-			Amount:    invoice.Amount,
+			Amount:    invoice.AmountMinor,
 			Currency:  invoice.Currency,
 		})
 		if err != nil {
@@ -349,8 +351,8 @@ func (s *service) CapturePaymentIntent(ctx context.Context, r CapturePaymentInte
 	prepared, err := cardGateway.CaptureCardPayment(ctx, CaptureCardPaymentGatewayRequest{
 		InvoiceID:               invoice.ID,
 		PaymentReference:        paymentIntent.ID,
-		Amount:                  invoice.Amount,
-		Currency:                invoice.Currency,
+		Amount:                  paymentIntent.AmountMinor,
+		Currency:                paymentIntent.Currency,
 		PaymentMethodReference:  PaymentMethodReference(*paymentIntent.GatewaySetupReference),
 		AuthenticationReference: AuthenticationReference(authenticationOperation.GatewayReference),
 	})
@@ -365,8 +367,6 @@ func (s *service) CapturePaymentIntent(ctx context.Context, r CapturePaymentInte
 		GatewayAccountID: paymentIntent.GatewayAccountID,
 		OperationType:    store.GatewayOperationTypeCapturePayment,
 		GatewayReference: paymentIntent.ID.String(),
-		Amount:           invoice.Amount,
-		Currency:         invoice.Currency,
 		RawRequest:       prepared.RawRequest,
 	})
 	if err != nil {
@@ -614,7 +614,7 @@ func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAu
 
 	prepared, err := cardGateway.PrepareCardAuthentication(ctx, PrepareCardAuthenticationGatewayRequest{
 		InvoiceID:              invoice.ID,
-		Currency:               invoice.Currency,
+		Currency:               paymentIntent.Currency,
 		PaymentMethodReference: PaymentMethodReference(*paymentIntent.GatewaySetupReference),
 	})
 	if err != nil {
@@ -629,8 +629,6 @@ func (s *service) PrepareCardAuthentication(ctx context.Context, r PrepareCardAu
 		GatewayAccountID: paymentIntent.GatewayAccountID,
 		OperationType:    store.GatewayOperationTypePrepareCardAuthentication,
 		GatewayReference: string(prepared.AuthenticationReference),
-		Amount:           invoice.Amount,
-		Currency:         invoice.Currency,
 		RawRequest:       prepared.RawRequest,
 	})
 	if err != nil {
@@ -811,8 +809,8 @@ func (s *service) AuthenticateCardholder(ctx context.Context, r AuthenticateCard
 
 	prepared, err := cardGateway.AuthenticateCardholder(ctx, AuthenticateCardholderGatewayRequest{
 		InvoiceID:               invoice.ID,
-		Amount:                  invoice.Amount,
-		Currency:                invoice.Currency,
+		Amount:                  paymentIntent.AmountMinor,
+		Currency:                paymentIntent.Currency,
 		PaymentMethodReference:  PaymentMethodReference(*paymentIntent.GatewaySetupReference),
 		AuthenticationReference: AuthenticationReference(prepareAuthenticationOperation.GatewayReference),
 		ChallengeReturnURL:      r.ChallengeReturnURL,
@@ -830,8 +828,6 @@ func (s *service) AuthenticateCardholder(ctx context.Context, r AuthenticateCard
 		GatewayAccountID: paymentIntent.GatewayAccountID,
 		OperationType:    store.GatewayOperationTypeAuthenticateCardholder,
 		GatewayReference: prepareAuthenticationOperation.GatewayReference,
-		Amount:           invoice.Amount,
-		Currency:         invoice.Currency,
 		RawRequest:       prepared.RawRequest,
 	})
 	if err != nil {
@@ -1026,8 +1022,8 @@ func (s *service) VerifyCardAuthentication(ctx context.Context, r VerifyCardAuth
 
 	prepared, err := cardGateway.GetCardAuthenticationResult(ctx, GetCardAuthenticationResultGatewayRequest{
 		InvoiceID:               invoice.ID,
-		Amount:                  invoice.Amount,
-		Currency:                invoice.Currency,
+		Amount:                  paymentIntent.AmountMinor,
+		Currency:                paymentIntent.Currency,
 		AuthenticationReference: AuthenticationReference(authenticationOperation.GatewayReference),
 	})
 	if err != nil {
@@ -1042,8 +1038,6 @@ func (s *service) VerifyCardAuthentication(ctx context.Context, r VerifyCardAuth
 		GatewayAccountID: paymentIntent.GatewayAccountID,
 		OperationType:    store.GatewayOperationTypeGetCardAuthenticationResult,
 		GatewayReference: authenticationOperation.GatewayReference,
-		Amount:           invoice.Amount,
-		Currency:         invoice.Currency,
 		RawRequest:       prepared.RawRequest,
 	})
 	if err != nil {
