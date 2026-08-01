@@ -113,7 +113,7 @@ func LoadFixtures(
 
 	fixtures, err := testfixtures.New(
 		testfixtures.Database(sqlDB),
-		testfixtures.Dialect("postgresql"),
+		testfixtures.Dialect("postgresql", testfixtures.RespectSearchPath()),
 		testfixtures.Directory(fixturesDir),
 	)
 	require.NoError(t, err)

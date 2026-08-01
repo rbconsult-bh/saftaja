@@ -554,8 +554,9 @@ templ CheckoutForm(data CheckoutPageData) {
 		const INVOICE_AMOUNT = {{ data.Invoice.Amount }};
 		const INVOICE_CURRENCY = {{ data.Invoice.Currency }};
 		const LANG = {{ langCode(data.Lang) }};
-		let CURRENT_PAYMENT_SESSION_ID = null;
+		let CURRENT_PAYMENT_INTENT_ID = null;
 		let CURRENT_PAYMENT_TYPE = null;
+		let VERIFY_CARD_AUTHENTICATION_TIMER = null;
 
 		function randomID() {
 			if (window.crypto && window.crypto.randomUUID) {
@@ -595,8 +596,21 @@ templ CheckoutForm(data CheckoutPageData) {
 			document.querySelectorAll('.option-btn').forEach(b => {
 				b.classList.remove('border-slate-900', 'bg-slate-50');
 			});
-			CURRENT_PAYMENT_SESSION_ID = null;
+			if (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {
+				window.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);
+				VERIFY_CARD_AUTHENTICATION_TIMER = null;
+			}
+			CURRENT_PAYMENT_INTENT_ID = null;
 			CURRENT_PAYMENT_TYPE = null;
+		}
+
+		async function fetchJSON(url, options) {
+			const response = await fetch(url, options);
+			const payload = await response.json().catch(() => null);
+			if (!response.ok) {
+				throw new Error(payload && payload.message ? payload.message : {{ MsgInternalError.Get(data.Lang) }});
+			}
+			return payload;
 		}
 
 		// Select payment method
@@ -616,7 +630,7 @@ templ CheckoutForm(data CheckoutPageData) {
 			CURRENT_PAYMENT_TYPE = type;
 
 			try {
-				const resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {
+				const paymentIntent = await fetchJSON(`/checkout/${INVOICE_ID}/payment-intents`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -628,16 +642,17 @@ templ CheckoutForm(data CheckoutPageData) {
 					})
 				});
 
-				const data = await resp.json();
-
-				if (data.action === 'render_embedded') {
-					CURRENT_PAYMENT_SESSION_ID = data.payment_session_id;
-					initializeMPGS(data.payment_method_reference);
+				if (paymentIntent.action === 'render_embedded') {
+					CURRENT_PAYMENT_INTENT_ID = paymentIntent.payment_intent_id;
+					initializeMPGS(paymentIntent.payment_method_reference);
+				} else {
+					throw new Error({{ MsgInternalError.Get(data.Lang) }});
 				}
 			} catch (e) {
 				console.error("Init failed", e);
-				showError({{ LblPaymentFailedInit.Get(data.Lang) }});
 				goBack();
+				document.getElementById('error-banner-message').textContent = e.message || {{ LblPaymentFailedInit.Get(data.Lang) }};
+				document.getElementById('error-banner').classList.remove('hidden');
 			}
 		}
 
@@ -744,6 +759,10 @@ templ CheckoutForm(data CheckoutPageData) {
 		}
 
 		function showSuccess() {
+			if (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {
+				window.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);
+				VERIFY_CARD_AUTHENTICATION_TIMER = null;
+			}
 			hideProcessing();
 			hideChallenge();
 
@@ -761,6 +780,10 @@ templ CheckoutForm(data CheckoutPageData) {
 		}
 
 		function showError(message) {
+			if (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {
+				window.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);
+				VERIFY_CARD_AUTHENTICATION_TIMER = null;
+			}
 			hideProcessing();
 			hideChallenge();
 			resetPayButton();
@@ -777,10 +800,10 @@ templ CheckoutForm(data CheckoutPageData) {
 		async function start3DSFlow() {
 			showProcessing();
 
-			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/prepare-challenge`;
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/prepare`;
 
 			try {
-				const prepareRes = await fetch(url, { method: "POST" }).then(r => r.json());
+				const prepareRes = await fetchJSON(url, { method: "POST" });
 
 				if (prepareRes.next_step === "authenticate") {
 					doAuthenticatePayer();
@@ -791,72 +814,94 @@ templ CheckoutForm(data CheckoutPageData) {
 				}
 			} catch (e) {
 				console.error(e);
-				showError({{ MsgGatewayError.Get(data.Lang) }});
+				showError(e.message || {{ MsgGatewayError.Get(data.Lang) }});
 			}
 		}
 
 		async function doAuthenticatePayer() {
-			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/process-auth`;
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/authenticate`;
 
 			const browserDetails = {
-				"3DSecureChallengeWindowSize": "FULL_SCREEN",
-				"acceptHeaders": "*/*",
-				"colorDepth": window.screen.colorDepth,
-				"javaEnabled": navigator.javaEnabled ? navigator.javaEnabled() : false,
+				"challenge_window_size": "FULL_SCREEN",
+				"color_depth": window.screen.colorDepth,
+				"java_enabled": navigator.javaEnabled ? navigator.javaEnabled() : false,
 				"language": navigator.language,
-				"screenHeight": window.screen.height,
-				"screenWidth": window.screen.width,
-				"timeZone": -new Date().getTimezoneOffset()
+				"screen_height": window.screen.height,
+				"screen_width": window.screen.width,
+				"time_zone": -new Date().getTimezoneOffset()
 			};
 
 			try {
-				const authRes = await fetch(url, {
+				const authRes = await fetchJSON(url, {
 					method: "POST",
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(browserDetails)
-				}).then(r => r.json());
+				});
 
-				if (authRes.next_step === "3ds_challenge") {
+				if (authRes.next_step === "challenge") {
 					showChallenge(authRes.redirect_html);
-				} else if (authRes.next_step === "pay") {
-					// Frictionless - call finalize directly
-					doFinalizePayment();
+				} else if (authRes.next_step === "capture") {
+					doCapturePaymentIntent();
+				} else if (authRes.next_step === "cant_continue") {
+					showError({{ MsgAuthenticationFailed.Get(data.Lang) }});
+				} else {
+					showError({{ MsgInternalError.Get(data.Lang) }});
 				}
 			} catch (e) {
 				console.error(e);
-				showError({{ MsgAuthenticationFailed.Get(data.Lang) }});
+				showError(e.message || {{ MsgAuthenticationFailed.Get(data.Lang) }});
 			}
 		}
 
-		async function doFinalizePayment() {
+		async function doVerifyCardAuthentication() {
 			showProcessing();
-
-			const url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/verify`;
 
 			try {
-				// For frictionless, we still call finalize but it returns HTML
-				// We need to handle this differently - just check if invoice is paid
-				const resp = await fetch(url, { method: "POST" });
-				const text = await resp.text();
-
-				// Since finalize returns HTML now, we just show success
-				// The HTML will also try postMessage which we'll catch
-				showSuccess();
+				const verification = await fetchJSON(url, { method: "POST" });
+				if (verification.next_step === "capture") {
+					doCapturePaymentIntent();
+				} else if (verification.next_step === "pending") {
+					VERIFY_CARD_AUTHENTICATION_TIMER = window.setTimeout(doVerifyCardAuthentication, 1000);
+				} else if (verification.next_step === "cant_continue") {
+					showError({{ MsgAuthenticationFailed.Get(data.Lang) }});
+				} else {
+					showError({{ MsgInternalError.Get(data.Lang) }});
+				}
 			} catch (e) {
 				console.error(e);
-				showError({{ MsgGatewayError.Get(data.Lang) }});
+				showError(e.message || {{ MsgAuthenticationFailed.Get(data.Lang) }});
 			}
 		}
 
-		// Listen for 3DS completion from iframe
-		window.addEventListener('message', function(event) {
-			if (event.data && event.data.type === '3DS_COMPLETE') {
-				hideChallenge();
-				if (event.data.status === 'success') {
+		async function doCapturePaymentIntent() {
+			showProcessing();
+			const url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/capture`;
+
+			try {
+				const capture = await fetchJSON(url, { method: "POST" });
+				if (capture.next_step === "complete") {
 					showSuccess();
+				} else if (capture.next_step === "processing") {
+					showProcessing();
+				} else if (capture.next_step === "cant_continue") {
+					showError({{ MsgPaymentDeclined.Get(data.Lang) }});
 				} else {
-					showError(event.data.message || {{ MsgPaymentDeclined.Get(data.Lang) }});
+					showError({{ MsgInternalError.Get(data.Lang) }});
 				}
+			} catch (e) {
+				console.error(e);
+				showError(e.message || {{ MsgGatewayError.Get(data.Lang) }});
+			}
+		}
+
+		// MPGS returning the browser proves only that payer interaction ended.
+		// Backend verification decides whether capture may begin.
+		window.addEventListener('message', function(event) {
+			if (event.origin === window.location.origin &&
+				event.data && event.data.type === 'CARD_AUTHENTICATION_RETURNED') {
+				hideChallenge();
+				doVerifyCardAuthentication();
 			}
 		});
 	</script>

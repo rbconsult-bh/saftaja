@@ -61,11 +61,15 @@ func mountWebRoutes(r chi.Router, cfg *config.Config, deps *dependencies) {
 
 	r.Get("/verify-domain", h.VerifyDomainHandler)
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
-	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
-	r.Route("/checkout/{invoice_id}/pay/card/{payment_session_id}", func(r chi.Router) {
-		r.Post("/prepare-challenge", h.CardPrepareChallengeHandler)
-		r.Post("/process-auth", h.CardProcessAuthHandler)
-		r.Post("/finalize", h.CardFinalizeHandler)
+	r.Post("/checkout/{invoice_id}/payment-intents", h.CreatePaymentIntentHandler)
+	r.Route("/checkout/{invoice_id}/payment-intents/{payment_intent_id}", func(r chi.Router) {
+		r.Route("/card-authentication", func(r chi.Router) {
+			r.Post("/prepare", h.PrepareCardAuthenticationHandler)
+			r.Post("/authenticate", h.AuthenticateCardholderHandler)
+			r.Post("/return", h.CardAuthenticationReturnHandler)
+			r.Post("/verify", h.VerifyCardAuthenticationHandler)
+		})
+		r.Post("/capture", h.CapturePaymentIntentHandler)
 	})
 }
 

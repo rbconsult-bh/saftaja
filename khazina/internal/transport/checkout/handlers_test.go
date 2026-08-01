@@ -17,7 +17,6 @@ import (
 	billingmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/billing/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway"
 	gwmocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/gateway/mocks"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	paymocks "github.com/rbconsult-bh/saftaja/khazina/internal/app/payment/mocks"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/tenant"
 	saftajacontext "github.com/rbconsult-bh/saftaja/khazina/internal/pkg/context"
@@ -45,8 +44,16 @@ func newFixture(t *testing.T) *fixture {
 
 	r := chi.NewRouter()
 	r.Get("/checkout/{invoice_id}", h.CheckoutPageHandler)
-	r.Post("/checkout/{invoice_id}/initiate", h.InitiateSessionHandler)
-	r.Post("/checkout/{invoice_id}/pay/card/{payment_session_id}/finalize", h.CardFinalizeHandler)
+	r.Post("/checkout/{invoice_id}/payment-intents", h.CreatePaymentIntentHandler)
+	r.Route("/checkout/{invoice_id}/payment-intents/{payment_intent_id}", func(r chi.Router) {
+		r.Route("/card-authentication", func(r chi.Router) {
+			r.Post("/prepare", h.PrepareCardAuthenticationHandler)
+			r.Post("/authenticate", h.AuthenticateCardholderHandler)
+			r.Post("/return", h.CardAuthenticationReturnHandler)
+			r.Post("/verify", h.VerifyCardAuthenticationHandler)
+		})
+		r.Post("/capture", h.CapturePaymentIntentHandler)
+	})
 	r.Get("/verify-domain", h.VerifyDomainHandler)
 
 	return &fixture{
@@ -221,10 +228,10 @@ func TestCheckoutPageHandler_AlreadyPaid(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// InitiateSessionHandler
+// CreatePaymentIntentHandler
 // --------------------------------------------------------------------------
 
-func TestInitiateSessionHandler_Success(t *testing.T) {
+func TestCreatePaymentIntentHandler_Success(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
@@ -250,7 +257,7 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 		"payment_method":     "card",
 	}
 	b, _ := json.Marshal(body)
-	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/initiate", bytes.NewReader(b))
+	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/payment-intents", bytes.NewReader(b))
 	ctx := saftajacontext.WithProject(req.Context(), project)
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
@@ -268,27 +275,27 @@ func TestInitiateSessionHandler_Success(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
-	if resp["payment_session_id"] != sessionID.String() {
-		t.Errorf("expected payment_session_id %s, got %v", sessionID.String(), resp["payment_session_id"])
+	if resp["payment_intent_id"] != sessionID.String() {
+		t.Errorf("expected payment_intent_id %s, got %v", sessionID.String(), resp["payment_intent_id"])
 	}
 	if resp["payment_method_reference"] != "MPGS_SESSION_123" {
 		t.Errorf("expected payment_method_reference %s, got %v", "MPGS_SESSION_123", resp["payment_method_reference"])
 	}
 }
 
-func TestInitiateSessionHandler_NoTenantContext(t *testing.T) {
+func TestCreatePaymentIntentHandler_NoTenantContext(t *testing.T) {
 	f := newFixture(t)
 	body := map[string]any{
 		"gateway_account_id": uuid.New().String(),
 		"payment_method":     "card",
 	}
-	w := f.post("/checkout/"+uuid.New().String()+"/initiate", body)
+	w := f.post("/checkout/"+uuid.New().String()+"/payment-intents", body)
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status %d, got %d: %s", http.StatusNotFound, w.Code, w.Body.String())
 	}
 }
 
-func TestInitiateSessionHandler_InvalidCreatePaymentIntentRequest(t *testing.T) {
+func TestCreatePaymentIntentHandler_InvalidRequest(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
@@ -309,7 +316,7 @@ func TestInitiateSessionHandler_InvalidCreatePaymentIntentRequest(t *testing.T) 
 		"payment_method":     "card",
 	}
 	b, _ := json.Marshal(body)
-	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/initiate", bytes.NewReader(b))
+	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/payment-intents", bytes.NewReader(b))
 	ctx := saftajacontext.WithProject(req.Context(), project)
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
@@ -323,7 +330,7 @@ func TestInitiateSessionHandler_InvalidCreatePaymentIntentRequest(t *testing.T) 
 	}
 }
 
-func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
+func TestCreatePaymentIntentHandler_AlreadyPaid(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
 	projectID := uuid.New()
@@ -345,7 +352,7 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 		"payment_method":     "card",
 	}
 	b, _ := json.Marshal(body)
-	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/initiate", bytes.NewReader(b))
+	req := httptest.NewRequest(http.MethodPost, "/checkout/"+invoiceID.String()+"/payment-intents", bytes.NewReader(b))
 	ctx := saftajacontext.WithProject(req.Context(), project)
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
@@ -361,71 +368,218 @@ func TestInitiateSessionHandler_AlreadyPaid(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// CardFinalizeHandler
+// Card payment intent flow
 // --------------------------------------------------------------------------
 
-func TestCardFinalizeHandler_Success(t *testing.T) {
+func TestPrepareCardAuthenticationHandler(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
-	projectID := uuid.New()
-	project := testProject(projectID)
-	sessionID := uuid.New()
+	paymentIntentID := uuid.New()
+	project := testProject(uuid.New())
 
-	f.Payment.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
-		ProjectID:       projectID,
+	f.Billing.EXPECT().PrepareCardAuthentication(mock.Anything, billing.PrepareCardAuthenticationRequest{
+		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
-		PaymentIntentID: sessionID,
-	}).Return(&payment.FinalizePaymentResult{
-		Success:     true,
-		ResultCode:  payment.ResultSuccess,
-		CheckoutURL: "/checkout/" + invoiceID.String(),
+		PaymentIntentID: paymentIntentID,
+	}).Return(&billing.PrepareCardAuthenticationResponse{
+		NextStep: billing.PrepareCardAuthenticationNextStepAuthenticate,
 	}, nil)
 
-	path := "/checkout/" + invoiceID.String() + "/pay/card/" + sessionID.String() + "/finalize"
-	req := httptest.NewRequest(http.MethodPost, path, nil)
-	ctx := saftajacontext.WithProject(req.Context(), project)
-	req = req.WithContext(ctx)
+	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/card-authentication/prepare"
+	w := f.postWithProject(path, nil, project)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+	}
+	var response map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response["next_step"] != "authenticate" {
+		t.Fatalf("expected authenticate, got %q", response["next_step"])
+	}
+}
+
+func TestAuthenticateCardholderHandler(t *testing.T) {
+	f := newFixture(t)
+	invoiceID := uuid.New()
+	paymentIntentID := uuid.New()
+	project := testProject(uuid.New())
+
+	expectedRequest := billing.AuthenticateCardholderRequest{
+		PaymentIntentRef: billing.PaymentIntentRef{
+			ProjectID:       project.ID,
+			InvoiceID:       invoiceID,
+			PaymentIntentID: paymentIntentID,
+		},
+		Browser: billing.ThreeDSBrowser{
+			IPAddress:           "192.0.2.1",
+			UserAgent:           "TestAgent",
+			AcceptHeader:        "text/html,application/json",
+			ChallengeWindowSize: billing.ThreeDSChallengeWindowSizeFullScreen,
+			ColorDepth:          24,
+			JavaEnabled:         false,
+			Language:            "en-US",
+			ScreenHeight:        1080,
+			ScreenWidth:         1920,
+			TimeZone:            180,
+		},
+		ChallengeReturnURL: "https://pay.test.com/checkout/" + invoiceID.String() +
+			"/payment-intents/" + paymentIntentID.String() + "/card-authentication/return",
+	}
+	f.Billing.EXPECT().AuthenticateCardholder(mock.Anything, expectedRequest).Return(
+		&billing.AuthenticateCardholderResponse{
+			NextStep:     billing.AuthenticateCardholderNextStepChallenge,
+			RedirectHTML: "<iframe id=\"challengeFrame\"></iframe>",
+		},
+		nil,
+	)
+
+	body := map[string]any{
+		"challenge_window_size": "FULL_SCREEN",
+		"color_depth":           24,
+		"java_enabled":          false,
+		"language":              "en-US",
+		"screen_height":         1080,
+		"screen_width":          1920,
+		"time_zone":             180,
+	}
+	encodedBody, _ := json.Marshal(body)
+	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/card-authentication/authenticate"
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(encodedBody))
+	req = req.WithContext(saftajacontext.WithProject(req.Context(), project))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/html,application/json")
+	req.Header.Set("User-Agent", "TestAgent")
+	req.RemoteAddr = "192.0.2.1:12345"
 	w := httptest.NewRecorder()
 	f.router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+	}
+	var response map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response["next_step"] != "challenge" {
+		t.Fatalf("expected challenge, got %q", response["next_step"])
+	}
+	if response["redirect_html"] == "" {
+		t.Fatal("expected redirect_html")
 	}
 }
 
-func TestCardFinalizeHandler_NoTenantContext(t *testing.T) {
+func TestCardAuthenticationReturnHandler(t *testing.T) {
 	f := newFixture(t)
-	path := "/checkout/" + uuid.New().String() + "/pay/card/" + uuid.New().String() + "/finalize"
-	req := httptest.NewRequest(http.MethodPost, path, nil)
-	w := httptest.NewRecorder()
-	f.router.ServeHTTP(w, req)
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d: %s", http.StatusNotFound, w.Code, w.Body.String())
+	project := testProject(uuid.New())
+	path := "/checkout/" + uuid.New().String() + "/payment-intents/" + uuid.New().String() + "/card-authentication/return"
+	w := f.postWithProject(path, nil, project)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+	}
+	if !bytes.Contains(w.Body.Bytes(), []byte("CARD_AUTHENTICATION_RETURNED")) {
+		t.Fatal("expected return page to notify parent")
 	}
 }
 
-func TestCardFinalizeHandler_SessionExpired(t *testing.T) {
+func TestVerifyCardAuthenticationHandler(t *testing.T) {
 	f := newFixture(t)
 	invoiceID := uuid.New()
-	projectID := uuid.New()
-	project := testProject(projectID)
-	sessionID := uuid.New()
-
-	f.Payment.EXPECT().FinalizePayment(mock.Anything, &payment.FinalizePaymentRequest{
-		ProjectID:       projectID,
+	paymentIntentID := uuid.New()
+	project := testProject(uuid.New())
+	ref := billing.PaymentIntentRef{
+		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
-		PaymentIntentID: sessionID,
-	}).Return(nil, &payment.SessionExpiredError{SessionID: sessionID.String()})
+		PaymentIntentID: paymentIntentID,
+	}
 
-	path := "/checkout/" + invoiceID.String() + "/pay/card/" + sessionID.String() + "/finalize"
-	req := httptest.NewRequest(http.MethodPost, path, nil)
-	ctx := saftajacontext.WithProject(req.Context(), project)
-	req = req.WithContext(ctx)
-	w := httptest.NewRecorder()
-	f.router.ServeHTTP(w, req)
+	f.Billing.EXPECT().VerifyCardAuthentication(mock.Anything, billing.VerifyCardAuthenticationRequest{
+		PaymentIntentRef: ref,
+	}).Return(&billing.VerifyCardAuthenticationResponse{
+		NextStep: billing.VerifyCardAuthenticationNextStepCapture,
+	}, nil)
 
+	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/card-authentication/verify"
+	w := f.postWithProject(path, nil, project)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+	}
+	var response map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response["next_step"] != "capture" {
+		t.Fatalf("expected capture, got %q", response["next_step"])
+	}
+}
+
+func TestCapturePaymentIntentHandler_ResultMatrix(t *testing.T) {
+	tests := []struct {
+		name     string
+		nextStep billing.CapturePaymentIntentNextStep
+	}{
+		{name: "complete", nextStep: billing.CapturePaymentIntentNextStepComplete},
+		{name: "processing", nextStep: billing.CapturePaymentIntentNextStepProcessing},
+		{name: "cant_continue", nextStep: billing.CapturePaymentIntentNextStepCantContinue},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newFixture(t)
+			invoiceID := uuid.New()
+			paymentIntentID := uuid.New()
+			project := testProject(uuid.New())
+			ref := billing.PaymentIntentRef{
+				ProjectID:       project.ID,
+				InvoiceID:       invoiceID,
+				PaymentIntentID: paymentIntentID,
+			}
+
+			f.Billing.EXPECT().CapturePaymentIntent(mock.Anything, billing.CapturePaymentIntentRequest{
+				PaymentIntentRef: ref,
+			}).Return(&billing.CapturePaymentIntentResponse{NextStep: tt.nextStep}, nil)
+
+			path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/capture"
+			w := f.postWithProject(path, nil, project)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
+			}
+			var response map[string]string
+			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			if response["next_step"] != string(tt.nextStep) {
+				t.Fatalf("expected %q, got %q", tt.nextStep, response["next_step"])
+			}
+		})
+	}
+}
+
+func TestCapturePaymentIntentHandler_Expired(t *testing.T) {
+	f := newFixture(t)
+	invoiceID := uuid.New()
+	paymentIntentID := uuid.New()
+	project := testProject(uuid.New())
+
+	f.Billing.EXPECT().CapturePaymentIntent(mock.Anything, mock.Anything).Return(nil, billing.ErrPaymentIntentExpired)
+
+	path := "/checkout/" + invoiceID.String() + "/payment-intents/" + paymentIntentID.String() + "/capture"
+	w := f.postWithProject(path, nil, project)
 	if w.Code != http.StatusGone {
-		t.Errorf("expected status %d, got %d: %s", http.StatusGone, w.Code, w.Body.String())
+		t.Fatalf("expected status %d, got %d: %s", http.StatusGone, w.Code, w.Body.String())
+	}
+}
+
+func TestCapturePaymentIntentHandler_NoTenantContext(t *testing.T) {
+	f := newFixture(t)
+	path := "/checkout/" + uuid.New().String() + "/payment-intents/" + uuid.New().String() + "/capture"
+	w := f.post(path, nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusNotFound, w.Code, w.Body.String())
 	}
 }
 

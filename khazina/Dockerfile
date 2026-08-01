@@ -1,4 +1,4 @@
-FROM golang:1.25.6 AS base
+FROM golang:1.25.9 AS base
 WORKDIR /khazina
 
 RUN go install github.com/go-delve/delve/cmd/dlv@v1.26.1

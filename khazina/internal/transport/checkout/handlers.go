@@ -4,7 +4,9 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -155,7 +157,7 @@ func paymentMethodLabel(method string) string {
 	}
 }
 
-func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) CreatePaymentIntentHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	project := saftajacontext.ProjectFromContext(ctx)
@@ -202,12 +204,12 @@ func (h *handlers) InitiateSessionHandler(w http.ResponseWriter, r *http.Request
 
 	respondJSON(w, map[string]any{
 		"action":                   "render_embedded",
-		"payment_session_id":       result.PaymentIntentID.String(),
+		"payment_intent_id":        result.PaymentIntentID.String(),
 		"payment_method_reference": result.PaymentMethodReference,
 	})
 }
 
-func (h *handlers) CardPrepareChallengeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) PrepareCardAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	project := saftajacontext.ProjectFromContext(ctx)
@@ -222,7 +224,7 @@ func (h *handlers) CardPrepareChallengeHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
+	paymentIntentID, err := uuid.Parse(chi.URLParam(r, "payment_intent_id"))
 	if err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
@@ -231,7 +233,7 @@ func (h *handlers) CardPrepareChallengeHandler(w http.ResponseWriter, r *http.Re
 	result, err := h.billing.PrepareCardAuthentication(ctx, billing.PrepareCardAuthenticationRequest{
 		ProjectID:       project.ID,
 		InvoiceID:       invoiceID,
-		PaymentIntentID: sessionID,
+		PaymentIntentID: paymentIntentID,
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
@@ -243,7 +245,7 @@ func (h *handlers) CardPrepareChallengeHandler(w http.ResponseWriter, r *http.Re
 	})
 }
 
-func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) AuthenticateCardholderHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	project := saftajacontext.ProjectFromContext(ctx)
@@ -258,13 +260,21 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
+	paymentIntentID, err := uuid.Parse(chi.URLParam(r, "payment_intent_id"))
 	if err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	var browserDetails payment.BrowserDetails
+	var browserDetails struct {
+		ChallengeWindowSize billing.ThreeDSChallengeWindowSize `json:"challenge_window_size"`
+		ColorDepth          int                                `json:"color_depth"`
+		JavaEnabled         bool                               `json:"java_enabled"`
+		Language            string                             `json:"language"`
+		ScreenHeight        int                                `json:"screen_height"`
+		ScreenWidth         int                                `json:"screen_width"`
+		TimeZone            int                                `json:"time_zone"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&browserDetails); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to decode browser details")
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
@@ -278,14 +288,36 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := h.paymentService.ProcessAuth(ctx, &payment.ProcessAuthRequest{
-		ProjectID:       project.ID,
-		InvoiceID:       invoiceID,
-		PaymentIntentID: sessionID,
-		BrowserDetails:  browserDetails,
-		PayerIP:         payerIP,
-		UserAgent:       r.Header.Get("User-Agent"),
-		AcceptHeaders:   r.Header.Get("Accept"),
+	returnPath := fmt.Sprintf(
+		"/checkout/%s/payment-intents/%s/card-authentication/return",
+		invoiceID,
+		paymentIntentID,
+	)
+	challengeReturnURL := (&url.URL{
+		Scheme: "https",
+		Host:   project.CustomDomain,
+		Path:   returnPath,
+	}).String()
+
+	result, err := h.billing.AuthenticateCardholder(ctx, billing.AuthenticateCardholderRequest{
+		PaymentIntentRef: billing.PaymentIntentRef{
+			ProjectID:       project.ID,
+			InvoiceID:       invoiceID,
+			PaymentIntentID: paymentIntentID,
+		},
+		Browser: billing.ThreeDSBrowser{
+			IPAddress:           payerIP,
+			UserAgent:           r.Header.Get("User-Agent"),
+			AcceptHeader:        r.Header.Get("Accept"),
+			ChallengeWindowSize: browserDetails.ChallengeWindowSize,
+			ColorDepth:          browserDetails.ColorDepth,
+			JavaEnabled:         browserDetails.JavaEnabled,
+			Language:            browserDetails.Language,
+			ScreenHeight:        browserDetails.ScreenHeight,
+			ScreenWidth:         browserDetails.ScreenWidth,
+			TimeZone:            browserDetails.TimeZone,
+		},
+		ChallengeReturnURL: challengeReturnURL,
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
@@ -298,7 +330,31 @@ func (h *handlers) CardProcessAuthHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) CardAuthenticationReturnHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	project := saftajacontext.ProjectFromContext(ctx)
+	if project == nil {
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
+		return
+	}
+
+	if _, err := uuid.Parse(chi.URLParam(r, "invoice_id")); err != nil {
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
+		return
+	}
+
+	if _, err := uuid.Parse(chi.URLParam(r, "payment_intent_id")); err != nil {
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
+		return
+	}
+
+	if err := templfiles.CardAuthenticationReturnPage(templfiles.DetectLanguage(r)).Render(ctx, w); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to render card authentication return page")
+	}
+}
+
+func (h *handlers) VerifyCardAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	project := saftajacontext.ProjectFromContext(ctx)
@@ -313,39 +369,65 @@ func (h *handlers) CardFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := uuid.Parse(chi.URLParam(r, "payment_session_id"))
+	paymentIntentID, err := uuid.Parse(chi.URLParam(r, "payment_intent_id"))
 	if err != nil {
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 		return
 	}
 
-	result, err := h.paymentService.FinalizePayment(ctx, &payment.FinalizePaymentRequest{
-		ProjectID:       project.ID,
-		InvoiceID:       invoiceID,
-		PaymentIntentID: sessionID,
+	result, err := h.billing.VerifyCardAuthentication(ctx, billing.VerifyCardAuthenticationRequest{
+		PaymentIntentRef: billing.PaymentIntentRef{
+			ProjectID:       project.ID,
+			InvoiceID:       invoiceID,
+			PaymentIntentID: paymentIntentID,
+		},
 	})
 	if err != nil {
 		handlePaymentError(w, r, err)
 		return
 	}
 
-	status := "failed"
-	message := PaymentResultMessages[result.ResultCode].ForRequest(r)
-	if result.Success {
-		status = "success"
+	respondJSON(w, map[string]any{
+		"next_step": result.NextStep,
+	})
+}
+
+func (h *handlers) CapturePaymentIntentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	project := saftajacontext.ProjectFromContext(ctx)
+	if project == nil {
+		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
+		return
 	}
 
-	lang := templfiles.DetectLanguage(r)
-	data := templfiles.CompletionPageData{
-		Status:      status,
-		Message:     message,
-		CheckoutURL: result.CheckoutURL,
-		Lang:        lang,
+	invoiceID, err := uuid.Parse(chi.URLParam(r, "invoice_id"))
+	if err != nil {
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
+		return
 	}
 
-	if err := templfiles.CompletionPage(data).Render(ctx, w); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to render completion page")
+	paymentIntentID, err := uuid.Parse(chi.URLParam(r, "payment_intent_id"))
+	if err != nil {
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
+		return
 	}
+
+	result, err := h.billing.CapturePaymentIntent(ctx, billing.CapturePaymentIntentRequest{
+		PaymentIntentRef: billing.PaymentIntentRef{
+			ProjectID:       project.ID,
+			InvoiceID:       invoiceID,
+			PaymentIntentID: paymentIntentID,
+		},
+	})
+	if err != nil {
+		handlePaymentError(w, r, err)
+		return
+	}
+
+	respondJSON(w, map[string]any{
+		"next_step": result.NextStep,
+	})
 }
 
 func (h *handlers) VerifyDomainHandler(w http.ResponseWriter, r *http.Request) {

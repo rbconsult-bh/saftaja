@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rbconsult-bh/saftaja/khazina/internal/app/billing"
-	"github.com/rbconsult-bh/saftaja/khazina/internal/app/payment"
 	"github.com/rbconsult-bh/saftaja/khazina/internal/transport/checkout/templfiles"
 )
 
@@ -17,11 +16,9 @@ type ErrorCode string
 const (
 	ErrCodeInvalidRequest  ErrorCode = "INVALID_REQUEST"
 	ErrCodeInvoiceNotFound ErrorCode = "INVOICE_NOT_FOUND"
-	ErrCodeSessionExpired  ErrorCode = "SESSION_EXPIRED"
-	ErrCodeSessionNotFound ErrorCode = "SESSION_NOT_FOUND"
+	ErrCodePaymentExpired  ErrorCode = "PAYMENT_INTENT_EXPIRED"
 	ErrCodeInvalidState    ErrorCode = "INVALID_STATE"
 	ErrCodeAlreadyPaid     ErrorCode = "ALREADY_PAID"
-	ErrCodeSessionMismatch ErrorCode = "SESSION_MISMATCH"
 	ErrCodeGatewayError    ErrorCode = "GATEWAY_ERROR"
 	ErrCodeInternalError   ErrorCode = "INTERNAL_ERROR"
 )
@@ -52,42 +49,24 @@ func respondJSON(w http.ResponseWriter, data any) {
 func handlePaymentError(w http.ResponseWriter, r *http.Request, err error) {
 	ctx := r.Context()
 
-	var sessionExpired *payment.SessionExpiredError
-	var invalidTransition *payment.InvalidStateTransitionError
-	var alreadyPaid *payment.InvoiceAlreadyPaidError
-	var mismatch *payment.SessionInvoiceMismatchError
-	var gatewayErr *payment.GatewayError
-	var notFound *payment.InvoiceNotFoundError
-
 	switch {
 	case errors.Is(err, billing.ErrInvalidArgument):
 		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
-	case errors.As(err, &notFound):
+	case errors.Is(err, billing.ErrNotFound), errors.Is(err, billing.ErrInvoiceNotFound):
 		respondError(w, r, ErrCodeInvoiceNotFound, templfiles.MsgInvoiceNotFound, http.StatusNotFound)
-	case errors.As(err, &sessionExpired):
-		respondError(w, r, ErrCodeSessionExpired, templfiles.MsgSessionExpired, http.StatusGone)
-	case errors.Is(err, billing.ErrPaymentIntentInvalidTransition):
+	case errors.Is(err, billing.ErrPaymentIntentExpired):
+		respondError(w, r, ErrCodePaymentExpired, templfiles.MsgSessionExpired, http.StatusGone)
+	case errors.Is(err, billing.ErrPaymentIntentInvalidState),
+		errors.Is(err, billing.ErrPaymentIntentInvalidTransition),
+		errors.Is(err, billing.ErrInvoiceInvalidState),
+		errors.Is(err, billing.ErrInvoiceCancelled):
 		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
-	case errors.As(err, &invalidTransition):
-		respondError(w, r, ErrCodeInvalidState, templfiles.MsgInvalidState, http.StatusConflict)
-	case errors.Is(err, billing.ErrInvoiceAlreadyPaid):
+	case errors.Is(err, billing.ErrInvoiceAlreadyPaid), errors.Is(err, billing.ErrInvoicePaymentInProgress):
 		respondError(w, r, ErrCodeAlreadyPaid, templfiles.MsgAlreadyPaid, http.StatusConflict)
-	case errors.As(err, &alreadyPaid):
-		respondError(w, r, ErrCodeAlreadyPaid, templfiles.MsgAlreadyPaid, http.StatusConflict)
-	case errors.As(err, &mismatch):
-		respondError(w, r, ErrCodeSessionMismatch, templfiles.MsgInvalidState, http.StatusForbidden)
-	case errors.As(err, &gatewayErr):
-		log.Ctx(ctx).Error().Err(err).Msg("gateway error")
-		respondError(w, r, ErrCodeGatewayError, templfiles.MsgGatewayError, http.StatusBadGateway)
+	case errors.Is(err, billing.ErrUnsupportedPaymentMethod):
+		respondError(w, r, ErrCodeInvalidRequest, templfiles.MsgInvalidRequest, http.StatusBadRequest)
 	default:
 		log.Ctx(ctx).Error().Err(err).Msg("internal error")
 		respondError(w, r, ErrCodeInternalError, templfiles.MsgInternalError, http.StatusInternalServerError)
 	}
-}
-
-var PaymentResultMessages = map[payment.PaymentResultCode]templfiles.LocalizedString{
-	payment.ResultSuccess:      templfiles.MsgPaymentSuccessful,
-	payment.ResultDeclined:     templfiles.MsgPaymentDeclined,
-	payment.ResultAuthFailed:   templfiles.MsgAuthenticationFailed,
-	payment.ResultGatewayError: templfiles.MsgGatewayError,
 }

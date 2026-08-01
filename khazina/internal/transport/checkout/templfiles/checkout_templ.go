@@ -1169,127 +1169,223 @@ func CheckoutForm(data CheckoutPageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, ";\n\t\tlet CURRENT_PAYMENT_SESSION_ID = null;\n\t\tlet CURRENT_PAYMENT_TYPE = null;\n\n\t\tfunction randomID() {\n\t\t\tif (window.crypto && window.crypto.randomUUID) {\n\t\t\t\treturn window.crypto.randomUUID();\n\t\t\t}\n\t\t\treturn `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n\t\t}\n\n\t\tfunction createPaymentIntentIdempotencyKey(accountId, type) {\n\t\t\tconst key = `saftaja:start-payment:${INVOICE_ID}:${accountId}:${type}`;\n\t\t\ttry {\n\t\t\t\tlet id = sessionStorage.getItem(key);\n\t\t\t\tif (!id) {\n\t\t\t\t\tid = randomID();\n\t\t\t\t\tsessionStorage.setItem(key, id);\n\t\t\t\t}\n\t\t\t\treturn id;\n\t\t\t} catch (_) {\n\t\t\t\treturn randomID();\n\t\t\t}\n\t\t}\n\n\t\t// Toggle invoice items\n\t\tfunction toggleItems() {\n\t\t\tconst list = document.getElementById('items-list');\n\t\t\tconst chevron = document.getElementById('items-chevron');\n\t\t\tlist.classList.toggle('hidden');\n\t\t\tchevron.classList.toggle('rotate-180');\n\t\t}\n\n\t\t// Go back to method selection\n\t\tfunction goBack() {\n\t\t\tdocument.getElementById('error-banner').classList.add('hidden');\n\t\t\tdocument.getElementById('method-selection').classList.remove('hidden');\n\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\tdocument.getElementById('card-form-container').classList.add('hidden');\n\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t});\n\t\t\tCURRENT_PAYMENT_SESSION_ID = null;\n\t\t\tCURRENT_PAYMENT_TYPE = null;\n\t\t}\n\n\t\t// Select payment method\n\t\tasync function selectMethod(btnElement) {\n\t\t\tconst accountId = btnElement.dataset.accountId;\n\t\t\tconst type = btnElement.dataset.type;\n\n\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t});\n\t\t\tbtnElement.classList.add('border-slate-900', 'bg-slate-50');\n\n\t\t\tdocument.getElementById('error-banner').classList.add('hidden');\n\t\t\tdocument.getElementById('method-selection').classList.add('hidden');\n\t\t\tdocument.getElementById('loading-state').classList.remove('hidden');\n\n\t\t\tCURRENT_PAYMENT_TYPE = type;\n\n\t\t\ttry {\n\t\t\t\tconst resp = await fetch(`/checkout/${INVOICE_ID}/initiate`, {\n\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\theaders: {\n\t\t\t\t\t\t'Content-Type': 'application/json',\n\t\t\t\t\t\t'Idempotency-Key': createPaymentIntentIdempotencyKey(accountId, type)\n\t\t\t\t\t},\n\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\tgateway_account_id: accountId,\n\t\t\t\t\t\tpayment_method: type\n\t\t\t\t\t})\n\t\t\t\t});\n\n\t\t\t\tconst data = await resp.json();\n\n\t\t\t\tif (data.action === 'render_embedded') {\n\t\t\t\t\tCURRENT_PAYMENT_SESSION_ID = data.payment_session_id;\n\t\t\t\t\tinitializeMPGS(data.payment_method_reference);\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(\"Init failed\", e);\n\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, ";\n\t\tlet CURRENT_PAYMENT_INTENT_ID = null;\n\t\tlet CURRENT_PAYMENT_TYPE = null;\n\t\tlet VERIFY_CARD_AUTHENTICATION_TIMER = null;\n\n\t\tfunction randomID() {\n\t\t\tif (window.crypto && window.crypto.randomUUID) {\n\t\t\t\treturn window.crypto.randomUUID();\n\t\t\t}\n\t\t\treturn `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n\t\t}\n\n\t\tfunction createPaymentIntentIdempotencyKey(accountId, type) {\n\t\t\tconst key = `saftaja:start-payment:${INVOICE_ID}:${accountId}:${type}`;\n\t\t\ttry {\n\t\t\t\tlet id = sessionStorage.getItem(key);\n\t\t\t\tif (!id) {\n\t\t\t\t\tid = randomID();\n\t\t\t\t\tsessionStorage.setItem(key, id);\n\t\t\t\t}\n\t\t\t\treturn id;\n\t\t\t} catch (_) {\n\t\t\t\treturn randomID();\n\t\t\t}\n\t\t}\n\n\t\t// Toggle invoice items\n\t\tfunction toggleItems() {\n\t\t\tconst list = document.getElementById('items-list');\n\t\t\tconst chevron = document.getElementById('items-chevron');\n\t\t\tlist.classList.toggle('hidden');\n\t\t\tchevron.classList.toggle('rotate-180');\n\t\t}\n\n\t\t// Go back to method selection\n\t\tfunction goBack() {\n\t\t\tdocument.getElementById('error-banner').classList.add('hidden');\n\t\t\tdocument.getElementById('method-selection').classList.remove('hidden');\n\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\tdocument.getElementById('card-form-container').classList.add('hidden');\n\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t});\n\t\t\tif (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {\n\t\t\t\twindow.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);\n\t\t\t\tVERIFY_CARD_AUTHENTICATION_TIMER = null;\n\t\t\t}\n\t\t\tCURRENT_PAYMENT_INTENT_ID = null;\n\t\t\tCURRENT_PAYMENT_TYPE = null;\n\t\t}\n\n\t\tasync function fetchJSON(url, options) {\n\t\t\tconst response = await fetch(url, options);\n\t\t\tconst payload = await response.json().catch(() => null);\n\t\t\tif (!response.ok) {\n\t\t\t\tthrow new Error(payload && payload.message ? payload.message : ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var73, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(LblPaymentFailedInit.Get(data.Lang))
+		templ_7745c5c3_Var73, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 639, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 611, Col: 101}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var73)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, ");\n\t\t\t\tgoBack();\n\t\t\t}\n\t\t}\n\n\t\tfunction initializeMPGS(mpgsSessionId) {\n\t\t\tif (typeof PaymentSession === 'undefined') {\n\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, ");\n\t\t\t}\n\t\t\treturn payload;\n\t\t}\n\n\t\t// Select payment method\n\t\tasync function selectMethod(btnElement) {\n\t\t\tconst accountId = btnElement.dataset.accountId;\n\t\t\tconst type = btnElement.dataset.type;\n\n\t\t\tdocument.querySelectorAll('.option-btn').forEach(b => {\n\t\t\t\tb.classList.remove('border-slate-900', 'bg-slate-50');\n\t\t\t});\n\t\t\tbtnElement.classList.add('border-slate-900', 'bg-slate-50');\n\n\t\t\tdocument.getElementById('error-banner').classList.add('hidden');\n\t\t\tdocument.getElementById('method-selection').classList.add('hidden');\n\t\t\tdocument.getElementById('loading-state').classList.remove('hidden');\n\n\t\t\tCURRENT_PAYMENT_TYPE = type;\n\n\t\t\ttry {\n\t\t\t\tconst paymentIntent = await fetchJSON(`/checkout/${INVOICE_ID}/payment-intents`, {\n\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\theaders: {\n\t\t\t\t\t\t'Content-Type': 'application/json',\n\t\t\t\t\t\t'Idempotency-Key': createPaymentIntentIdempotencyKey(accountId, type)\n\t\t\t\t\t},\n\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\tgateway_account_id: accountId,\n\t\t\t\t\t\tpayment_method: type\n\t\t\t\t\t})\n\t\t\t\t});\n\n\t\t\t\tif (paymentIntent.action === 'render_embedded') {\n\t\t\t\t\tCURRENT_PAYMENT_INTENT_ID = paymentIntent.payment_intent_id;\n\t\t\t\t\tinitializeMPGS(paymentIntent.payment_method_reference);\n\t\t\t\t} else {\n\t\t\t\t\tthrow new Error(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var74, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(LblGatewayLoadFailed.Get(data.Lang))
+		templ_7745c5c3_Var74, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 646, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 649, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, ");\n\t\t\t\tgoBack();\n\t\t\t\treturn;\n\t\t\t}\n\n\t\t\tPaymentSession.configure({\n\t\t\t\tsession: mpgsSessionId,\n\t\t\t\tfields: {\n\t\t\t\t\tcard: {\n\t\t\t\t\t\tnumber: \"#card-number\",\n\t\t\t\t\t\tsecurityCode: \"#security-code\",\n\t\t\t\t\t\texpiryMonth: \"#expiry-month\",\n\t\t\t\t\t\texpiryYear: \"#expiry-year\",\n\t\t\t\t\t\tnameOnCard: \"#cardholder-name\"\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\tframeEmbeddingMitigation: [\"javascript\"],\n\t\t\t\tcallbacks: {\n\t\t\t\t\tinitialized: function(response) {\n\t\t\t\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.remove('hidden');\n\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.add('fade-in');\n\t\t\t\t\t},\n\t\t\t\t\tformSessionUpdate: function(response) {\n\t\t\t\t\t\tif (response.status === \"ok\") {\n\t\t\t\t\t\t\tstart3DSFlow();\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tlet errorMsg = \"Please check your card details.\";\n\t\t\t\t\t\t\tif (response.errors) {\n\t\t\t\t\t\t\t\tconst fields = Object.keys(response.errors).map(f => {\n\t\t\t\t\t\t\t\t\tswitch(f) {\n\t\t\t\t\t\t\t\t\t\tcase 'cardNumber': return 'Card Number';\n\t\t\t\t\t\t\t\t\t\tcase 'securityCode': return 'CVC';\n\t\t\t\t\t\t\t\t\t\tcase 'expiryMonth': return 'Expiry Month';\n\t\t\t\t\t\t\t\t\t\tcase 'expiryYear': return 'Expiry Year';\n\t\t\t\t\t\t\t\t\t\tdefault: return f;\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\terrorMsg = \"Please check: \" + fields.join(\", \");\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\talert(errorMsg);\n\t\t\t\t\t\t\tresetPayButton();\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\tinteraction: {\n\t\t\t\t\tdisplayControl: {\n\t\t\t\t\t\tformatCard: \"EMBOSSED\",\n\t\t\t\t\t\tinvalidFieldCharacters: \"REJECT\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\n\t\tfunction pay() {\n\t\t\tconst btn = document.getElementById('payButton');\n\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\n\t\t\tbtn.disabled = true;\n\t\t\ttext.textContent = ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, ");\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(\"Init failed\", e);\n\t\t\t\tgoBack();\n\t\t\t\tdocument.getElementById('error-banner-message').textContent = e.message || ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var75, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(LblProcessingPayment.Get(data.Lang))
+		templ_7745c5c3_Var75, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(LblPaymentFailedInit.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 706, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 654, Col: 117}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var75)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, ";\n\t\t\tspinner.classList.remove('hidden');\n\n\t\t\tPaymentSession.updateSessionFromForm('card');\n\t\t}\n\n\t\tfunction resetPayButton() {\n\t\t\tconst btn = document.getElementById('payButton');\n\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\n\t\t\tbtn.disabled = false;\n\t\t\ttext.textContent = `")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, ";\n\t\t\t\tdocument.getElementById('error-banner').classList.remove('hidden');\n\t\t\t}\n\t\t}\n\n\t\tfunction initializeMPGS(mpgsSessionId) {\n\t\t\tif (typeof PaymentSession === 'undefined') {\n\t\t\t\tshowError(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var76, templ_7745c5c3_Err := templruntime.ScriptContentInsideStringLiteral(LblPay.Get(data.Lang))
+		templ_7745c5c3_Var76, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(LblGatewayLoadFailed.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 718, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 661, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var76)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, " ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;\n\t\t\tspinner.classList.add('hidden');\n\t\t}\n\n\t\tfunction showProcessing() {\n\t\t\tdocument.getElementById('processing-overlay').classList.remove('hidden');\n\t\t}\n\n\t\tfunction hideProcessing() {\n\t\t\tdocument.getElementById('processing-overlay').classList.add('hidden');\n\t\t}\n\n\t\tfunction showChallenge(html) {\n\t\t\thideProcessing();\n\t\t\tconst container = document.getElementById('challenge-iframe-container');\n\t\t\tcontainer.innerHTML = html;\n\t\t\tdocument.getElementById('challenge-overlay').classList.remove('hidden');\n\n\t\t\tconst script = document.getElementById('authenticate-payer-script');\n\t\t\tif (script) {\n\t\t\t\teval(script.text);\n\t\t\t}\n\t\t}\n\n\t\tfunction hideChallenge() {\n\t\t\tdocument.getElementById('challenge-overlay').classList.add('hidden');\n\t\t}\n\n\t\tfunction showSuccess() {\n\t\t\thideProcessing();\n\t\t\thideChallenge();\n\n\t\t\tconst now = new Date();\n\t\t\tconst locale = LANG === 'ar' ? 'ar-SA' : 'en-US';\n\t\t\tdocument.getElementById('success-date').textContent = now.toLocaleDateString(locale, {\n\t\t\t\tyear: 'numeric',\n\t\t\t\tmonth: 'short',\n\t\t\t\tday: 'numeric',\n\t\t\t\thour: '2-digit',\n\t\t\t\tminute: '2-digit'\n\t\t\t});\n\n\t\t\tdocument.getElementById('success-overlay').classList.remove('hidden');\n\t\t}\n\n\t\tfunction showError(message) {\n\t\t\thideProcessing();\n\t\t\thideChallenge();\n\t\t\tresetPayButton();\n\n\t\t\tdocument.getElementById('error-banner-message').textContent = message;\n\t\t\tdocument.getElementById('error-banner').classList.remove('hidden');\n\n\t\t\t// Show card form again so user can retry\n\t\t\tdocument.getElementById('method-selection').classList.add('hidden');\n\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\tdocument.getElementById('card-form-container').classList.remove('hidden');\n\t\t}\n\n\t\tasync function start3DSFlow() {\n\t\t\tshowProcessing();\n\n\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/prepare-challenge`;\n\n\t\t\ttry {\n\t\t\t\tconst prepareRes = await fetch(url, { method: \"POST\" }).then(r => r.json());\n\n\t\t\t\tif (prepareRes.next_step === \"authenticate\") {\n\t\t\t\t\tdoAuthenticatePayer();\n\t\t\t\t} else if (prepareRes.next_step === \"cant_continue\") {\n\t\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, ");\n\t\t\t\tgoBack();\n\t\t\t\treturn;\n\t\t\t}\n\n\t\t\tPaymentSession.configure({\n\t\t\t\tsession: mpgsSessionId,\n\t\t\t\tfields: {\n\t\t\t\t\tcard: {\n\t\t\t\t\t\tnumber: \"#card-number\",\n\t\t\t\t\t\tsecurityCode: \"#security-code\",\n\t\t\t\t\t\texpiryMonth: \"#expiry-month\",\n\t\t\t\t\t\texpiryYear: \"#expiry-year\",\n\t\t\t\t\t\tnameOnCard: \"#cardholder-name\"\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\tframeEmbeddingMitigation: [\"javascript\"],\n\t\t\t\tcallbacks: {\n\t\t\t\t\tinitialized: function(response) {\n\t\t\t\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.remove('hidden');\n\t\t\t\t\t\tdocument.getElementById('card-form-container').classList.add('fade-in');\n\t\t\t\t\t},\n\t\t\t\t\tformSessionUpdate: function(response) {\n\t\t\t\t\t\tif (response.status === \"ok\") {\n\t\t\t\t\t\t\tstart3DSFlow();\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tlet errorMsg = \"Please check your card details.\";\n\t\t\t\t\t\t\tif (response.errors) {\n\t\t\t\t\t\t\t\tconst fields = Object.keys(response.errors).map(f => {\n\t\t\t\t\t\t\t\t\tswitch(f) {\n\t\t\t\t\t\t\t\t\t\tcase 'cardNumber': return 'Card Number';\n\t\t\t\t\t\t\t\t\t\tcase 'securityCode': return 'CVC';\n\t\t\t\t\t\t\t\t\t\tcase 'expiryMonth': return 'Expiry Month';\n\t\t\t\t\t\t\t\t\t\tcase 'expiryYear': return 'Expiry Year';\n\t\t\t\t\t\t\t\t\t\tdefault: return f;\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\terrorMsg = \"Please check: \" + fields.join(\", \");\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\talert(errorMsg);\n\t\t\t\t\t\t\tresetPayButton();\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\tinteraction: {\n\t\t\t\t\tdisplayControl: {\n\t\t\t\t\t\tformatCard: \"EMBOSSED\",\n\t\t\t\t\t\tinvalidFieldCharacters: \"REJECT\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\n\t\tfunction pay() {\n\t\t\tconst btn = document.getElementById('payButton');\n\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\n\t\t\tbtn.disabled = true;\n\t\t\ttext.textContent = ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var77, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgPaymentDeclined.Get(data.Lang))
+		templ_7745c5c3_Var77, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(LblProcessingPayment.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 788, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 721, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, ");\n\t\t\t\t} else {\n\t\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, ";\n\t\t\tspinner.classList.remove('hidden');\n\n\t\t\tPaymentSession.updateSessionFromForm('card');\n\t\t}\n\n\t\tfunction resetPayButton() {\n\t\t\tconst btn = document.getElementById('payButton');\n\t\t\tconst text = document.getElementById('payButtonText');\n\t\t\tconst spinner = document.getElementById('payButtonSpinner');\n\n\t\t\tbtn.disabled = false;\n\t\t\ttext.textContent = `")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var78, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
+		templ_7745c5c3_Var78, templ_7745c5c3_Err := templruntime.ScriptContentInsideStringLiteral(LblPay.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 790, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 733, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var78)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, ");\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, " ${INVOICE_AMOUNT} ${INVOICE_CURRENCY}`;\n\t\t\tspinner.classList.add('hidden');\n\t\t}\n\n\t\tfunction showProcessing() {\n\t\t\tdocument.getElementById('processing-overlay').classList.remove('hidden');\n\t\t}\n\n\t\tfunction hideProcessing() {\n\t\t\tdocument.getElementById('processing-overlay').classList.add('hidden');\n\t\t}\n\n\t\tfunction showChallenge(html) {\n\t\t\thideProcessing();\n\t\t\tconst container = document.getElementById('challenge-iframe-container');\n\t\t\tcontainer.innerHTML = html;\n\t\t\tdocument.getElementById('challenge-overlay').classList.remove('hidden');\n\n\t\t\tconst script = document.getElementById('authenticate-payer-script');\n\t\t\tif (script) {\n\t\t\t\teval(script.text);\n\t\t\t}\n\t\t}\n\n\t\tfunction hideChallenge() {\n\t\t\tdocument.getElementById('challenge-overlay').classList.add('hidden');\n\t\t}\n\n\t\tfunction showSuccess() {\n\t\t\tif (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {\n\t\t\t\twindow.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);\n\t\t\t\tVERIFY_CARD_AUTHENTICATION_TIMER = null;\n\t\t\t}\n\t\t\thideProcessing();\n\t\t\thideChallenge();\n\n\t\t\tconst now = new Date();\n\t\t\tconst locale = LANG === 'ar' ? 'ar-SA' : 'en-US';\n\t\t\tdocument.getElementById('success-date').textContent = now.toLocaleDateString(locale, {\n\t\t\t\tyear: 'numeric',\n\t\t\t\tmonth: 'short',\n\t\t\t\tday: 'numeric',\n\t\t\t\thour: '2-digit',\n\t\t\t\tminute: '2-digit'\n\t\t\t});\n\n\t\t\tdocument.getElementById('success-overlay').classList.remove('hidden');\n\t\t}\n\n\t\tfunction showError(message) {\n\t\t\tif (VERIFY_CARD_AUTHENTICATION_TIMER !== null) {\n\t\t\t\twindow.clearTimeout(VERIFY_CARD_AUTHENTICATION_TIMER);\n\t\t\t\tVERIFY_CARD_AUTHENTICATION_TIMER = null;\n\t\t\t}\n\t\t\thideProcessing();\n\t\t\thideChallenge();\n\t\t\tresetPayButton();\n\n\t\t\tdocument.getElementById('error-banner-message').textContent = message;\n\t\t\tdocument.getElementById('error-banner').classList.remove('hidden');\n\n\t\t\t// Show card form again so user can retry\n\t\t\tdocument.getElementById('method-selection').classList.add('hidden');\n\t\t\tdocument.getElementById('loading-state').classList.add('hidden');\n\t\t\tdocument.getElementById('card-form-container').classList.remove('hidden');\n\t\t}\n\n\t\tasync function start3DSFlow() {\n\t\t\tshowProcessing();\n\n\t\t\tconst url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/prepare`;\n\n\t\t\ttry {\n\t\t\t\tconst prepareRes = await fetchJSON(url, { method: \"POST\" });\n\n\t\t\t\tif (prepareRes.next_step === \"authenticate\") {\n\t\t\t\t\tdoAuthenticatePayer();\n\t\t\t\t} else if (prepareRes.next_step === \"cant_continue\") {\n\t\t\t\t\tshowError(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var79, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgGatewayError.Get(data.Lang))
+		templ_7745c5c3_Var79, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgPaymentDeclined.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 794, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 811, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var79)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, ");\n\t\t\t}\n\t\t}\n\n\t\tasync function doAuthenticatePayer() {\n\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/process-auth`;\n\n\t\t\tconst browserDetails = {\n\t\t\t\t\"3DSecureChallengeWindowSize\": \"FULL_SCREEN\",\n\t\t\t\t\"acceptHeaders\": \"*/*\",\n\t\t\t\t\"colorDepth\": window.screen.colorDepth,\n\t\t\t\t\"javaEnabled\": navigator.javaEnabled ? navigator.javaEnabled() : false,\n\t\t\t\t\"language\": navigator.language,\n\t\t\t\t\"screenHeight\": window.screen.height,\n\t\t\t\t\"screenWidth\": window.screen.width,\n\t\t\t\t\"timeZone\": -new Date().getTimezoneOffset()\n\t\t\t};\n\n\t\t\ttry {\n\t\t\t\tconst authRes = await fetch(url, {\n\t\t\t\t\tmethod: \"POST\",\n\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\tbody: JSON.stringify(browserDetails)\n\t\t\t\t}).then(r => r.json());\n\n\t\t\t\tif (authRes.next_step === \"3ds_challenge\") {\n\t\t\t\t\tshowChallenge(authRes.redirect_html);\n\t\t\t\t} else if (authRes.next_step === \"pay\") {\n\t\t\t\t\t// Frictionless - call finalize directly\n\t\t\t\t\tdoFinalizePayment();\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, ");\n\t\t\t\t} else {\n\t\t\t\t\tshowError(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var80, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgAuthenticationFailed.Get(data.Lang))
+		templ_7745c5c3_Var80, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 827, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 813, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var80)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, ");\n\t\t\t}\n\t\t}\n\n\t\tasync function doFinalizePayment() {\n\t\t\tshowProcessing();\n\n\t\t\tconst url = `/checkout/${INVOICE_ID}/pay/card/${CURRENT_PAYMENT_SESSION_ID}/finalize`;\n\n\t\t\ttry {\n\t\t\t\t// For frictionless, we still call finalize but it returns HTML\n\t\t\t\t// We need to handle this differently - just check if invoice is paid\n\t\t\t\tconst resp = await fetch(url, { method: \"POST\" });\n\t\t\t\tconst text = await resp.text();\n\n\t\t\t\t// Since finalize returns HTML now, we just show success\n\t\t\t\t// The HTML will also try postMessage which we'll catch\n\t\t\t\tshowSuccess();\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, ");\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(e.message || ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Var81, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgGatewayError.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 847, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 817, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var81)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, ");\n\t\t\t}\n\t\t}\n\n\t\t// Listen for 3DS completion from iframe\n\t\twindow.addEventListener('message', function(event) {\n\t\t\tif (event.data && event.data.type === '3DS_COMPLETE') {\n\t\t\t\thideChallenge();\n\t\t\t\tif (event.data.status === 'success') {\n\t\t\t\t\tshowSuccess();\n\t\t\t\t} else {\n\t\t\t\t\tshowError(event.data.message || ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, ");\n\t\t\t}\n\t\t}\n\n\t\tasync function doAuthenticatePayer() {\n\t\t\tconst url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/authenticate`;\n\n\t\t\tconst browserDetails = {\n\t\t\t\t\"challenge_window_size\": \"FULL_SCREEN\",\n\t\t\t\t\"color_depth\": window.screen.colorDepth,\n\t\t\t\t\"java_enabled\": navigator.javaEnabled ? navigator.javaEnabled() : false,\n\t\t\t\t\"language\": navigator.language,\n\t\t\t\t\"screen_height\": window.screen.height,\n\t\t\t\t\"screen_width\": window.screen.width,\n\t\t\t\t\"time_zone\": -new Date().getTimezoneOffset()\n\t\t\t};\n\n\t\t\ttry {\n\t\t\t\tconst authRes = await fetchJSON(url, {\n\t\t\t\t\tmethod: \"POST\",\n\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\n\t\t\t\t\tbody: JSON.stringify(browserDetails)\n\t\t\t\t});\n\n\t\t\t\tif (authRes.next_step === \"challenge\") {\n\t\t\t\t\tshowChallenge(authRes.redirect_html);\n\t\t\t\t} else if (authRes.next_step === \"capture\") {\n\t\t\t\t\tdoCapturePaymentIntent();\n\t\t\t\t} else if (authRes.next_step === \"cant_continue\") {\n\t\t\t\t\tshowError(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var82, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgPaymentDeclined.Get(data.Lang))
+		templ_7745c5c3_Var82, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgAuthenticationFailed.Get(data.Lang))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 858, Col: 73}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 846, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var82)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, ");\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, ");\n\t\t\t\t} else {\n\t\t\t\t\tshowError(")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var83, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 848, Col: 49}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var83)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, ");\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(e.message || ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var84, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgAuthenticationFailed.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 852, Col: 68}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var84)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, ");\n\t\t\t}\n\t\t}\n\n\t\tasync function doVerifyCardAuthentication() {\n\t\t\tshowProcessing();\n\t\t\tconst url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/card-authentication/verify`;\n\n\t\t\ttry {\n\t\t\t\tconst verification = await fetchJSON(url, { method: \"POST\" });\n\t\t\t\tif (verification.next_step === \"capture\") {\n\t\t\t\t\tdoCapturePaymentIntent();\n\t\t\t\t} else if (verification.next_step === \"pending\") {\n\t\t\t\t\tVERIFY_CARD_AUTHENTICATION_TIMER = window.setTimeout(doVerifyCardAuthentication, 1000);\n\t\t\t\t} else if (verification.next_step === \"cant_continue\") {\n\t\t\t\t\tshowError(")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var85, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgAuthenticationFailed.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 867, Col: 56}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var85)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, ");\n\t\t\t\t} else {\n\t\t\t\t\tshowError(")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var86, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 869, Col: 49}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var86)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, ");\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(e.message || ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var87, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgAuthenticationFailed.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 873, Col: 68}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var87)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, ");\n\t\t\t}\n\t\t}\n\n\t\tasync function doCapturePaymentIntent() {\n\t\t\tshowProcessing();\n\t\t\tconst url = `/checkout/${INVOICE_ID}/payment-intents/${CURRENT_PAYMENT_INTENT_ID}/capture`;\n\n\t\t\ttry {\n\t\t\t\tconst capture = await fetchJSON(url, { method: \"POST\" });\n\t\t\t\tif (capture.next_step === \"complete\") {\n\t\t\t\t\tshowSuccess();\n\t\t\t\t} else if (capture.next_step === \"processing\") {\n\t\t\t\t\tshowProcessing();\n\t\t\t\t} else if (capture.next_step === \"cant_continue\") {\n\t\t\t\t\tshowError(")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var88, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgPaymentDeclined.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 888, Col: 51}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var88)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, ");\n\t\t\t\t} else {\n\t\t\t\t\tshowError(")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var89, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgInternalError.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 890, Col: 49}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var89)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, ");\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tconsole.error(e);\n\t\t\t\tshowError(e.message || ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var90, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(MsgGatewayError.Get(data.Lang))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/transport/checkout/templfiles/checkout.templ`, Line: 894, Col: 60}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var90)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, ");\n\t\t\t}\n\t\t}\n\n\t\t// MPGS returning the browser proves only that payer interaction ended.\n\t\t// Backend verification decides whether capture may begin.\n\t\twindow.addEventListener('message', function(event) {\n\t\t\tif (event.origin === window.location.origin &&\n\t\t\t\tevent.data && event.data.type === 'CARD_AUTHENTICATION_RETURNED') {\n\t\t\t\thideChallenge();\n\t\t\t\tdoVerifyCardAuthentication();\n\t\t\t}\n\t\t});\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

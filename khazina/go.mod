@@ -1,6 +1,8 @@
 module github.com/rbconsult-bh/saftaja/khazina
 
-go 1.25.6
+go 1.25.9
+
+replace github.com/go-testfixtures/testfixtures/v3 => github.com/YazeedAlKhalaf/testfixtures/v3 v3.0.0-20260801174337-8fdbd493539e
 
 tool (
 	github.com/a-h/templ/cmd/templ
@@ -55,7 +57,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
-	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/google/cel-go v0.27.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -116,7 +118,7 @@ require (
 	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
