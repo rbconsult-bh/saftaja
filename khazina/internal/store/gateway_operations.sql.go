@@ -66,6 +66,101 @@ func (q *Queries) CreateGatewayOperation(ctx context.Context, arg CreateGatewayO
 	return i, err
 }
 
+const getCompletedAuthenticateCardholderGatewayOperation = `-- name: GetCompletedAuthenticateCardholderGatewayOperation :one
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'authenticate_cardholder'
+AND status = 'completed'
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetCompletedAuthenticateCardholderGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
+	row := q.db.QueryRow(ctx, getCompletedAuthenticateCardholderGatewayOperation, paymentIntentID)
+	var i GatewayOperation
+	err := row.Scan(
+		&i.ID,
+		&i.PaymentIntentID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.OperationType,
+		&i.GatewayReference,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.RawRequest,
+		&i.RawResponse,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.GatewayAccountID,
+	)
+	return i, err
+}
+
+const getCompletedCapturePaymentGatewayOperationByPaymentIntentID = `-- name: GetCompletedCapturePaymentGatewayOperationByPaymentIntentID :one
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'capture_payment'
+AND status = 'completed'
+LIMIT 1
+`
+
+func (q *Queries) GetCompletedCapturePaymentGatewayOperationByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
+	row := q.db.QueryRow(ctx, getCompletedCapturePaymentGatewayOperationByPaymentIntentID, paymentIntentID)
+	var i GatewayOperation
+	err := row.Scan(
+		&i.ID,
+		&i.PaymentIntentID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.OperationType,
+		&i.GatewayReference,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.RawRequest,
+		&i.RawResponse,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.GatewayAccountID,
+	)
+	return i, err
+}
+
+const getCompletedPrepareCardAuthenticationGatewayOperation = `-- name: GetCompletedPrepareCardAuthenticationGatewayOperation :one
+SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
+WHERE payment_intent_id = $1
+AND operation_type = 'prepare_card_authentication'
+AND status = 'completed'
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetCompletedPrepareCardAuthenticationGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
+	row := q.db.QueryRow(ctx, getCompletedPrepareCardAuthenticationGatewayOperation, paymentIntentID)
+	var i GatewayOperation
+	err := row.Scan(
+		&i.ID,
+		&i.PaymentIntentID,
+		&i.InvoiceID,
+		&i.ProjectID,
+		&i.OperationType,
+		&i.GatewayReference,
+		&i.Amount,
+		&i.Currency,
+		&i.Status,
+		&i.RawRequest,
+		&i.RawResponse,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.GatewayAccountID,
+	)
+	return i, err
+}
+
 const getLatestGatewayOperation = `-- name: GetLatestGatewayOperation :one
 SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
 WHERE payment_intent_id = $1
@@ -75,101 +170,6 @@ LIMIT 1
 
 func (q *Queries) GetLatestGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
 	row := q.db.QueryRow(ctx, getLatestGatewayOperation, paymentIntentID)
-	var i GatewayOperation
-	err := row.Scan(
-		&i.ID,
-		&i.PaymentIntentID,
-		&i.InvoiceID,
-		&i.ProjectID,
-		&i.OperationType,
-		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
-		&i.Status,
-		&i.RawRequest,
-		&i.RawResponse,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.GatewayAccountID,
-	)
-	return i, err
-}
-
-const getPayGatewayOperationByPaymentIntentID = `-- name: GetPayGatewayOperationByPaymentIntentID :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
-WHERE payment_intent_id = $1
-AND operation_type = 'pay'
-AND status = 'success'
-LIMIT 1
-`
-
-func (q *Queries) GetPayGatewayOperationByPaymentIntentID(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
-	row := q.db.QueryRow(ctx, getPayGatewayOperationByPaymentIntentID, paymentIntentID)
-	var i GatewayOperation
-	err := row.Scan(
-		&i.ID,
-		&i.PaymentIntentID,
-		&i.InvoiceID,
-		&i.ProjectID,
-		&i.OperationType,
-		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
-		&i.Status,
-		&i.RawRequest,
-		&i.RawResponse,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.GatewayAccountID,
-	)
-	return i, err
-}
-
-const getSuccessfulAuthenticatePayerGatewayOperation = `-- name: GetSuccessfulAuthenticatePayerGatewayOperation :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
-WHERE payment_intent_id = $1
-AND operation_type = 'authenticate_payer'
-AND status = 'success'
-ORDER BY created_at DESC
-LIMIT 1
-`
-
-func (q *Queries) GetSuccessfulAuthenticatePayerGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
-	row := q.db.QueryRow(ctx, getSuccessfulAuthenticatePayerGatewayOperation, paymentIntentID)
-	var i GatewayOperation
-	err := row.Scan(
-		&i.ID,
-		&i.PaymentIntentID,
-		&i.InvoiceID,
-		&i.ProjectID,
-		&i.OperationType,
-		&i.GatewayReference,
-		&i.Amount,
-		&i.Currency,
-		&i.Status,
-		&i.RawRequest,
-		&i.RawResponse,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.GatewayAccountID,
-	)
-	return i, err
-}
-
-const getSuccessfulInitiateAuthGatewayOperation = `-- name: GetSuccessfulInitiateAuthGatewayOperation :one
-SELECT id, payment_intent_id, invoice_id, project_id, operation_type, gateway_reference, amount, currency, status, raw_request, raw_response, created_at, updated_at, deleted_at, gateway_account_id FROM gateway_operations
-WHERE payment_intent_id = $1
-AND operation_type = 'initiate_authentication'
-AND status = 'success'
-ORDER BY created_at DESC
-LIMIT 1
-`
-
-func (q *Queries) GetSuccessfulInitiateAuthGatewayOperation(ctx context.Context, paymentIntentID uuid.UUID) (GatewayOperation, error) {
-	row := q.db.QueryRow(ctx, getSuccessfulInitiateAuthGatewayOperation, paymentIntentID)
 	var i GatewayOperation
 	err := row.Scan(
 		&i.ID,

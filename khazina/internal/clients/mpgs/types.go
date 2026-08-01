@@ -453,7 +453,7 @@ type (
 
 	RetrieveTransactionOrder struct {
 		Amount                decimal.Decimal                  `json:"amount"`
-		AuthenticationStatus  string                           `json:"authenticationStatus"` // "AUTHENTICATION_SUCCESSFUL", "AUTHENTICATION_PENDING"
+		AuthenticationStatus  AuthStatus                       `json:"authenticationStatus"`
 		Chargeback            RetrieveTransactionChargeback    `json:"chargeback"`
 		CreationTime          string                           `json:"creationTime"`
 		Currency              string                           `json:"currency"`

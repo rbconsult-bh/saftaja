@@ -175,6 +175,62 @@ func (mcg *mpgsCardGateway) AuthenticateCardholder(ctx context.Context, r Authen
 }
 
 func (mcg *mpgsCardGateway) GetCardAuthenticationResult(ctx context.Context, r GetCardAuthenticationResultGatewayRequest) (*PreparedGetCardAuthenticationResultGatewayRequest, error) {
-	// TODO: retrieve the MPGS authentication transaction and map its result.
-	return nil, fmt.Errorf("get card authentication result is not implemented")
+	return &PreparedGetCardAuthenticationResultGatewayRequest{
+		RawRequest: nil,
+		send: func(ctx context.Context) (*GetCardAuthenticationResultGatewayResponse, error) {
+			resp, err := mcg.client.RetrieveTransaction(
+				ctx,
+				r.InvoiceID.String(),
+				string(r.AuthenticationReference),
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve authentication transaction: %w", err)
+			}
+
+			result := mapMPGSCardAuthenticationResult(r, resp.Data)
+			return &GetCardAuthenticationResultGatewayResponse{
+				Result:      result,
+				RawResponse: resp.RawBody,
+			}, nil
+		},
+	}, nil
+}
+
+func mapMPGSCardAuthenticationResult(
+	r GetCardAuthenticationResultGatewayRequest,
+	resp mpgsclient.RetrieveTransactionResponse,
+) CardAuthenticationResult {
+	if resp.Order.ID != r.InvoiceID.String() ||
+		resp.Transaction.ID != string(r.AuthenticationReference) ||
+		resp.Transaction.Type != mpgsclient.TypeAuthentication ||
+		!resp.Order.Amount.Equal(r.Amount) ||
+		!resp.Transaction.Amount.Equal(r.Amount) ||
+		resp.Order.Currency != r.Currency ||
+		resp.Transaction.Currency != r.Currency ||
+		(resp.Order.AuthenticationStatus != "" &&
+			resp.Order.AuthenticationStatus != resp.Transaction.AuthenticationStatus) {
+		return CardAuthenticationResultCantContinue
+	}
+
+	authenticationStatus := resp.Transaction.AuthenticationStatus
+	switch {
+	case resp.Result == mpgsclient.ResultSuccess &&
+		resp.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed &&
+		(authenticationStatus == mpgsclient.AuthStatusSuccessful ||
+			authenticationStatus == mpgsclient.AuthStatusAttempted):
+		return CardAuthenticationResultProceed
+
+	case resp.Result == mpgsclient.ResultPending &&
+		resp.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationProceed &&
+		authenticationStatus == mpgsclient.AuthStatusPending:
+		return CardAuthenticationResultPending
+
+	case (resp.Result == mpgsclient.ResultPending || resp.Result == mpgsclient.ResultUnknown) &&
+		resp.Response.GatewayRecommendation == mpgsclient.GatewayRecommendationCheckTransactionStatusLater &&
+		authenticationStatus == mpgsclient.AuthStatusPending:
+		return CardAuthenticationResultPending
+
+	default:
+		return CardAuthenticationResultCantContinue
+	}
 }

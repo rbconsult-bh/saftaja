@@ -199,6 +199,7 @@ const (
 
 type (
 	PrepareCardAuthenticationRequest struct {
+		// TODO: use PaymentIntentRef
 		ProjectID       uuid.UUID
 		InvoiceID       uuid.UUID
 		PaymentIntentID uuid.UUID

@@ -76,8 +76,8 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		return nil, fmt.Errorf("no gateway operation found: %w", err)
 	}
 
-	if lastOp.Status != TransactionStatusSuccess {
-		return nil, fmt.Errorf("previous gateway operation not successful")
+	if lastOp.Status != TransactionStatusCompleted {
+		return nil, fmt.Errorf("previous gateway operation not completed")
 	}
 
 	account, err := s.queries.GetGatewayAccountByPaymentIntentID(ctx, session.ID)
@@ -144,7 +144,7 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 		InvoiceID:        invoice.ID,
 		ProjectID:        invoice.ProjectID,
 		GatewayAccountID: account.GatewayAccountID,
-		OperationType:    TransactionTypeAuthenticatePayer,
+		OperationType:    TransactionTypeAuthenticateCardholder,
 		GatewayReference: lastOp.GatewayReference,
 		Amount:           invoice.Amount,
 		Currency:         invoice.Currency,
@@ -156,23 +156,24 @@ func (s *service) ProcessAuth(ctx context.Context, req *ProcessAuthRequest) (*Pr
 
 	resp, err := mpgsCli.AuthenticatePayer(ctx, invoice.ID.String(), lastOp.GatewayReference, mpgsReq)
 	if err != nil {
+		if updateErr := s.queries.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
+			ID:     dbOp.ID,
+			Status: TransactionStatusErrored,
+		}); updateErr != nil {
+			return nil, fmt.Errorf("failed to record errored gateway operation: %w", updateErr)
+		}
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
-	}
-
-	status := TransactionStatusFailed
-	if resp.Data.Result == mpgsclient.ResultPending || resp.Data.Result == mpgsclient.ResultSuccess {
-		status = TransactionStatusSuccess
 	}
 
 	if err := s.queries.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
 		ID:          dbOp.ID,
-		Status:      status,
+		Status:      TransactionStatusCompleted,
 		RawResponse: resp.RawBody,
 	}); err != nil {
 		return nil, fmt.Errorf("failed to update gateway operation: %w", err)
 	}
 
-	if status == TransactionStatusSuccess {
+	if resp.Data.Result == mpgsclient.ResultPending || resp.Data.Result == mpgsclient.ResultSuccess {
 		if err := s.queries.UpdatePaymentIntentStatus(ctx, store.UpdatePaymentIntentStatusParams{
 			ID:     session.ID,
 			Status: PaymentIntentStatusReadyToCapture,
@@ -237,8 +238,8 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		return nil, &InvoiceAlreadyPaidError{InvoiceID: invoice.ID.String()}
 	}
 
-	existingOp, err := s.queries.GetPayGatewayOperationByPaymentIntentID(ctx, session.ID)
-	if err == nil && existingOp.Status == TransactionStatusSuccess {
+	existingOp, err := s.queries.GetCompletedCapturePaymentGatewayOperationByPaymentIntentID(ctx, session.ID)
+	if err == nil && existingOp.Status == TransactionStatusCompleted {
 		return &FinalizePaymentResult{
 			Success:     true,
 			ResultCode:  ResultSuccess,
@@ -246,7 +247,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		}, nil
 	}
 
-	authOp, err := s.queries.GetSuccessfulAuthenticatePayerGatewayOperation(ctx, session.ID)
+	authOp, err := s.queries.GetCompletedAuthenticateCardholderGatewayOperation(ctx, session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("authentication missing: %w", err)
 	}
@@ -293,7 +294,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 		InvoiceID:        invoice.ID,
 		ProjectID:        invoice.ProjectID,
 		GatewayAccountID: account.GatewayAccountID,
-		OperationType:    TransactionTypePay,
+		OperationType:    TransactionTypeCapturePayment,
 		GatewayReference: gatewayTxID.String(),
 		Amount:           invoice.Amount,
 		Currency:         invoice.Currency,
@@ -305,6 +306,12 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 	resp, err := mpgsCli.ExecutePay(ctx, invoice.ID.String(), gatewayTxID.String(), mpgsReq)
 	if err != nil {
+		if updateErr := s.queries.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
+			ID:     dbOp.ID,
+			Status: TransactionStatusErrored,
+		}); updateErr != nil {
+			return nil, fmt.Errorf("failed to record errored gateway operation: %w", updateErr)
+		}
 		return nil, &GatewayError{Gateway: "mpgs", Err: err}
 	}
 
@@ -327,7 +334,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 
 		if err := qtx.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
 			ID:          dbOp.ID,
-			Status:      TransactionStatusSuccess,
+			Status:      TransactionStatusCompleted,
 			RawResponse: resp.RawBody,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update gateway operation: %w", err)
@@ -349,7 +356,7 @@ func (s *service) FinalizePayment(ctx context.Context, req *FinalizePaymentReque
 	} else {
 		if err := qtx.UpdateGatewayOperationStatus(ctx, store.UpdateGatewayOperationStatusParams{
 			ID:          dbOp.ID,
-			Status:      TransactionStatusFailed,
+			Status:      TransactionStatusCompleted,
 			RawResponse: resp.RawBody,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to update gateway operation: %w", err)

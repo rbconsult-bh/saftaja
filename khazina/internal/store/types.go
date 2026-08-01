@@ -43,15 +43,16 @@ const (
 type GatewayOperationType string
 
 const (
-	GatewayOperationTypeInitiateAuth      GatewayOperationType = "initiate_authentication"
-	GatewayOperationTypeAuthenticatePayer GatewayOperationType = "authenticate_payer"
-	GatewayOperationTypePay               GatewayOperationType = "pay"
+	GatewayOperationTypePrepareCardAuthentication   GatewayOperationType = "prepare_card_authentication"
+	GatewayOperationTypeAuthenticateCardholder      GatewayOperationType = "authenticate_cardholder"
+	GatewayOperationTypeGetCardAuthenticationResult GatewayOperationType = "get_card_authentication_result"
+	GatewayOperationTypeCapturePayment              GatewayOperationType = "capture_payment"
 )
 
 type GatewayOperationStatus string
 
 const (
-	GatewayOperationStatusPending GatewayOperationStatus = "pending"
-	GatewayOperationStatusSuccess GatewayOperationStatus = "success"
-	GatewayOperationStatusFailed  GatewayOperationStatus = "failed"
+	GatewayOperationStatusPending   GatewayOperationStatus = "pending"
+	GatewayOperationStatusCompleted GatewayOperationStatus = "completed"
+	GatewayOperationStatusErrored   GatewayOperationStatus = "errored"
 )
